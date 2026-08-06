@@ -1,0 +1,29 @@
+HELP.md
+.codegraph/
+.claude/
+.mcp.json
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+build/
+
+### VS Code ###
+.vscode/
+/.apt_generated_tests/
