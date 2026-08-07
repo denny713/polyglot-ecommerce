@@ -15,6 +15,16 @@
 #
 # Any other argument is forwarded to `docker compose up -d`.
 
+# Re-exec under a real bash. `sh build.sh` runs this file with /bin/sh, which is
+# bash in POSIX mode on macOS and dash on most Linux distros — neither runs the
+# arrays and [[ ]] below the way this script expects. Keep this block
+# POSIX-clean: it is parsed by whatever shell started the script, before the
+# `set -o pipefail` on the next line (which dash does not support).
+if [ -z "${BASH_VERSION:-}" ] || [ -n "${POSIXLY_CORRECT:-}" ]; then
+  unset POSIXLY_CORRECT
+  exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 # Resolve paths relative to this script so it works from any working directory.
@@ -123,6 +133,7 @@ if [[ "$run_init" == true ]]; then
     info "provisioning Keycloak (app/init/keycloak-init.sh)"
     # Same env resolution as compose, so the script talks to Keycloak with the
     # credentials the container was actually started with.
+    init_status=0
     (
       if [[ -f "$SCRIPT_DIR/.env" ]]; then
         set -a
@@ -131,7 +142,17 @@ if [[ "$run_init" == true ]]; then
         set +a
       fi
       exec "$KEYCLOAK_INIT"
-    )
+    ) || init_status=$?
+
+    # Don't let a provisioning failure scroll past as "build finished": by this
+    # point the containers are already up, so the stack looks fine while the
+    # realm, clients, roles and users silently do not exist.
+    if ((init_status != 0)); then
+      warn "Keycloak provisioning FAILED (exit $init_status) — the realm was not created"
+      warn "the containers are still running; fix the error above, then re-run:"
+      warn "  ./app/init/keycloak-init.sh"
+      exit "$init_status"
+    fi
   fi
 else
   info "skipping Keycloak provisioning (run ./app/init/keycloak-init.sh manually)"

@@ -1,10 +1,13 @@
 #!/bin/bash
 #
-# Create the databases this stack needs inside the shared Postgres instance:
+# Create the extra databases this stack needs inside the shared Postgres
+# instance:
 #
-#   ecommerce  - the application schema
 #   keycloak   - Keycloak manages ~90 tables of its own, so it gets its own
 #                database rather than sharing the application schema
+#
+# The database named by POSTGRES_DB is created by the Postgres entrypoint
+# itself, so it is deliberately not listed here.
 #
 # Each database is validated first and only created when it is missing, so the
 # script is safe to re-run.
@@ -17,7 +20,6 @@
 set -euo pipefail
 
 databases=(
-  "${ECOMMERCE_DB:-${POSTGRES_DB:-ecommerce}}"
   "${KEYCLOAK_DB:-keycloak}"
 )
 

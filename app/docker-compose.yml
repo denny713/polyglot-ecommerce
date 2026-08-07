@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
-      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
       PGDATA: /var/lib/postgresql/data/pgdata
       KEYCLOAK_DB: ${KEYCLOAK_DB:-keycloak}
     ports:
@@ -18,7 +18,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ecommerce}",
+          "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}",
         ]
       interval: 10s
       timeout: 5s
