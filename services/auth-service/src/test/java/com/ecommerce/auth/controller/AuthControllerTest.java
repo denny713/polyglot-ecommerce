@@ -6,30 +6,45 @@ import jakarta.ws.rs.core.MediaType;
 import org.junit.jupiter.api.Test;
 
 import com.ecommerce.auth.dao.IdentityProviderDao;
+import com.ecommerce.auth.dao.SessionTerminationDao;
+import com.ecommerce.auth.exception.AccountDisabledException;
 import com.ecommerce.auth.exception.AccountLockedException;
 import com.ecommerce.auth.exception.IdentityProviderUnavailableException;
 import com.ecommerce.auth.exception.InvalidCredentialsException;
+import com.ecommerce.auth.exception.InvalidRefreshTokenException;
 import com.ecommerce.auth.model.AuthToken;
+import com.ecommerce.auth.model.RefreshToken;
 import com.ecommerce.auth.model.UserCredentials;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests the login endpoint without starting Keycloak.
+ * Tests the HTTP layer — routing, status codes, JSON shape and the exception
+ * mappers — without starting Keycloak.
  *
  * <p>
- * This is possible precisely because the controller depends on an interface: only
- * {@link IdentityProviderDao} needs to be mocked, everything else runs as-is.
+ * This is possible precisely because the controller depends on interfaces: only
+ * {@link IdentityProviderDao} and {@link SessionTerminationDao} need to be
+ * mocked, everything between them and the socket runs as-is.
  */
 @QuarkusTest
 class AuthControllerTest {
 
         @InjectMock
         IdentityProviderDao identityProviderDao;
+
+        @InjectMock
+        SessionTerminationDao sessionTerminationDao;
+
+        // ------------------------------------------------------------------
+        // POST /api/auth/login
+        // ------------------------------------------------------------------
 
         @Test
         void shouldReturnTokenWhenCredentialsAreValid() {
@@ -86,6 +101,22 @@ class AuthControllerTest {
         }
 
         @Test
+        void shouldReturn403WhenAccountIsDisabled() {
+                when(identityProviderDao.authenticate(any(UserCredentials.class)))
+                                .thenThrow(new AccountDisabledException("disabled"));
+
+                given()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body("""
+                                                {"username":"adminapp","password":"P@ssw0rd"}
+                                                """)
+                                .when().post("/api/auth/login")
+                                .then()
+                                .statusCode(403)
+                                .body("error", equalTo("ACCOUNT_DISABLED"));
+        }
+
+        @Test
         void shouldReturn503WhenKeycloakIsUnreachable() {
                 when(identityProviderDao.authenticate(any(UserCredentials.class)))
                                 .thenThrow(new IdentityProviderUnavailableException("down"));
@@ -115,5 +146,76 @@ class AuthControllerTest {
                                 .body("details", hasSize(2))
                                 .body("details[0].field", equalTo("password"))
                                 .body("details[1].field", equalTo("username"));
+        }
+
+        // ------------------------------------------------------------------
+        // POST /api/auth/logout
+        // ------------------------------------------------------------------
+
+        @Test
+        void shouldReturn204WhenSessionIsEnded() {
+                given()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body("""
+                                                {"refreshToken":"refresh-token"}
+                                                """)
+                                .when().post("/api/auth/logout")
+                                .then()
+                                .statusCode(204);
+
+                verify(sessionTerminationDao).revoke(new RefreshToken("refresh-token"));
+        }
+
+        /**
+         * Logout is idempotent: a session that has already ended is the outcome the
+         * caller asked for, so the answer must be indistinguishable from the happy
+         * path — otherwise the endpoint tells an attacker whether a stolen refresh
+         * token is still live.
+         */
+        @Test
+        void shouldReturn204WhenSessionHasAlreadyEnded() {
+                doThrow(new InvalidRefreshTokenException("expired"))
+                                .when(sessionTerminationDao).revoke(any(RefreshToken.class));
+
+                given()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body("""
+                                                {"refreshToken":"already-revoked"}
+                                                """)
+                                .when().post("/api/auth/logout")
+                                .then()
+                                .statusCode(204);
+        }
+
+        @Test
+        void shouldReturn503WhenKeycloakIsUnreachableOnLogout() {
+                doThrow(new IdentityProviderUnavailableException("down"))
+                                .when(sessionTerminationDao).revoke(any(RefreshToken.class));
+
+                given()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body("""
+                                                {"refreshToken":"refresh-token"}
+                                                """)
+                                .when().post("/api/auth/logout")
+                                .then()
+                                .statusCode(503)
+                                .body("error", equalTo("IDENTITY_PROVIDER_UNAVAILABLE"));
+        }
+
+        @Test
+        void shouldReturn400WhenRefreshTokenIsBlank() {
+                given()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body("""
+                                                {"refreshToken":""}
+                                                """)
+                                .when().post("/api/auth/logout")
+                                .then()
+                                .statusCode(400)
+                                .body("error", equalTo("VALIDATION_ERROR"))
+                                .body("details", hasSize(1))
+                                .body("details[0].field", equalTo("refreshToken"))
+                                .body("details[0].message", equalTo("refreshToken is required"));
         }
 }
