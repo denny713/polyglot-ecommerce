@@ -3,6 +3,7 @@ package com.ecommerce.auth.service;
 import com.ecommerce.auth.exception.AuthenticationException;
 import com.ecommerce.auth.exception.IdentityProviderUnavailableException;
 import com.ecommerce.auth.model.AuthToken;
+import com.ecommerce.auth.model.RefreshToken;
 import com.ecommerce.auth.model.UserCredentials;
 
 /**
@@ -27,4 +28,18 @@ public interface AuthenticationService {
      * @throws IdentityProviderUnavailableException the identity provider is unavailable
      */
     AuthToken doLogin(UserCredentials credentials);
+
+    /**
+     * Ends the session the refresh token belongs to.
+     *
+     * <p>
+     * Idempotent by design: asking to end a session that already ended is not an
+     * error, so this method returns normally when the identity provider rejects
+     * the token as expired or unknown. The caller asked for "no active session"
+     * and that is what it gets either way.
+     *
+     * @param refreshToken the refresh token issued at login
+     * @throws IdentityProviderUnavailableException the identity provider is unavailable
+     */
+    void doLogout(RefreshToken refreshToken);
 }

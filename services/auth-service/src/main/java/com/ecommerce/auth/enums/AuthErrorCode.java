@@ -25,5 +25,10 @@ public enum AuthErrorCode {
     /**
      * The account exists but is disabled, or has pending required actions.
      */
-    ACCOUNT_DISABLED
+    ACCOUNT_DISABLED,
+
+    /**
+     * The refresh token is expired, unknown, or already revoked.
+     */
+    INVALID_REFRESH_TOKEN
 }

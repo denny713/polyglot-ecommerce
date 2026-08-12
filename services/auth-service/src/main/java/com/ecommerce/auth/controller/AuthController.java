@@ -1,8 +1,9 @@
 package com.ecommerce.auth.controller;
 
 import com.ecommerce.auth.dto.request.LoginRequest;
+import com.ecommerce.auth.dto.request.LogoutRequest;
 import com.ecommerce.auth.mapper.LoginResponseMapper;
-import com.ecommerce.auth.model.AuthToken;
+import com.ecommerce.auth.model.RefreshToken;
 import com.ecommerce.auth.model.UserCredentials;
 import com.ecommerce.auth.service.AuthenticationService;
 import jakarta.inject.Inject;
@@ -52,5 +53,31 @@ public class AuthController {
     public Response login(@Valid LoginRequest request) {
         return Response.ok(loginResponseMapper.toResponse(authenticationService.doLogin(
                 new UserCredentials(request.username(), request.password())))).build();
+    }
+
+    /**
+     * Ends the session the refresh token belongs to.
+     *
+     * <p>
+     * Answers {@code 204 No Content} — there is nothing meaningful to return, and
+     * the same answer is given whether the session was live or had already
+     * expired: logout is idempotent, and a distinguishable response would let a
+     * caller probe whether a refresh token is still valid.
+     *
+     * <p>
+     * The access token issued alongside the refresh token stays valid until it
+     * expires, because a JWT cannot be recalled. Clients must discard both tokens
+     * after calling this.
+     *
+     * @param request the logout request containing the refresh token
+     * @return an empty {@code 204} response
+     * @throws jakarta.validation.ConstraintViolationException                   if the request is invalid
+     * @throws com.ecommerce.auth.exception.IdentityProviderUnavailableException if Keycloak is unavailable
+     */
+    @POST
+    @Path("/logout")
+    public Response logout(@Valid LogoutRequest request) {
+        authenticationService.doLogout(new RefreshToken(request.refreshToken()));
+        return Response.noContent().build();
     }
 }

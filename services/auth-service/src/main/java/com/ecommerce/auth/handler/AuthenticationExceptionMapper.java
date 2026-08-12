@@ -33,7 +33,7 @@ public class AuthenticationExceptionMapper implements ExceptionMapper<Authentica
 
     private Response.Status statusOf(AuthErrorCode errorCode) {
         return switch (errorCode) {
-            case INVALID_CREDENTIALS -> Response.Status.UNAUTHORIZED;   // 401
+            case INVALID_CREDENTIALS, INVALID_REFRESH_TOKEN -> Response.Status.UNAUTHORIZED;   // 401
             case ACCOUNT_LOCKED -> Response.Status.TOO_MANY_REQUESTS;   // 429
             case ACCOUNT_DISABLED -> Response.Status.FORBIDDEN;         // 403
         };
