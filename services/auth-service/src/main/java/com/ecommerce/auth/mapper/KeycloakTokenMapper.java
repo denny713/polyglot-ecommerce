@@ -6,12 +6,12 @@ import com.ecommerce.auth.model.AuthToken;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * Mengubah response Keycloak menjadi model domain.
+ * Converts a Keycloak response into the domain model.
  *
  * <p>
- * Dipisah dari DAO supaya masing-masing punya satu alasan untuk berubah
- * (Single Responsibility Principle): DAO berubah kalau cara memanggilnya
- * berubah, mapper berubah kalau bentuk payload-nya berubah.
+ * Kept separate from the DAO so that each has a single reason to change (Single
+ * Responsibility Principle): the DAO changes when the way it is called changes,
+ * the mapper changes when the payload shape changes.
  */
 @ApplicationScoped
 public class KeycloakTokenMapper {

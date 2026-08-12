@@ -4,11 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Body sukses dari {@code POST /realms/{realm}/protocol/openid-connect/token}.
+ * Success body returned by
+ * {@code POST /realms/{realm}/protocol/openid-connect/token}.
  *
  * <p>
- * DTO ini milik layer infrastruktur — bentuknya mengikuti Keycloak, bukan
- * mengikuti kebutuhan domain. Konversinya ke {@code AuthToken} ada di
+ * This DTO belongs to the infrastructure layer — its shape follows Keycloak, not
+ * the needs of the domain. The conversion to {@code AuthToken} lives in
  * {@code KeycloakTokenMapper}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

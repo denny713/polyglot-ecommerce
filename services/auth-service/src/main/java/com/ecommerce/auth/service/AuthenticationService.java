@@ -6,24 +6,25 @@ import com.ecommerce.auth.model.AuthToken;
 import com.ecommerce.auth.model.UserCredentials;
 
 /**
- * Kontrak business logic autentikasi — inilah yang dipakai controller.
+ * Contract for the authentication business logic — this is what the controller
+ * uses.
  *
  * <p>
- * Bekerja dengan model domain ({@link UserCredentials}, {@link AuthToken}),
- * bukan dengan DTO HTTP, supaya logikanya bisa dipakai ulang dari pemicu lain
- * (gRPC, message consumer, scheduled job) tanpa membawa-bawa JAX-RS.
+ * It works with domain models ({@link UserCredentials}, {@link AuthToken}) rather
+ * than HTTP DTOs, so the logic can be reused from other triggers (gRPC, a message
+ * consumer, a scheduled job) without dragging JAX-RS along.
  *
  * @see com.ecommerce.auth.service.impl.DefaultAuthenticationService
  */
 public interface AuthenticationService {
 
     /**
-     * Melakukan login dengan username dan password.
+     * Performs a login with a username and password.
      *
-     * @param credentials kredensial pengguna
-     * @return token yang diterbitkan identity provider
-     * @throws AuthenticationException              kredensial ditolak
-     * @throws IdentityProviderUnavailableException identity provider tidak tersedia
+     * @param credentials the user's credentials
+     * @return the token issued by the identity provider
+     * @throws AuthenticationException              the credentials were rejected
+     * @throws IdentityProviderUnavailableException the identity provider is unavailable
      */
     AuthToken doLogin(UserCredentials credentials);
 }

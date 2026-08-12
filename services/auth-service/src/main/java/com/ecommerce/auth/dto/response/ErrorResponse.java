@@ -6,13 +6,13 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Bentuk body error yang seragam untuk seluruh endpoint service ini.
+ * Uniform error body shape used by every endpoint in this service.
  *
  * @param status    HTTP status code
- * @param error     kode error yang stabil dan bisa dibaca mesin, mis. {@code INVALID_CREDENTIALS}
- * @param message   penjelasan singkat untuk manusia
- * @param details   daftar error per-field; hanya terisi untuk kegagalan validasi
- * @param timestamp waktu server saat error dibuat
+ * @param error     stable, machine-readable error code, e.g. {@code INVALID_CREDENTIALS}
+ * @param message   short human-readable explanation
+ * @param details   per-field error list; only populated for validation failures
+ * @param timestamp server time at which the error was created
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ErrorResponse(
@@ -30,7 +30,9 @@ public record ErrorResponse(
         return new ErrorResponse(status, error, message, details, Instant.now());
     }
 
-    /** Satu pelanggaran validasi pada satu field. */
+    /**
+     * A single validation violation on a single field.
+     */
     public record FieldError(String field, String message) {
     }
 }

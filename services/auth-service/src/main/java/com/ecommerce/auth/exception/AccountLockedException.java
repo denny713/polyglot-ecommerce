@@ -1,8 +1,10 @@
 package com.ecommerce.auth.exception;
 
+import com.ecommerce.auth.enums.AuthErrorCode;
+
 /**
- * Akun terkunci sementara karena terlalu banyak percobaan login gagal
- * (brute force detection realm {@code ecommerce}).
+ * The account is temporarily locked because of too many failed login attempts
+ * (brute force detection on the {@code ecommerce} realm).
  */
 public class AccountLockedException extends AuthenticationException {
 

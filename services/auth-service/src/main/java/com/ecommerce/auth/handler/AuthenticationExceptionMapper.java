@@ -1,20 +1,20 @@
-package com.ecommerce.auth.exception.handler;
+package com.ecommerce.auth.handler;
 
 import com.ecommerce.auth.dto.response.ErrorResponse;
-import com.ecommerce.auth.exception.AuthErrorCode;
+import com.ecommerce.auth.enums.AuthErrorCode;
 import com.ecommerce.auth.exception.AuthenticationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
 /**
- * Menerjemahkan seluruh turunan {@link AuthenticationException} menjadi response
- * HTTP — padanan {@code @RestControllerAdvice} di Spring Boot.
+ * Translates every subclass of {@link AuthenticationException} into an HTTP
+ * response — the equivalent of {@code @RestControllerAdvice} in Spring Boot.
  *
- * <p>Cukup satu mapper untuk semua turunannya: yang dibaca hanya
- * {@link AuthenticationException#errorCode()}, bukan tipe konkretnya. Menambah
- * jenis kegagalan baru berarti menambah satu {@code case} di sini, bukan
- * menyentuh controller (Open/Closed Principle).
+ * <p>A single mapper is enough for all subclasses: it only reads
+ * {@link AuthenticationException#errorCode()}, never the concrete type. Adding a
+ * new kind of failure means adding one {@code case} here, not touching the
+ * controller (Open/Closed Principle).
  */
 @Provider
 public class AuthenticationExceptionMapper implements ExceptionMapper<AuthenticationException> {

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Body error dari endpoint token Keycloak, mis.
+ * Error body returned by the Keycloak token endpoint, e.g.
  * {@code {"error":"invalid_grant","error_description":"Invalid user credentials"}}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

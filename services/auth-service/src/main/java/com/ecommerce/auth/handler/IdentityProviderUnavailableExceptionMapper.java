@@ -1,4 +1,4 @@
-package com.ecommerce.auth.exception.handler;
+package com.ecommerce.auth.handler;
 
 import com.ecommerce.auth.dto.response.ErrorResponse;
 import com.ecommerce.auth.exception.IdentityProviderUnavailableException;
@@ -7,10 +7,10 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
 /**
- * Keycloak mati atau tidak menjawab: 503, bukan 401.
+ * Keycloak is down or not responding: 503, not 401.
  *
- * <p>Membedakan keduanya penting — 401 memberi tahu klien bahwa kredensialnya
- * salah, padahal masalahnya ada di sisi kita.
+ * <p>Telling the two apart matters — a 401 would tell the client its credentials
+ * were wrong when the problem is actually on our side.
  */
 @Provider
 public class IdentityProviderUnavailableExceptionMapper

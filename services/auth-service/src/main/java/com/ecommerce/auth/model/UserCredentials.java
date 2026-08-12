@@ -1,17 +1,17 @@
 package com.ecommerce.auth.model;
 
 /**
- * Kredensial yang dipakai untuk proses login.
+ * The credentials used during login.
  *
  * <p>
- * Ini adalah model domain, bukan entity JPA: sumber kebenaran username dan
- * password ada di Keycloak (tabel {@code USER_ENTITY} / {@code CREDENTIAL} pada
- * database {@code keycloak}), dan service ini tidak pernah membaca tabel itu
- * secara langsung — lihat {@code com.mycompany.auth.dao.IdentityProviderDao}.
+ * This is a domain model, not a JPA entity: the source of truth for usernames and
+ * passwords is Keycloak (the {@code USER_ENTITY} / {@code CREDENTIAL} tables in the
+ * {@code keycloak} database), and this service never reads those tables directly —
+ * see {@code com.ecommerce.auth.dao.IdentityProviderDao}.
  *
  * <p>
- * {@link #toString()} sengaja ditimpa supaya password tidak pernah ikut
- * tercetak di log.
+ * {@link #toString()} is deliberately overridden so that the password is never
+ * printed to the logs.
  */
 public record UserCredentials(String username, String password) {
 

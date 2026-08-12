@@ -5,11 +5,11 @@ import com.ecommerce.auth.model.AuthToken;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * Mengubah model domain {@link AuthToken} menjadi DTO response.
+ * Converts the {@link AuthToken} domain model into a response DTO.
  *
- * <p>Padanan mapper request/response di project Spring Boot-mu — ditulis manual
- * karena field-nya sedikit; kalau nanti banyak, tinggal ganti isinya dengan
- * MapStruct tanpa mengubah pemanggilnya.
+ * <p>The equivalent of the request/response mappers in a Spring Boot project —
+ * written by hand because there are only a few fields; if that grows, the body can
+ * be swapped for MapStruct without changing any caller.
  */
 @ApplicationScoped
 public class LoginResponseMapper {

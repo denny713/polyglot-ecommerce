@@ -1,12 +1,13 @@
 package com.ecommerce.auth.exception;
 
 /**
- * Keycloak tidak bisa dihubungi, timeout, atau membalas dengan error yang bukan
- * soal kredensial (5xx, response tidak terbaca).
+ * Keycloak could not be reached, timed out, or answered with an error unrelated
+ * to credentials (5xx, unreadable response).
  *
  * <p>
- * Sengaja tidak menurun dari {@link AuthenticationException}: ini kegagalan
- * infrastruktur (HTTP 503), bukan kesalahan kredensial pengguna (HTTP 401).
+ * Deliberately does not extend {@link AuthenticationException}: this is an
+ * infrastructure failure (HTTP 503), not a problem with the user's credentials
+ * (HTTP 401).
  */
 public class IdentityProviderUnavailableException extends RuntimeException {
 

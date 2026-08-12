@@ -12,17 +12,16 @@ import org.jboss.logging.Logger;
 import java.util.Objects;
 
 /**
- * Implementasi default dari {@link AuthenticationService}.
+ * Default implementation of {@link AuthenticationService}.
  *
  * <p>
- * Namanya sengaja bukan "Keycloak...": kelas ini bergantung pada
- * {@link IdentityProviderDao}, bukan pada Keycloak, jadi provider apa pun yang
- * dipasang di baliknya tidak mengubah kelas ini (Dependency Inversion
- * Principle).
+ * It is deliberately not named "Keycloak...": this class depends on
+ * {@link IdentityProviderDao}, not on Keycloak, so whichever provider sits behind
+ * it does not change this class (Dependency Inversion Principle).
  *
  * <p>
- * Constructor injection dipakai supaya dependensinya eksplisit dan kelas ini
- * bisa di-instansiasi langsung di unit test tanpa container CDI.
+ * Constructor injection is used to keep the dependencies explicit and to let the
+ * class be instantiated directly in unit tests without a CDI container.
  */
 @ApplicationScoped
 public class DefaultAuthenticationService implements AuthenticationService {
@@ -46,8 +45,8 @@ public class DefaultAuthenticationService implements AuthenticationService {
             LOG.infof("User '%s' logged in successfully", credentials.username());
             return token;
         } catch (AuthenticationException e) {
-            // Dicatat di sini, bukan di controller: percobaan login gagal adalah
-            // kejadian bisnis (bahan audit trail), bukan sekadar error HTTP.
+            // Logged here, not in the controller: a failed login attempt is a
+            // business event (audit trail material), not merely an HTTP error.
             LOG.warnf("Login failed for user '%s': %s", credentials.username(), e.errorCode());
             throw e;
         }

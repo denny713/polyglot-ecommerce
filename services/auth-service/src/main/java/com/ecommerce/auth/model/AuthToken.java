@@ -1,12 +1,13 @@
 package com.ecommerce.auth.model;
 
 /**
- * Token hasil autentikasi, dalam bentuk yang netral terhadap identity provider.
+ * The token resulting from authentication, in a form that is neutral with respect
+ * to the identity provider.
  *
  * <p>
- * Model domain ini sengaja tidak memakai penamaan snake_case milik OAuth2 /
- * Keycloak. Dengan begitu layer service tidak ikut berubah kalau suatu saat
- * provider-nya diganti (Open/Closed Principle).
+ * This domain model deliberately avoids the snake_case naming used by OAuth2 /
+ * Keycloak. That way the service layer does not have to change if the provider is
+ * ever swapped out (Open/Closed Principle).
  */
 public record AuthToken(
         String accessToken,

@@ -16,19 +16,20 @@ import org.jboss.logging.Logger;
 import java.util.Locale;
 
 /**
- * Menerjemahkan response error Keycloak menjadi exception domain.
+ * Translates Keycloak error responses into domain exceptions.
  *
  * <p>
- * Ini batas antara "bahasa" OAuth2 dan bahasa aplikasi: mulai dari sini ke
- * atas, tidak ada lagi kode yang perlu tahu istilah {@code invalid_grant}.
+ * This is the boundary between the "language" of OAuth2 and the language of the
+ * application: from here upwards, no code needs to know the term
+ * {@code invalid_grant}.
  */
 public class KeycloakErrorResponseMapper implements ResponseExceptionMapper<RuntimeException> {
 
     private static final Logger LOG = Logger.getLogger(KeycloakErrorResponseMapper.class);
 
     /**
-     * Dibuat manual, bukan di-inject: provider rest client di-instansiasi oleh
-     * klien itu sendiri, di luar konteks CDI.
+     * Created manually rather than injected: rest client providers are
+     * instantiated by the client itself, outside of the CDI context.
      */
     private static final ObjectMapper JSON = new ObjectMapper()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
@@ -43,8 +44,8 @@ public class KeycloakErrorResponseMapper implements ResponseExceptionMapper<Runt
         int status = response.getStatus();
         KeycloakErrorResponse error = readError(response);
 
-        // 400 invalid_grant adalah balasan Keycloak untuk password salah;
-        // 401 muncul kalau client_id / client_secret yang ditolak.
+        // A 400 invalid_grant is how Keycloak reports a wrong password;
+        // a 401 shows up when the client_id / client_secret is the rejected part.
         if (status == 400 || status == 401) {
             return toAuthenticationException(error);
         }
@@ -52,29 +53,31 @@ public class KeycloakErrorResponseMapper implements ResponseExceptionMapper<Runt
         LOG.errorf("Keycloak returned HTTP %d (error=%s, description=%s)",
                 status,
                 error == null ? "-" : error.error(),
-                error == null ? "-" : error.errorDescription());
+                error == null ? "-" : error.errorDescription()
+        );
+
         return new IdentityProviderUnavailableException(
                 "Identity provider returned an unexpected response (HTTP " + status + ")");
     }
 
     private RuntimeException toAuthenticationException(KeycloakErrorResponse error) {
         String description = error == null || error.errorDescription() == null
-                ? ""
-                : error.errorDescription();
+                ? "" : error.errorDescription();
         String normalized = description.toLowerCase(Locale.ROOT);
 
-        // Pesan brute force detection: "Account is temporarily disabled...".
-        // Dicek lebih dulu karena juga mengandung kata "disabled".
+        // The brute force detection message: "Account is temporarily disabled...".
+        // Checked first because it also contains the word "disabled".
         if (normalized.contains("temporarily disabled") || normalized.contains("temporarily locked")) {
             return new AccountLockedException(
                     "Account is temporarily locked because of too many failed login attempts");
         }
+
         if (normalized.contains("disabled") || normalized.contains("not fully set up")) {
             return new AccountDisabledException("Account is disabled or not fully set up");
         }
 
-        // Jangan bocorkan apakah username-nya yang salah atau password-nya —
-        // itu jalan pintas untuk enumerasi user.
+        // Never reveal whether it was the username or the password that was wrong —
+        // that is a shortcut to user enumeration.
         return new InvalidCredentialsException("Invalid username or password");
     }
 
@@ -84,6 +87,7 @@ public class KeycloakErrorResponseMapper implements ResponseExceptionMapper<Runt
             if (body == null || body.isBlank()) {
                 return null;
             }
+
             return JSON.readValue(body, KeycloakErrorResponse.class);
         } catch (Exception e) {
             LOG.debugf(e, "Could not parse the error body returned by Keycloak");

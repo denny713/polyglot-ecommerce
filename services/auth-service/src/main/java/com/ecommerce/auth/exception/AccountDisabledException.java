@@ -1,8 +1,10 @@
 package com.ecommerce.auth.exception;
 
+import com.ecommerce.auth.enums.AuthErrorCode;
+
 /**
- * Akun dinonaktifkan, atau profilnya belum lengkap sehingga Keycloak menolak
- * login dengan "Account is not fully set up".
+ * The account is disabled, or its profile is incomplete so that Keycloak rejects
+ * the login with "Account is not fully set up".
  */
 public class AccountDisabledException extends AuthenticationException {
 

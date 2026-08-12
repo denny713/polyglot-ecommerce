@@ -6,36 +6,38 @@ import com.ecommerce.auth.model.AuthToken;
 import com.ecommerce.auth.model.UserCredentials;
 
 /**
- * Kontrak akses ke penyimpanan identitas — padanan {@code Repository} di Spring
- * Data JPA, hanya saja "database"-nya di sini adalah Keycloak.
+ * Contract for accessing the identity store — the equivalent of a
+ * {@code Repository} in Spring Data JPA, except that the "database" here is
+ * Keycloak.
  *
  * <p>
- * <strong>Kenapa bukan JPA langsung ke database keycloak?</strong> Password
- * di tabel {@code CREDENTIAL} disimpan sebagai hash PBKDF2 dengan salt per user
- * dan jumlah iterasi yang disimpan di kolom JSON; skema itu internal dan bisa
- * berubah antar versi Keycloak. Membacanya sendiri juga melewatkan password
- * policy, brute force detection, dan — yang paling penting — tidak menghasilkan
- * access token yang bisa diverifikasi service lain. Karena itu implementasi
- * konkretnya memanggil endpoint token Keycloak.
+ * <strong>Why not use JPA directly against the keycloak database?</strong>
+ * Passwords in the {@code CREDENTIAL} table are stored as PBKDF2 hashes with a
+ * per-user salt and an iteration count kept in a JSON column; that schema is
+ * internal and may change between Keycloak versions. Reading it ourselves would
+ * also bypass the password policy and brute force detection and — most
+ * importantly — would not produce an access token that other services can
+ * verify. That is why the concrete implementation calls the Keycloak token
+ * endpoint instead.
  *
  * <p>
- * Antarmuka ini yang membuat {@code AuthenticationService} bergantung pada
- * abstraksi, bukan pada Keycloak (Dependency Inversion Principle). Method-nya
- * sengaja cuma satu supaya kelas yang hanya butuh login tidak ikut terseret
- * operasi lain (Interface Segregation Principle) — kalau nanti perlu refresh
- * token atau logout, buat interface terpisah.
+ * This interface is what makes {@code AuthenticationService} depend on an
+ * abstraction rather than on Keycloak (Dependency Inversion Principle). It
+ * deliberately declares a single method so that classes which only need login
+ * are not dragged into other operations (Interface Segregation Principle) — if
+ * refresh token or logout support is needed later, create a separate interface.
  *
- * @see com.mycompany.auth.dao.keycloak.KeycloakIdentityProviderDao
+ * @see com.ecommerce.auth.dao.keycloak.KeycloakIdentityProviderDao
  */
 public interface IdentityProviderDao {
 
     /**
-     * Memverifikasi kredensial dan menerbitkan token.
+     * Verifies the credentials and issues a token.
      *
-     * @param credentials username dan password milik pengguna
-     * @return token yang diterbitkan identity provider
-     * @throws AuthenticationException              kredensial ditolak
-     * @throws IdentityProviderUnavailableException provider tidak bisa dihubungi
+     * @param credentials the user's username and password
+     * @return the token issued by the identity provider
+     * @throws AuthenticationException              the credentials were rejected
+     * @throws IdentityProviderUnavailableException the provider could not be reached
      */
     AuthToken authenticate(UserCredentials credentials);
 }

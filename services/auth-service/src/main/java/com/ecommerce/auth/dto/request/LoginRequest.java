@@ -4,11 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Body request {@code POST /api/auth/login}.
+ * Request body for {@code POST /api/auth/login}.
  *
- * <p>DTO ini adalah kontrak HTTP, terpisah dari model domain
- * {@code UserCredentials}. Dengan begitu perubahan bentuk JSON tidak merembet
- * ke service, dan sebaliknya.
+ * <p>This DTO is the HTTP contract, kept separate from the {@code UserCredentials}
+ * domain model. That way changes to the JSON shape do not leak into the service,
+ * and vice versa.
  */
 public record LoginRequest(
 
@@ -20,7 +20,9 @@ public record LoginRequest(
         @Size(max = 255, message = "password must not exceed 255 characters")
         String password) {
 
-    /** Password tidak pernah ikut tercetak, termasuk saat request di-log. */
+    /**
+     * The password is never printed, not even when the request is logged.
+     */
     @Override
     public String toString() {
         return "LoginRequest[username=" + username + ", password=***]";

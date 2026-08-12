@@ -13,24 +13,9 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import com.ecommerce.auth.dao.keycloak.dto.KeycloakTokenResponse;
 
 /**
- * Klien HTTP ke endpoint token Keycloak — padanan {@code JdbcTemplate} /
- * {@code EntityManager}-nya DAO ini: murni transport, tanpa logika bisnis.
- *
- * <p>
- * Setara dengan curl berikut:
- *
- * <pre>{@code
- * curl --location 'http://localhost:8080/realms/ecommerce/protocol/openid-connect/token' \
- *   --header 'Content-Type: application/x-www-form-urlencoded' \
- *   --data-urlencode 'client_id=ecommerce-app' \
- *   --data-urlencode 'grant_type=password' \
- *   --data-urlencode 'username=adminapp' \
- *   --data-urlencode 'password=P@ssw0rd'
- * }</pre>
- *
- * <p>
- * Base URL-nya diambil dari
- * {@code quarkus.rest-client.keycloak-token-api.url}.
+ * HTTP client for the Keycloak token endpoint — this DAO's equivalent of
+ * {@code JdbcTemplate} / {@code EntityManager}: pure transport, no business
+ * logic.
  */
 @Path("/realms")
 @RegisterRestClient(configKey = "keycloak-token-api")

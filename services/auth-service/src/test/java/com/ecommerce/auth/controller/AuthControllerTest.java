@@ -19,11 +19,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
- * Test endpoint login tanpa menyalakan Keycloak.
+ * Tests the login endpoint without starting Keycloak.
  *
  * <p>
- * Bisa begini justru karena controller bergantung pada interface: cukup
- * {@link IdentityProviderDao} yang di-mock, sisanya berjalan apa adanya.
+ * This is possible precisely because the controller depends on an interface: only
+ * {@link IdentityProviderDao} needs to be mocked, everything else runs as-is.
  */
 @QuarkusTest
 class AuthControllerTest {

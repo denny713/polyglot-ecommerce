@@ -1,6 +1,6 @@
 package com.ecommerce.auth.dao.keycloak;
 
-import com.ecommerce.auth.config.KeycloakAuthProperties;
+import com.ecommerce.auth.configuration.KeycloakAuthProperties;
 import com.ecommerce.auth.dao.IdentityProviderDao;
 import com.ecommerce.auth.exception.AuthenticationException;
 import com.ecommerce.auth.exception.IdentityProviderUnavailableException;
@@ -17,12 +17,13 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
 /**
- * Implementasi {@link IdentityProviderDao} yang memakai Resource Owner Password
- * Credentials grant milik Keycloak.
+ * Implementation of {@link IdentityProviderDao} that uses Keycloak's Resource
+ * Owner Password Credentials grant.
  *
- * <p>Hanya kelas inilah — di seluruh service — yang tahu bahwa identity provider
- * yang dipakai adalah Keycloak. Mengganti provider berarti menambah implementasi
- * lain dari interface tersebut, tanpa mengubah service maupun controller.
+ * <p>This is the only class in the entire service that knows the identity
+ * provider in use is Keycloak. Switching providers means adding another
+ * implementation of that interface, without changing the service or the
+ * controller.
  */
 @ApplicationScoped
 public class KeycloakIdentityProviderDao implements IdentityProviderDao {
@@ -45,23 +46,20 @@ public class KeycloakIdentityProviderDao implements IdentityProviderDao {
     @Override
     public AuthToken authenticate(UserCredentials credentials) {
         try {
-            return tokenMapper.toDomain(
-                    tokenClient.requestToken(properties.realm(), buildForm(credentials)));
+            return tokenMapper.toDomain(tokenClient.requestToken(properties.realm(), buildForm(credentials)));
         } catch (AuthenticationException | IdentityProviderUnavailableException e) {
-            // Sudah diterjemahkan KeycloakErrorResponseMapper — teruskan apa adanya.
+            // Already translated by KeycloakErrorResponseMapper — rethrow as-is.
             throw e;
         } catch (ProcessingException | WebApplicationException e) {
-            // Connection refused, timeout, atau body yang tidak bisa dibaca.
-            LOG.errorf(e, "Failed to reach the Keycloak token endpoint for realm '%s'",
-                    properties.realm());
-            throw new IdentityProviderUnavailableException(
-                    "Could not reach the identity provider", e);
+            // Connection refused, a timeout, or a body that could not be read.
+            LOG.errorf(e, "Failed to reach the Keycloak token endpoint for realm '%s'", properties.realm());
+            throw new IdentityProviderUnavailableException("Could not reach the identity provider", e);
         }
     }
 
     /**
-     * Menyusun body {@code application/x-www-form-urlencoded} persis seperti
-     * yang diminta spesifikasi OAuth2 untuk password grant.
+     * Builds the {@code application/x-www-form-urlencoded} body exactly as the
+     * OAuth2 specification requires for the password grant.
      */
     private MultivaluedMap<String, String> buildForm(UserCredentials credentials) {
         MultivaluedMap<String, String> form = new MultivaluedHashMap<>();
@@ -70,8 +68,8 @@ public class KeycloakIdentityProviderDao implements IdentityProviderDao {
         form.putSingle("username", credentials.username());
         form.putSingle("password", credentials.password());
 
-        // Public client seperti ecommerce-app tidak punya secret; confidential
-        // client wajib mengirimkannya.
+        // A public client such as ecommerce-app has no secret; a confidential
+        // client is required to send one.
         properties.clientSecret()
                 .filter(secret -> !secret.isBlank())
                 .ifPresent(secret -> form.putSingle("client_secret", secret));

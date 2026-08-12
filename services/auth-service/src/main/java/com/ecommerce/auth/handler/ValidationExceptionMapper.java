@@ -1,4 +1,4 @@
-package com.ecommerce.auth.exception.handler;
+package com.ecommerce.auth.handler;
 
 import com.ecommerce.auth.dto.response.ErrorResponse;
 import io.quarkus.hibernate.validator.runtime.jaxrs.ResteasyReactiveViolationException;
@@ -13,14 +13,14 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Menyeragamkan bentuk response untuk kegagalan {@code @Valid} pada DTO request,
- * mis. username atau password kosong.
+ * Normalizes the response shape for {@code @Valid} failures on request DTOs, e.g.
+ * a blank username or password.
  *
- * <p>Yang dipetakan adalah {@code ResteasyReactiveViolationException} — bukan
- * {@code ConstraintViolationException} induknya — karena Quarkus sudah punya
- * mapper bawaan untuk tipe itu, dan JAX-RS selalu memilih mapper yang paling
- * spesifik terhadap tipe yang benar-benar dilempar. {@link Priority} dengan
- * {@link Priorities#USER} memastikan mapper ini yang dipakai.
+ * <p>It maps {@code ResteasyReactiveViolationException} — not its parent
+ * {@code ConstraintViolationException} — because Quarkus already ships a built-in
+ * mapper for that type, and JAX-RS always picks the mapper most specific to the
+ * type actually thrown. The {@link Priority} of {@link Priorities#USER} makes sure
+ * this mapper is the one used.
  */
 @Provider
 @Priority(Priorities.USER)
@@ -44,8 +44,9 @@ public class ValidationExceptionMapper implements ExceptionMapper<ResteasyReacti
     }
 
     /**
-     * Property path bawaan berbentuk {@code login.request.username} (nama method,
-     * nama parameter, lalu field). Yang berguna bagi klien hanya ruas terakhir.
+     * The default property path looks like {@code login.request.username} (method
+     * name, parameter name, then field). Only the last segment is useful to the
+     * client.
      */
     private String fieldNameOf(ConstraintViolation<?> violation) {
         String path = violation.getPropertyPath().toString();

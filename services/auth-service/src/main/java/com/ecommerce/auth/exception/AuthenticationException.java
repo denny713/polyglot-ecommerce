@@ -1,15 +1,17 @@
 package com.ecommerce.auth.exception;
 
+import com.ecommerce.auth.enums.AuthErrorCode;
+
 import java.util.Objects;
 
 /**
- * Induk dari semua kegagalan autentikasi yang <em>diharapkan</em> — yaitu yang
- * disebabkan oleh input pengguna, bukan oleh error teknis.
+ * Parent of all <em>expected</em> authentication failures — the ones caused by
+ * user input rather than by a technical error.
  *
  * <p>
- * Semua turunannya bisa diperlakukan seragam oleh satu exception mapper
- * (Liskov Substitution Principle): mapper hanya perlu membaca
- * {@link #errorCode()}, tidak perlu tahu kelas konkretnya.
+ * Every subclass can be handled uniformly by a single exception mapper (Liskov
+ * Substitution Principle): the mapper only needs to read {@link #errorCode()}, it
+ * never needs to know the concrete class.
  */
 public abstract class AuthenticationException extends RuntimeException {
 
