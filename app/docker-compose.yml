@@ -82,6 +82,34 @@ services:
     networks:
       - polygot
 
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: src/main/docker/Dockerfile.multistage
+    container_name: auth-service
+    restart: unless-stopped
+    environment:
+      QUARKUS_HTTP_PORT: ${AUTH_SERVICE_PORT:-7110}
+      QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_URL: http://keycloak:8080
+      KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
+      KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
+      KEYCLOAK_AUTH_GRANT_TYPE: password
+    ports:
+      - "${AUTH_SERVICE_PORT:-7110}:${AUTH_SERVICE_PORT:-7110}"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - exec 3<>/dev/tcp/127.0.0.1/${AUTH_SERVICE_PORT:-7110}
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - polygot
+
 volumes:
   postgres-data:
   minio-data:
