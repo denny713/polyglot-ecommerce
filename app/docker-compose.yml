@@ -82,6 +82,21 @@ services:
     networks:
       - polygot
 
+  gateway-service:
+    build:
+      context: ../services/gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-http://host.docker.internal:8081}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${GATEWAY_PORT:-8090}:8080"
+    networks:
+      - polygot
+
   auth-service:
     build:
       context: ../services/auth-service
@@ -107,24 +122,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
-    networks:
-      - polygot
-
-  gateway:
-    build:
-      context: ../services/gateway-service
-      dockerfile: Dockerfile
-    container_name: gateway
-    restart: unless-stopped
-    environment:
-      # auth-service runs on the host (./mvnw quarkus:dev), not in this network,
-      # so the gateway reaches it through the host gateway alias below. Point
-      # this at http://auth-service:8080 once the service is containerised here.
-      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-http://host.docker.internal:8081}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "${GATEWAY_PORT:-8090}:8080"
     networks:
       - polygot
 
