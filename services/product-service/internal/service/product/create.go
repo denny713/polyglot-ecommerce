@@ -1,0 +1,73 @@
+package product
+
+import (
+	"context"
+	"product-service/internal/configuration"
+	dto "product-service/internal/dto/product"
+	model "product-service/internal/model"
+	productRepo "product-service/internal/repository/product"
+	stockRepo "product-service/internal/repository/stock"
+	storageRepo "product-service/internal/repository/storage"
+)
+
+// Create implement service for create new product
+func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreateRes, error) {
+	var (
+		err        error
+		product    model.Product
+		stock      model.Stock
+		objectName string
+		imageUrl   string
+	)
+
+	if request.Image != nil {
+		objectName, err = storageRepo.Upload(ctx, dto.ImageFolder, request.Image)
+		if err != nil {
+			return dto.ProductCreateRes{}, err
+		}
+
+		imageUrl = configuration.MinioObjectURL(objectName)
+	}
+
+	newProduct := request.ToObjectModel()
+	newProduct.ImageURL = imageUrl
+
+	product, err = productRepo.Create(newProduct)
+	if err != nil {
+		removeUploadedImage(ctx, objectName)
+		return dto.ProductCreateRes{}, err
+	}
+
+	stock, err = stockRepo.Create(model.Stock{
+		ProductID: product.ID,
+		Quantity:  request.Stock,
+	})
+	if err != nil {
+		removeUploadedImage(ctx, objectName)
+		return dto.ProductCreateRes{}, err
+	}
+
+	return dto.ProductCreateRes{
+		ID:          product.ID,
+		Name:        product.Name,
+		Description: product.Description,
+		Price:       product.Price,
+		Stock:       stock.Quantity,
+		ImageUrl:    product.ImageURL,
+		IsActive:    product.IsActive,
+		IsDeleted:   product.IsDeleted,
+		CreatedAt:   product.CreatedAt,
+		UpdatedAt:   product.UpdatedAt,
+	}, nil
+}
+
+// removeUploadedImage cleans up the object so a failed create does not leave an
+// orphan file in the bucket. The cleanup error is intentionally ignored, the
+// original error is the one worth returning to the caller.
+func removeUploadedImage(ctx context.Context, objectName string) {
+	if objectName == "" {
+		return
+	}
+
+	_ = storageRepo.Remove(ctx, objectName)
+}
