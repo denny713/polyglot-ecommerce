@@ -81,6 +81,13 @@ definitions:
       updated_at:
         type: string
     type: object
+  product.ProductSearchRes:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/product.ProductDetailRes'
+        type: array
+    type: object
   product.ProductUpdateRes:
     properties:
       created_at:
@@ -112,6 +119,85 @@ info:
   version: "1.0"
 paths:
   /api/product:
+    get:
+      consumes:
+      - application/json
+      description: Search products by name and description (ILIKE), price range and
+        stock range.
+      parameters:
+      - description: Product name, matched partially
+        in: query
+        name: name
+        type: string
+      - description: Product description, matched partially
+        in: query
+        name: description
+        type: string
+      - description: Minimum product price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum product price
+        in: query
+        name: max_price
+        type: number
+      - description: Minimum stock quantity
+        in: query
+        name: min_stock
+        type: integer
+      - description: Maximum stock quantity
+        in: query
+        name: max_stock
+        type: integer
+      - description: Sort field
+        enum:
+        - id
+        - name
+        - price
+        - stock
+        - created_at
+        - updated_at
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      - description: Page number, starts at 1
+        in: query
+        name: page
+        type: integer
+      - description: Rows per page, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductSearchRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Search products
+      tags:
+      - Product
     post:
       consumes:
       - multipart/form-data
