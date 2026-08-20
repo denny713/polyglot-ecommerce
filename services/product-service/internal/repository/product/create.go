@@ -5,7 +5,7 @@ import (
 	"product-service/internal/model"
 )
 
-// Create submit new product
+// Create implement repository for create new product
 func Create(product model.Product) (model.Product, error) {
 	err := configuration.DB.Create(&product).Error
 	if err != nil {

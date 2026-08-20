@@ -7,6 +7,7 @@ require (
 	github.com/labstack/echo/v5 v5.3.1
 	github.com/minio/minio-go/v7 v7.3.0
 	github.com/shopspring/decimal v1.4.0
+	github.com/swaggo/files v1.0.1
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/gorm v1.31.2
 )

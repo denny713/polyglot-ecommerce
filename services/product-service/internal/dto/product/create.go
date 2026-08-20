@@ -45,8 +45,8 @@ type (
 	}
 )
 
-// ToObjectModel mapping the request object to table model.Product.
-func (p ProductCreateReq) ToObjectModel() model.Product {
+// ToProductModel mapping the request object to table model.Product.
+func (p ProductCreateReq) ToProductModel() model.Product {
 	return model.Product{
 		Name:        p.Name,
 		Description: p.Description,
@@ -58,7 +58,16 @@ func (p ProductCreateReq) ToObjectModel() model.Product {
 	}
 }
 
-// Validate check the value of the mandatory field
+// ToStockModel mapping the request object to table model.Stock.
+func (p ProductCreateReq) ToStockModel() model.Stock {
+	return model.Stock{
+		Quantity:  0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+}
+
+// Validate checks the required fields for creating a new product.
 func (p ProductCreateReq) Validate() error {
 	if p.Name == "" {
 		return errors.New("name is required")

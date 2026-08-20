@@ -30,7 +30,7 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		imageUrl = configuration.MinioObjectURL(objectName)
 	}
 
-	newProduct := request.ToObjectModel()
+	newProduct := request.ToProductModel()
 	newProduct.ImageURL = imageUrl
 
 	// Submit new product
@@ -40,16 +40,17 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		return dto.ProductCreateRes{}, err
 	}
 
+	newStock := request.ToStockModel()
+	newStock.ProductID = product.ID
+
 	// Submit initial stock for new product
-	stock, err = stockRepo.Create(model.Stock{
-		ProductID: product.ID,
-		Quantity:  0,
-	})
+	stock, err = stockRepo.Create(newStock)
 	if err != nil {
 		removeUploadedImage(ctx, objectName)
 		return dto.ProductCreateRes{}, err
 	}
 
+	// Generate response
 	return dto.ProductCreateRes{
 		ID:          product.ID,
 		Name:        product.Name,
