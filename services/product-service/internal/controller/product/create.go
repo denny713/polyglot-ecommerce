@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"strings"
 
+	"product-service/internal/constant"
 	"product-service/internal/dto"
 	dtoProduct "product-service/internal/dto/product"
+	"product-service/internal/exception"
 	service "product-service/internal/service/product"
 
 	"github.com/labstack/echo/v5"
@@ -43,12 +45,12 @@ func Create(c *echo.Context) error {
 
 	response, err := service.Create(c.Request().Context(), request)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return exception.HTTPError(err)
 	}
 
 	return c.JSON(http.StatusCreated, dto.Response{
 		Status:  http.StatusCreated,
-		Message: "product created successfully",
+		Message: constant.MsgSuccess,
 		Data:    response,
 	})
 }

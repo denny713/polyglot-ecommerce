@@ -49,6 +49,15 @@ definitions:
       status:
         type: string
     type: object
+  product.ProductDeleteRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
   product.ProductDetailRes:
     properties:
       created_at:
@@ -238,6 +247,44 @@ paths:
           schema:
             $ref: '#/definitions/dto.Response'
       summary: Deactivate a product
+      tags:
+      - Product
+  /api/product/delete/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductDeleteRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Delete a product
       tags:
       - Product
 securityDefinitions:

@@ -1,12 +1,13 @@
 package product
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
-	"product-service/internal/dto"
-	dtoProduct "product-service/internal/dto/product"
+	"product-service/internal/constant"
+	dto "product-service/internal/dto"
+	product "product-service/internal/dto/product"
+	exception "product-service/internal/exception"
 	service "product-service/internal/service/product"
 
 	"github.com/labstack/echo/v5"
@@ -27,21 +28,17 @@ import (
 func Detail(c *echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "product ID must be a valid number")
+		return exception.HTTPError(exception.ErrProductIDInvalid)
 	}
 
-	response, err := service.Detail(c.Request().Context(), dtoProduct.ProductDetailReq{ID: id})
+	response, err := service.Detail(c.Request().Context(), product.ProductDetailReq{ID: id})
 	if err != nil {
-		if errors.Is(err, service.ErrProductNotFound) {
-			return echo.NewHTTPError(http.StatusNotFound, err.Error())
-		}
-
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return exception.HTTPError(err)
 	}
 
 	return c.JSON(http.StatusOK, dto.Response{
 		Status:  http.StatusOK,
-		Message: "product details retrieved successfully",
+		Message: constant.MsgSuccess,
 		Data:    response,
 	})
 }

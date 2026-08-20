@@ -5,6 +5,7 @@ import (
 	"errors"
 	"product-service/internal/configuration"
 	dto "product-service/internal/dto/product"
+	"product-service/internal/exception"
 	productRepo "product-service/internal/repository/product"
 
 	"gorm.io/gorm"
@@ -18,10 +19,15 @@ func Activate(ctx context.Context, request dto.ProductActivateReq) (dto.ProductA
 	product, err := productRepo.Detail(orm, "id", request.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.ProductActivateRes{}, ErrProductNotFound
+			return dto.ProductActivateRes{}, exception.ErrProductNotFound
 		}
 
 		return dto.ProductActivateRes{}, err
+	}
+
+	// Check is product already active
+	if product.IsActive {
+		return dto.ProductActivateRes{}, exception.ErrProductAlreadyActive
 	}
 
 	// Update product status to active

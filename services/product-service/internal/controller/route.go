@@ -33,6 +33,7 @@ func registerProductRoutes(api *echo.Group) {
 	group.GET("/:id", product.Detail)
 	group.PUT("/activate/:id", product.Activate)
 	group.PUT("/deactivate/:id", product.Deactivate)
+	group.DELETE("/delete/:id", product.Delete)
 }
 
 func registerSwaggerRoutes(api *echo.Group) {

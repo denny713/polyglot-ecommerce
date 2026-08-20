@@ -5,6 +5,7 @@ import (
 	"errors"
 	"product-service/internal/configuration"
 	dto "product-service/internal/dto/product"
+	"product-service/internal/exception"
 	productRepo "product-service/internal/repository/product"
 
 	"gorm.io/gorm"
@@ -18,10 +19,15 @@ func Deactivate(ctx context.Context, request dto.ProductDeactivateReq) (dto.Prod
 	product, err := productRepo.Detail(orm, "id", request.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.ProductDeactivateRes{}, ErrProductNotFound
+			return dto.ProductDeactivateRes{}, exception.ErrProductNotFound
 		}
 
 		return dto.ProductDeactivateRes{}, err
+	}
+
+	// Check is product already inactive
+	if !product.IsActive {
+		return dto.ProductDeactivateRes{}, exception.ErrProductAlreadyInactive
 	}
 
 	// Update product status to inactive
