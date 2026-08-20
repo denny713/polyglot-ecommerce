@@ -1,6 +1,7 @@
 package com.ecommerce.auth.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,11 +16,38 @@ import java.util.List;
  * @param timestamp server time at which the error was created
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(
+        name = "ErrorResponse",
+        description = """
+                The body returned by every failing call, whatever the status code. \
+                Branch on `error`, not on `message`: the code is part of the contract, \
+                the message may be reworded.
+                """)
 public record ErrorResponse(
+
+        @Schema(description = "HTTP status code, repeated in the body for clients that only log it", examples = "401")
         int status,
+
+        @Schema(
+                description = "Stable, machine-readable error code",
+                examples = "INVALID_CREDENTIALS",
+                enumeration = {
+                        "VALIDATION_ERROR",
+                        "INVALID_CREDENTIALS",
+                        "INVALID_REFRESH_TOKEN",
+                        "ACCOUNT_LOCKED",
+                        "ACCOUNT_DISABLED",
+                        "IDENTITY_PROVIDER_UNAVAILABLE"
+                })
         String error,
+
+        @Schema(description = "Short human-readable explanation", examples = "Invalid username or password")
         String message,
+
+        @Schema(description = "Per-field errors; present only when `error` is `VALIDATION_ERROR`")
         List<FieldError> details,
+
+        @Schema(description = "Server time at which the error was created", examples = "2026-08-19T09:15:30.123Z")
         Instant timestamp) {
 
     public static ErrorResponse of(int status, String error, String message) {
@@ -33,6 +61,13 @@ public record ErrorResponse(
     /**
      * A single validation violation on a single field.
      */
-    public record FieldError(String field, String message) {
+    @Schema(name = "FieldError", description = "A single validation violation on a single field")
+    public record FieldError(
+
+            @Schema(description = "Name of the offending request field", examples = "username")
+            String field,
+
+            @Schema(description = "What is wrong with it", examples = "username is required")
+            String message) {
     }
 }
