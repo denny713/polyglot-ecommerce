@@ -5,6 +5,8 @@
 #
 #   keycloak   - Keycloak manages ~90 tables of its own, so it gets its own
 #                database rather than sharing the application schema
+#   ecommerce  - the application schema shared by the business services
+#                (product-service and the services that follow it)
 #
 # The database named by POSTGRES_DB is created by the Postgres entrypoint
 # itself, so it is deliberately not listed here.
@@ -21,6 +23,7 @@ set -euo pipefail
 
 databases=(
   "${KEYCLOAK_DB:-keycloak}"
+  "${ECOMMERCE_DB:-ecommerce}"
 )
 
 for db in "${databases[@]}"; do

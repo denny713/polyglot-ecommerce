@@ -28,7 +28,6 @@ type (
 		Name        string
 		Description string
 		Price       decimal.Decimal
-		Stock       int
 		Image       *multipart.FileHeader
 	}
 

@@ -3,7 +3,6 @@ package product
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"product-service/internal/dto"
@@ -23,7 +22,6 @@ import (
 // @Param name formData string true "Product name"
 // @Param description formData string false "Product description"
 // @Param price formData number true "Product price"
-// @Param stock formData integer false "Initial stock quantity"
 // @Param image formData file false "Product image (jpg, jpeg, png, webp, max 5 MB)"
 // @Success 201 {object} dto.Response{data=product.ProductCreateRes}
 // @Failure 400 {object} dto.Response
@@ -74,19 +72,6 @@ func bindProductCreateReq(c *echo.Context) (dtoProduct.ProductCreateReq, error) 
 		}
 
 		request.Price = parsedPrice
-	}
-
-	if stock := strings.TrimSpace(c.FormValue("stock")); stock != "" {
-		parsedStock, err := strconv.Atoi(stock)
-		if err != nil {
-			return request, errors.New("stock must be a valid number")
-		}
-
-		if parsedStock < 0 {
-			return request, errors.New("stock must not be negative")
-		}
-
-		request.Stock = parsedStock
 	}
 
 	image, err := c.FormFile("image")

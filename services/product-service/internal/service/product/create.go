@@ -20,6 +20,7 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		imageUrl   string
 	)
 
+	// Image upload for product to storage
 	if request.Image != nil {
 		objectName, err = storageRepo.Upload(ctx, dto.ImageFolder, request.Image)
 		if err != nil {
@@ -32,15 +33,17 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	newProduct := request.ToObjectModel()
 	newProduct.ImageURL = imageUrl
 
+	// Submit new product
 	product, err = productRepo.Create(newProduct)
 	if err != nil {
 		removeUploadedImage(ctx, objectName)
 		return dto.ProductCreateRes{}, err
 	}
 
+	// Submit initial stock for new product
 	stock, err = stockRepo.Create(model.Stock{
 		ProductID: product.ID,
-		Quantity:  request.Stock,
+		Quantity:  0,
 	})
 	if err != nil {
 		removeUploadedImage(ctx, objectName)
