@@ -31,6 +31,29 @@ definitions:
       updated_at:
         type: string
     type: object
+  product.ProductDetailRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+      updated_at:
+        type: string
+    type: object
 host: localhost:7130
 info:
   contact: {}
@@ -83,6 +106,44 @@ paths:
           schema:
             $ref: '#/definitions/dto.Response'
       summary: Create a new product
+      tags:
+      - Product
+  /api/product/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductDetailRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Detail a new product
       tags:
       - Product
 securityDefinitions:

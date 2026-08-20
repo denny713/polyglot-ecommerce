@@ -30,6 +30,7 @@ func registerProductRoutes(api *echo.Group) {
 	group := api.Group("/product")
 
 	group.POST("", product.Create)
+	group.GET("/:id", product.Detail)
 }
 
 func registerSwaggerRoutes(api *echo.Group) {

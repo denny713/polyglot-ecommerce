@@ -1,15 +1,17 @@
 package product
 
 import (
-	"product-service/internal/configuration"
 	"product-service/internal/model"
+
+	"gorm.io/gorm"
 )
 
-func Update(product model.Product) (model.Product, error) {
-	err := configuration.DB.Model(&product).
+// Update implement repository for update product
+func Update(orm *gorm.DB, product model.Product) (model.Product, error) {
+	err := orm.Model(&product).
 		Where("is_deleted = FALSE").
-		Where("product_id = ?", product.ID).
-		Select("Name", "Description", "Price", "IsActive", "IsDeleted", "CreatedAt", "UpdatedAt").
+		Where("id = ?", product.ID).
+		Select("Name", "Description", "Price", "IsActive", "IsDeleted", "UpdatedAt").
 		Updates(product).Error
 	if err != nil {
 		return product, err

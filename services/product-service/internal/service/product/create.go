@@ -18,7 +18,17 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		stock      model.Stock
 		objectName string
 		imageUrl   string
+
+		orm = configuration.Orm(ctx)
 	)
+
+	// Begin transaction
+	tx := orm.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Image upload for product to storage
 	if request.Image != nil {
@@ -34,7 +44,7 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	newProduct.ImageURL = imageUrl
 
 	// Submit new product
-	product, err = productRepo.Create(newProduct)
+	product, err = productRepo.Create(tx, newProduct)
 	if err != nil {
 		removeUploadedImage(ctx, objectName)
 		return dto.ProductCreateRes{}, err
@@ -44,8 +54,14 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	newStock.ProductID = product.ID
 
 	// Submit initial stock for new product
-	stock, err = stockRepo.Create(newStock)
+	stock, err = stockRepo.Create(tx, newStock)
 	if err != nil {
+		removeUploadedImage(ctx, objectName)
+		return dto.ProductCreateRes{}, err
+	}
+
+	// Commit transaction
+	if err = tx.Commit().Error; err != nil {
 		removeUploadedImage(ctx, objectName)
 		return dto.ProductCreateRes{}, err
 	}

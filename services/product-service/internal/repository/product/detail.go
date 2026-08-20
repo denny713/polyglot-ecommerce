@@ -2,13 +2,15 @@ package product
 
 import (
 	"fmt"
-	"product-service/internal/configuration"
 	"product-service/internal/model"
+
+	"gorm.io/gorm"
 )
 
-func Detail(param string, value interface{}) (model.Product, error) {
+// Detail implement repository for get product detail
+func Detail(orm *gorm.DB, param string, value interface{}) (model.Product, error) {
 	var product model.Product
-	err := configuration.DB.Preload("Stock").Where(
+	err := orm.Preload("Stock").Where(
 		fmt.Sprintf("%s = ? AND is_deleted = FALSE", param), value).
 		First(&product).Error
 	if err != nil {

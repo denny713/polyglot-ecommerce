@@ -1,13 +1,14 @@
 package product
 
 import (
-	"product-service/internal/configuration"
 	"product-service/internal/model"
+
+	"gorm.io/gorm"
 )
 
 // Create implement repository for create new product
-func Create(product model.Product) (model.Product, error) {
-	err := configuration.DB.Create(&product).Error
+func Create(orm *gorm.DB, product model.Product) (model.Product, error) {
+	err := orm.Create(&product).Error
 	if err != nil {
 		return model.Product{}, err
 	}

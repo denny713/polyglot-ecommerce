@@ -17,7 +17,8 @@ type Product struct {
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
 
-	Stock *Stock `gorm:"foreignKey:ID;references:ProductID" json:"stock"`
+	// Stock is a has one relation, the foreign key lives on the stock table.
+	Stock *Stock `gorm:"foreignKey:ProductID;references:ID" json:"stock"`
 }
 
 func (Product) TableName() string {

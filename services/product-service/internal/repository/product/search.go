@@ -1,16 +1,18 @@
 package product
 
 import (
-	"product-service/internal/configuration"
 	"product-service/internal/model"
+
+	"gorm.io/gorm"
 )
 
-func Search(name string, description string) ([]model.Product, error) {
+// Search implement repository for search product by name and description
+func Search(orm *gorm.DB, name string, description string) ([]model.Product, error) {
 	products := make([]model.Product, 0)
 	descQuery := "%" + description + "%"
 	nameQuery := "%" + name + "%"
 
-	err := configuration.DB.Preload("Stock").
+	err := orm.Preload("Stock").
 		Where("is_deleted = FALSE").
 		Where("name ILIKE ? AND description ILIKE ?", nameQuery, descQuery).
 		Order("ID DESC").

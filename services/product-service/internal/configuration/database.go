@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -29,4 +30,10 @@ func ConnectDatabase() {
 	}
 
 	log.Println("Successfully connected to the PostgreSQL database")
+}
+
+// Orm returns the shared gorm handle bound to the request context, the
+// repositories take it as a parameter so they never reach for the global.
+func Orm(ctx context.Context) *gorm.DB {
+	return DB.WithContext(ctx)
 }
