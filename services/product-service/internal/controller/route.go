@@ -31,6 +31,7 @@ func registerProductRoutes(api *echo.Group) {
 
 	group.POST("", product.Create)
 	group.GET("/:id", product.Detail)
+	group.PUT("/:id", product.Update)
 	group.PUT("/activate/:id", product.Activate)
 	group.PUT("/deactivate/:id", product.Deactivate)
 	group.DELETE("/delete/:id", product.Delete)

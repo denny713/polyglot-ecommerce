@@ -30,6 +30,26 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		}
 	}()
 
+	newProduct := request.ToProductModel()
+	newProduct.ImageURL = imageUrl
+
+	// Submit new product
+	product, err = productRepo.Create(tx, newProduct)
+	if err != nil {
+		return dto.ProductCreateRes{}, err
+	}
+
+	newStock := request.ToStockModel()
+	newStock.ProductID = product.ID
+
+	// Submit initial stock for new product
+	stock, err = stockRepo.Create(tx, newStock)
+	if err != nil {
+		return dto.ProductCreateRes{}, err
+	}
+
+	product.Stock = &stock
+
 	// Image upload for product to storage
 	if request.Image != nil {
 		objectName, err = storageRepo.Upload(ctx, dto.ImageFolder, request.Image)
@@ -40,45 +60,13 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		imageUrl = configuration.MinioObjectURL(objectName)
 	}
 
-	newProduct := request.ToProductModel()
-	newProduct.ImageURL = imageUrl
-
-	// Submit new product
-	product, err = productRepo.Create(tx, newProduct)
-	if err != nil {
-		removeUploadedImage(ctx, objectName)
-		return dto.ProductCreateRes{}, err
-	}
-
-	newStock := request.ToStockModel()
-	newStock.ProductID = product.ID
-
-	// Submit initial stock for new product
-	stock, err = stockRepo.Create(tx, newStock)
-	if err != nil {
-		removeUploadedImage(ctx, objectName)
-		return dto.ProductCreateRes{}, err
-	}
-
 	// Commit transaction
 	if err = tx.Commit().Error; err != nil {
 		removeUploadedImage(ctx, objectName)
 		return dto.ProductCreateRes{}, err
 	}
 
-	// Generate response
-	return dto.ProductCreateRes{
-		ID:          product.ID,
-		Name:        product.Name,
-		Description: product.Description,
-		Price:       product.Price,
-		Stock:       stock.Quantity,
-		ImageUrl:    product.ImageURL,
-		IsActive:    product.IsActive,
-		IsDeleted:   product.IsDeleted,
-		CreatedAt:   product.CreatedAt,
-		UpdatedAt:   product.UpdatedAt,
-	}, nil
+	return dto.ToProductCreateRes(product), nil
 }
 
 // removeUploadedImage cleans up the object so a failed create does not leave an

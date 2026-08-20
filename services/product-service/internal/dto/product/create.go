@@ -97,3 +97,24 @@ func (p ProductCreateReq) ValidateImage() error {
 
 	return nil
 }
+
+// ToProductCreateRes mapping the table model.Product to the response object.
+func ToProductCreateRes(product model.Product) ProductCreateRes {
+	var quantity int
+	if product.Stock != nil {
+		quantity = product.Stock.Quantity
+	}
+
+	return ProductCreateRes{
+		ID:          product.ID,
+		Name:        product.Name,
+		Description: product.Description,
+		Price:       product.Price,
+		Stock:       quantity,
+		ImageUrl:    product.ImageURL,
+		IsActive:    product.IsActive,
+		IsDeleted:   product.IsDeleted,
+		CreatedAt:   product.CreatedAt,
+		UpdatedAt:   product.UpdatedAt,
+	}
+}

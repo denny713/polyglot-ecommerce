@@ -1,6 +1,3 @@
-// Package exception centralizes the business errors the service returns. An
-// exception carries the HTTP status and the message the client should see, so
-// a failure is declared once here instead of being re-mapped in every layer.
 package exception
 
 import (
@@ -23,27 +20,32 @@ func New(status int, message string) *Exception {
 	return &Exception{Status: status, Message: message}
 }
 
-// Shorthands for the statuses the handlers actually answer with.
+// BadRequest builds an exception for the 400 Bad Request status.
 func BadRequest(message string) *Exception {
 	return New(http.StatusBadRequest, message)
 }
 
+// Unauthorized builds an exception for the 401 Unauthorized status.
 func Unauthorized(message string) *Exception {
 	return New(http.StatusUnauthorized, message)
 }
 
+// Forbidden builds an exception for the 403 Forbidden status.
 func Forbidden(message string) *Exception {
 	return New(http.StatusForbidden, message)
 }
 
+// NotFound builds an exception for the 404 Not Found status.
 func NotFound(message string) *Exception {
 	return New(http.StatusNotFound, message)
 }
 
+// Conflict builds an exception for the 409 Conflict status.
 func Conflict(message string) *Exception {
 	return New(http.StatusConflict, message)
 }
 
+// Internal builds an exception for the 500 Internal Server Error status.
 func Internal(message string) *Exception {
 	return New(http.StatusInternalServerError, message)
 }
@@ -67,7 +69,9 @@ func (e *Exception) Wrap(err error) *Exception {
 }
 
 // Unwrap exposes the cause so errors.Is and errors.As keep walking the chain.
-func (e *Exception) Unwrap() error { return e.cause }
+func (e *Exception) Unwrap() error {
+	return e.cause
+}
 
 // Is matches a wrapped copy against the sentinel it was built from, the copy is
 // a different pointer so the default identity comparison would miss it.

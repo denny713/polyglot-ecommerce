@@ -81,6 +81,29 @@ definitions:
       updated_at:
         type: string
     type: object
+  product.ProductUpdateRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+      updated_at:
+        type: string
+    type: object
 host: localhost:7130
 info:
   contact: {}
@@ -171,6 +194,58 @@ paths:
           schema:
             $ref: '#/definitions/dto.Response'
       summary: Detail a new product
+      tags:
+      - Product
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing product, the image is uploaded to the object
+        storage.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Product name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Product description
+        in: formData
+        name: description
+        type: string
+      - description: Product price
+        in: formData
+        name: price
+        required: true
+        type: number
+      - description: Product image (jpg, jpeg, png, webp, max 5 MB)
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductUpdateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Update an existing product
       tags:
       - Product
   /api/product/activate/{id}:

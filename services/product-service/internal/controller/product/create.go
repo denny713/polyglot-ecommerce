@@ -7,8 +7,8 @@ import (
 
 	"product-service/internal/constant"
 	"product-service/internal/dto"
-	dtoProduct "product-service/internal/dto/product"
-	"product-service/internal/exception"
+	product "product-service/internal/dto/product"
+	exception "product-service/internal/exception"
 	service "product-service/internal/service/product"
 
 	"github.com/labstack/echo/v5"
@@ -57,8 +57,8 @@ func Create(c *echo.Context) error {
 
 // bindProductCreateReq reads the multipart form, the request carries a file so it
 // cannot be filled by the default json binder.
-func bindProductCreateReq(c *echo.Context) (dtoProduct.ProductCreateReq, error) {
-	var request dtoProduct.ProductCreateReq
+func bindProductCreateReq(c *echo.Context) (product.ProductCreateReq, error) {
+	var request product.ProductCreateReq
 
 	if _, err := c.FormValues(); err != nil {
 		return request, err
