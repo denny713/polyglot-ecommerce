@@ -8,6 +8,15 @@ definitions:
       status:
         type: integer
     type: object
+  product.ProductActivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
   product.ProductCreateRes:
     properties:
       created_at:
@@ -29,6 +38,15 @@ definitions:
       stock:
         type: integer
       updated_at:
+        type: string
+    type: object
+  product.ProductDeactivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
         type: string
     type: object
   product.ProductDetailRes:
@@ -144,6 +162,82 @@ paths:
           schema:
             $ref: '#/definitions/dto.Response'
       summary: Detail a new product
+      tags:
+      - Product
+  /api/product/activate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Activate a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductActivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Activate a product
+      tags:
+      - Product
+  /api/product/deactivate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Deactivate a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductDeactivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Deactivate a product
       tags:
       - Product
 securityDefinitions:
