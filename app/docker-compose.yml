@@ -42,7 +42,7 @@ services:
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,7 +60,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
       MINIO_BUCKETS: ${PRODUCT_BUCKET:-ecommerce}
       MINIO_BUCKET_POLICY: ${MINIO_BUCKET_POLICY:-download}
-    entrypoint: ["/bin/sh", "/init/create-bucket.sh"]
+    entrypoint: [ "/bin/sh", "/init/create-bucket.sh" ]
     volumes:
       - ./init/create-bucket.sh:/init/create-bucket.sh:ro
     depends_on:
@@ -102,86 +102,86 @@ services:
     networks:
       - polygot
 
-  # gateway-service:
-  #   build:
-  #     context: ../services/gateway-service
-  #     dockerfile: Dockerfile
-  #   container_name: gateway
-  #   restart: unless-stopped
-  #   environment:
-  #     AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-http://host.docker.internal:8081}
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-  #   ports:
-  #     - "${GATEWAY_PORT:-7100}:7100"
-  #   networks:
-  #     - polygot
+  gateway-service:
+    build:
+      context: ../services/gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-http://host.docker.internal:8081}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${GATEWAY_PORT:-7100}:7100"
+    networks:
+      - polygot
 
-  # auth-service:
-  #   build:
-  #     context: ../services/auth-service
-  #     dockerfile: src/main/docker/Dockerfile.multistage
-  #   container_name: auth-service
-  #   restart: unless-stopped
-  #   environment:
-  #     QUARKUS_HTTP_PORT: ${AUTH_SERVICE_PORT:-7110}
-  #     QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_URL: http://keycloak:8080
-  #     KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
-  #     KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
-  #     KEYCLOAK_AUTH_GRANT_TYPE: password
-  #   ports:
-  #     - "${AUTH_SERVICE_PORT:-7110}:${AUTH_SERVICE_PORT:-7110}"
-  #   depends_on:
-  #     keycloak:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test:
-  #       - CMD-SHELL
-  #       - exec 3<>/dev/tcp/127.0.0.1/${AUTH_SERVICE_PORT:-7110}
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 60s
-  #   networks:
-  #     - polygot
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: src/main/docker/Dockerfile.multistage
+    container_name: auth-service
+    restart: unless-stopped
+    environment:
+      QUARKUS_HTTP_PORT: ${AUTH_SERVICE_PORT:-7110}
+      QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_URL: http://keycloak:8080
+      KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
+      KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
+      KEYCLOAK_AUTH_GRANT_TYPE: password
+    ports:
+      - "${AUTH_SERVICE_PORT:-7110}:${AUTH_SERVICE_PORT:-7110}"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - exec 3<>/dev/tcp/127.0.0.1/${AUTH_SERVICE_PORT:-7110}
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - polygot
 
-  # product-service:
-  #   build:
-  #     context: ../services/product-service
-  #     dockerfile: Dockerfile
-  #   container_name: product-service
-  #   restart: unless-stopped
-  #   environment:
-  #     PORT: ${PRODUCT_SERVICE_PORT:-7130}
-  #     DB_HOST: postgres
-  #     DB_PORT: 5432
-  #     DB_USER: ${POSTGRES_USER:-postgres}
-  #     DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
-  #     DB_NAME: ${ECOMMERCE_DB:-ecommerce}
-  #     MINIO_ENDPOINT: minio:9000
-  #     MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
-  #     MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password}
-  #     MINIO_USE_SSL: "false"
-  #     MINIO_BUCKET: ${PRODUCT_BUCKET:-ecommerce}
-  #   ports:
-  #     - "${PRODUCT_SERVICE_PORT:-7130}:${PRODUCT_SERVICE_PORT:-7130}"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     minio:
-  #       condition: service_healthy
-  #     minio-init:
-  #       condition: service_completed_successfully
-  #   healthcheck:
-  #     test:
-  #       - CMD-SHELL
-  #       - wget -q -O /dev/null http://127.0.0.1:${PRODUCT_SERVICE_PORT:-7130}/health
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
-  #   networks:
-  #     - polygot
+  product-service:
+    build:
+      context: ../services/product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    restart: unless-stopped
+    environment:
+      PORT: ${PRODUCT_SERVICE_PORT:-7130}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+      DB_NAME: ${ECOMMERCE_DB:-ecommerce}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password}
+      MINIO_USE_SSL: "false"
+      MINIO_BUCKET: ${PRODUCT_BUCKET:-ecommerce}
+    ports:
+      - "${PRODUCT_SERVICE_PORT:-7130}:${PRODUCT_SERVICE_PORT:-7130}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:${PRODUCT_SERVICE_PORT:-7130}/health
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - polygot
 
 volumes:
   postgres-data:
