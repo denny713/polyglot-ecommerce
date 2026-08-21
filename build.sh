@@ -37,7 +37,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/app/docker-compose.yml"
 KEYCLOAK_INIT="$SCRIPT_DIR/app/init/keycloak-init.sh"
 DB_MIGRATE="$SCRIPT_DIR/app/init/migrate.sh"
-PROJECT_NAME="polygot-ecommerce"
+PROJECT_NAME="ecommerce"
 
 die() {
   printf '\033[31merror:\033[0m %s\n' "$1" >&2
@@ -158,6 +158,10 @@ if [[ "$run_migrate" == true ]]; then
         source "$SCRIPT_DIR/.env"
         set +a
       fi
+      # Keep the migration on the same compose project as the stack above, so
+      # it attaches the Liquibase container to the network that was created
+      # here instead of guessing one from the directory name.
+      export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
       exec "$DB_MIGRATE"
     ) || migrate_status=$?
 

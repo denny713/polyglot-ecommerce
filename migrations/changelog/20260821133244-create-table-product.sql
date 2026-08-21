@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS product
     description TEXT,
     price       DECIMAL(10, 2) NOT NULL,
     image_url   TEXT,
+    category_id BIGINT         NOT NULL REFERENCES category (id) ON DELETE CASCADE,
+    supplier_id BIGINT         NOT NULL REFERENCES supplier (id) ON DELETE CASCADE,
     is_active   BOOLEAN        NOT NULL DEFAULT TRUE,
     is_deleted  BOOLEAN        NOT NULL DEFAULT FALSE,
     created_by  BIGINT,

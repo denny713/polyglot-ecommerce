@@ -32,11 +32,10 @@ type (
 	}
 
 	ProductCreateRes struct {
-		ID          int64           `json:"id"`
+		Id          int64           `json:"id"`
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		Price       decimal.Decimal `json:"price"`
-		Stock       int             `json:"stock"`
 		ImageUrl    string          `json:"image_url"`
 		IsActive    bool            `json:"is_active"`
 		IsDeleted   bool            `json:"is_deleted"`
@@ -45,25 +44,18 @@ type (
 	}
 )
 
-// ToProductModel mapping the request object to table model.Product.
-func (p ProductCreateReq) ToProductModel() model.Product {
+// ToObjectModel mapping the request object to table model.Product.
+func (p ProductCreateReq) ToObjectModel() model.Product {
 	return model.Product{
 		Name:        p.Name,
 		Description: p.Description,
 		Price:       p.Price,
-		IsActive:    true,
-		IsDeleted:   false,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-}
-
-// ToStockModel mapping the request object to table model.Stock.
-func (p ProductCreateReq) ToStockModel() model.Stock {
-	return model.Stock{
-		Quantity:  0,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Base: model.Base{
+			IsActive:  true,
+			IsDeleted: false,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
 	}
 }
 
@@ -100,17 +92,11 @@ func (p ProductCreateReq) ValidateImage() error {
 
 // ToProductCreateRes mapping the table model.Product to the response object.
 func ToProductCreateRes(product model.Product) ProductCreateRes {
-	var quantity int
-	if product.Stock != nil {
-		quantity = product.Stock.Quantity
-	}
-
 	return ProductCreateRes{
-		ID:          product.ID,
+		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
 		Price:       product.Price,
-		Stock:       quantity,
 		ImageUrl:    product.ImageURL,
 		IsActive:    product.IsActive,
 		IsDeleted:   product.IsDeleted,

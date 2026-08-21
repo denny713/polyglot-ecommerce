@@ -22,7 +22,7 @@ func Update(orm *gorm.DB, product model.Product) (model.Product, error) {
 
 	err = orm.Model(&product).
 		Where("is_deleted = FALSE").
-		Where("id = ?", product.ID).
+		Where("id = ?", product.Id).
 		Updates(updates).Error
 	if err != nil {
 		return product, err

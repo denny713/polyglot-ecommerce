@@ -71,7 +71,7 @@ func bindProductUpdateReq(c *echo.Context) (product.ProductUpdateReq, error) {
 		return request, err
 	}
 
-	request.ID = id
+	request.Id = id
 	request.Name = strings.TrimSpace(c.FormValue("name"))
 	request.Description = strings.TrimSpace(c.FormValue("description"))
 

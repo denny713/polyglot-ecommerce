@@ -31,7 +31,7 @@ func Activate(c *echo.Context) error {
 		return exception.HTTPError(exception.ErrProductIDInvalid)
 	}
 
-	response, err := service.Activate(c.Request().Context(), product.ProductActivateReq{ID: id})
+	response, err := service.Activate(c.Request().Context(), product.ProductActivateReq{Id: id})
 	if err != nil {
 		return exception.HTTPError(err)
 	}

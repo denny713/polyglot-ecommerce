@@ -34,7 +34,8 @@
 #   DB_PORT              its port                     (5432)
 #   LIQUIBASE_RUNNER     docker | local               (docker)
 #   LIQUIBASE_IMAGE      image used by the runner      (liquibase/liquibase:4.33-alpine)
-#   COMPOSE_NETWORK      network to attach to         (polygot-ecommerce_polygot)
+#   COMPOSE_PROJECT_NAME compose project name         (ecommerce)
+#   COMPOSE_NETWORK      network to attach to         (<project>_polygot)
 #   POSTGRES_CONTAINER   container polled for readiness (postgres)
 #   CHANGELOG_FILE       master changelog, relative to ./migrations
 #                                                     (db.changelog-master.xml)
@@ -62,7 +63,13 @@ MIGRATIONS_DIR="${MIGRATIONS_DIR:-$REPO_ROOT/migrations}"
 
 RUNNER="${LIQUIBASE_RUNNER:-docker}"
 LIQUIBASE_IMAGE="${LIQUIBASE_IMAGE:-liquibase/liquibase:4.33-alpine}"
-COMPOSE_NETWORK="${COMPOSE_NETWORK:-polygot-ecommerce_polygot}"
+# Must match the network `docker compose up` actually created. Compose prefixes
+# it with the project name, and build.sh/down.sh pass `--project-name ecommerce`
+# explicitly - so the default here is derived from the same name rather than
+# hardcoded, otherwise the Liquibase container starts off the compose network
+# and cannot resolve Postgres by its service name.
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ecommerce}"
+COMPOSE_NETWORK="${COMPOSE_NETWORK:-${COMPOSE_PROJECT_NAME}_polygot}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-postgres}"
 
 DB_USER="${POSTGRES_USER:-postgres}"
@@ -162,12 +169,30 @@ info "migrating $DB_NAME (${liquibase_args[*]})"
 # LIQUIBASE_RUNNER would make Liquibase see every changeset as new and try to
 # re-apply the whole changelog.
 if [[ "$RUNNER" == docker ]]; then
+  # Fall back to whatever network Postgres is actually attached to: it keeps
+  # this working when the stack was brought up under a different project name.
+  if ! docker network inspect "$COMPOSE_NETWORK" >/dev/null 2>&1; then
+    detected="$(docker inspect --format \
+      '{{range $n, $_ := .NetworkSettings.Networks}}{{$n}}{{"\n"}}{{end}}' \
+      "$POSTGRES_CONTAINER" 2>/dev/null | head -n 1 || true)"
+    if [[ -n "$detected" ]]; then
+      warn "network '$COMPOSE_NETWORK' does not exist - using '$detected' (from container '$POSTGRES_CONTAINER')"
+      COMPOSE_NETWORK="$detected"
+    fi
+  fi
+
   network_args=()
   if docker network inspect "$COMPOSE_NETWORK" >/dev/null 2>&1; then
     network_args=(--network "$COMPOSE_NETWORK")
+  elif [[ "$DB_HOST" != localhost && "$DB_HOST" != 127.0.0.1 && "$DB_HOST" != host.docker.internal ]]; then
+    # Without the network, '$DB_HOST' is just an unresolvable name inside the
+    # throwaway container - Liquibase would fail with a confusing
+    # UnknownHostException. Say what is actually wrong instead.
+    die "network '$COMPOSE_NETWORK' does not exist, so '$DB_HOST' cannot be resolved
+       start the stack first (./build.sh), set COMPOSE_NETWORK to the right network,
+       or run against the published port with: DB_HOST=localhost $0 ${liquibase_args[*]}"
   else
     warn "network '$COMPOSE_NETWORK' does not exist - running without it"
-    warn "start the stack first (./build.sh), or point DB_HOST at a reachable host"
   fi
 
   docker run --rm \

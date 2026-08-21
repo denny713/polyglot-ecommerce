@@ -6,7 +6,6 @@ import (
 	dto "product-service/internal/dto/product"
 	model "product-service/internal/model"
 	productRepo "product-service/internal/repository/product"
-	stockRepo "product-service/internal/repository/stock"
 	storageRepo "product-service/internal/repository/storage"
 )
 
@@ -15,7 +14,6 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	var (
 		err        error
 		product    model.Product
-		stock      model.Stock
 		objectName string
 		imageUrl   string
 
@@ -30,7 +28,7 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		}
 	}()
 
-	newProduct := request.ToProductModel()
+	newProduct := request.ToObjectModel()
 	newProduct.ImageURL = imageUrl
 
 	// Submit new product
@@ -38,17 +36,6 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	if err != nil {
 		return dto.ProductCreateRes{}, err
 	}
-
-	newStock := request.ToStockModel()
-	newStock.ProductID = product.ID
-
-	// Submit initial stock for new product
-	stock, err = stockRepo.Create(tx, newStock)
-	if err != nil {
-		return dto.ProductCreateRes{}, err
-	}
-
-	product.Stock = &stock
 
 	// Image upload for product to storage
 	if request.Image != nil {

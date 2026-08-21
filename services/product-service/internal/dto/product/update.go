@@ -13,7 +13,7 @@ import (
 
 type (
 	ProductUpdateReq struct {
-		ID          int64
+		Id          int64
 		Name        string
 		Description string
 		Price       decimal.Decimal
@@ -21,7 +21,7 @@ type (
 	}
 
 	ProductUpdateRes struct {
-		ID          int64           `json:"id"`
+		Id          int64           `json:"id"`
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		Price       decimal.Decimal `json:"price"`
@@ -37,12 +37,18 @@ type (
 // ToProductModel mapping the request object to table model.Product.
 func (p ProductUpdateReq) ToProductModel(product model.Product) model.Product {
 	return model.Product{
-		ID:          p.ID,
+		Id:          p.Id,
 		Name:        p.Name,
 		Description: p.Description,
 		Price:       p.Price,
-		IsActive:    product.IsActive,
-		IsDeleted:   product.IsDeleted,
+		Base: model.Base{
+			IsActive:  product.IsActive,
+			IsDeleted: product.IsDeleted,
+			CreatedBy: product.CreatedBy,
+			UpdatedBy: product.UpdatedBy,
+			CreatedAt: product.CreatedAt,
+			UpdatedAt: time.Now(),
+		},
 	}
 }
 
@@ -79,17 +85,11 @@ func (p ProductUpdateReq) ValidateImage() error {
 
 // ToProductUpdateRes mapping the table model.Product to the response object.
 func ToProductUpdateRes(product model.Product) ProductUpdateRes {
-	var quantity int
-	if product.Stock != nil {
-		quantity = product.Stock.Quantity
-	}
-
 	return ProductUpdateRes{
-		ID:          product.ID,
+		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
 		Price:       product.Price,
-		Stock:       quantity,
 		ImageUrl:    product.ImageURL,
 		IsActive:    product.IsActive,
 		IsDeleted:   product.IsDeleted,

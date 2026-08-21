@@ -31,7 +31,7 @@ func Deactivate(c *echo.Context) error {
 		return exception.HTTPError(exception.ErrProductIDInvalid)
 	}
 
-	response, err := service.Deactivate(c.Request().Context(), product.ProductDeactivateReq{ID: id})
+	response, err := service.Deactivate(c.Request().Context(), product.ProductDeactivateReq{Id: id})
 	if err != nil {
 		return exception.HTTPError(err)
 	}

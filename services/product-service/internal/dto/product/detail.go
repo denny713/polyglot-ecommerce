@@ -28,17 +28,11 @@ type (
 
 // ToProductDetailRes mapping the table model.Product to the response object.
 func ToProductDetailRes(product model.Product) ProductDetailRes {
-	var quantity int
-	if product.Stock != nil {
-		quantity = product.Stock.Quantity
-	}
-
 	return ProductDetailRes{
-		ID:          product.ID,
+		ID:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
 		Price:       product.Price,
-		Stock:       quantity,
 		ImageUrl:    product.ImageURL,
 		IsActive:    product.IsActive,
 		IsDeleted:   product.IsDeleted,

@@ -32,7 +32,6 @@ var sortColumns = map[string]string{
 	"id":         "product.id",
 	"name":       "product.name",
 	"price":      "product.price",
-	sortStock:    "stock.quantity",
 	"created_at": "product.created_at",
 	"updated_at": "product.updated_at",
 }

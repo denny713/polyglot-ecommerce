@@ -16,7 +16,7 @@ func Delete(ctx context.Context, request dto.ProductDeleteReq) (dto.ProductDelet
 	orm := configuration.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := productRepo.Detail(orm, "id", request.ID)
+	product, err := productRepo.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductDeleteRes{}, exception.ErrProductNotFound
@@ -33,7 +33,7 @@ func Delete(ctx context.Context, request dto.ProductDeleteReq) (dto.ProductDelet
 	}
 
 	return dto.ProductDeleteRes{
-		ID:     product.ID,
+		Id:     product.Id,
 		Name:   product.Name,
 		Status: "deleted",
 	}, nil

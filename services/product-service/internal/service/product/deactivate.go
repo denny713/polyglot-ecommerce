@@ -16,7 +16,7 @@ func Deactivate(ctx context.Context, request dto.ProductDeactivateReq) (dto.Prod
 	orm := configuration.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := productRepo.Detail(orm, "id", request.ID)
+	product, err := productRepo.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductDeactivateRes{}, exception.ErrProductNotFound
@@ -38,7 +38,7 @@ func Deactivate(ctx context.Context, request dto.ProductDeactivateReq) (dto.Prod
 	}
 
 	return dto.ProductDeactivateRes{
-		ID:     product.ID,
+		Id:     product.Id,
 		Name:   product.Name,
 		Status: "inactive",
 	}, nil

@@ -16,7 +16,7 @@ func Activate(ctx context.Context, request dto.ProductActivateReq) (dto.ProductA
 	orm := configuration.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := productRepo.Detail(orm, "id", request.ID)
+	product, err := productRepo.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductActivateRes{}, exception.ErrProductNotFound
@@ -38,7 +38,7 @@ func Activate(ctx context.Context, request dto.ProductActivateReq) (dto.ProductA
 	}
 
 	return dto.ProductActivateRes{
-		ID:     product.ID,
+		Id:     product.Id,
 		Name:   product.Name,
 		Status: "active",
 	}, nil
