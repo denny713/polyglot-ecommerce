@@ -64,7 +64,7 @@ func bindProductUpdateReq(c *echo.Context) (product.ProductUpdateReq, error) {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
-		return request, exception.ErrProductIDInvalid
+		return request, exception.ErrInvalidIdentifier
 	}
 
 	if _, err := c.FormValues(); err != nil {

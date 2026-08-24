@@ -15,10 +15,10 @@ type Product struct {
 	Base
 
 	// Relations
-	Stock         *[]Stock       `gorm:"foreignKey:ProductId;references:Id" json:"stock"`
-	StockPosition *StockPosition `gorm:"foreignKey:ProductId;references:Id" json:"stock_position"`
-	Category      *Category      `gorm:"foreignKey:CategoryId,references:Id" json:"category"`
-	Supplier      *Supplier      `gorm:"foreignKey:SupplierId,references:Id" json:"supplier"`
+	//Stock         *[]Stock       `gorm:"foreignKey:ProductId;references:Id" json:"stock"`
+	//StockPosition *StockPosition `gorm:"foreignKey:ProductId;references:Id" json:"stock_position"`
+	//Category      *Category      `gorm:"foreignKey:CategoryId,references:Id" json:"category"`
+	//Supplier      *Supplier      `gorm:"foreignKey:SupplierId,references:Id" json:"supplier"`
 }
 
 func (Product) TableName() string {

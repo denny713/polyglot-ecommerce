@@ -1,5 +1,103 @@
 basePath: /
 definitions:
+  category.CategoryActivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  category.CategoryCreateReq:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  category.CategoryCreateRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  category.CategoryDeactivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  category.CategoryDeleteRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  category.CategoryDetailRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  category.CategorySearchRes:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/category.CategoryDetailRes'
+        type: array
+    type: object
+  category.CategoryUpdateReq:
+    properties:
+      description:
+        type: string
+      id:
+        format: int64
+        type: integer
+      name:
+        type: string
+    type: object
+  category.CategoryUpdateRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.Response:
     properties:
       data: {}
@@ -29,14 +127,10 @@ definitions:
         type: string
       is_active:
         type: boolean
-      is_deleted:
-        type: boolean
       name:
         type: string
       price:
         type: number
-      stock:
-        type: integer
       updated_at:
         type: string
     type: object
@@ -118,6 +212,293 @@ info:
   title: Product Service API
   version: "1.0"
 paths:
+  /api/category:
+    get:
+      consumes:
+      - application/json
+      description: Search categories by name and description (ILIKE), price range
+        and stock range.
+      parameters:
+      - description: Category name, matched partially
+        in: query
+        name: name
+        type: string
+      - description: Category description, matched partially
+        in: query
+        name: description
+        type: string
+      - description: Sort field
+        enum:
+        - id
+        - name
+        - description
+        - created_at
+        - updated_at
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      - description: Page number, starts at 1
+        in: query
+        name: page
+        type: integer
+      - description: Rows per page, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategorySearchRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Search categories
+      tags:
+      - Category
+    post:
+      consumes:
+      - application/json
+      description: Create a new category, the payload is sent as a json body.
+      parameters:
+      - description: Category payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/category.CategoryCreateReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryCreateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Create a new category
+      tags:
+      - Category
+  /api/category/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryDeleteRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Delete a category
+      tags:
+      - Category
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryDetailRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Detail a category
+      tags:
+      - Category
+    put:
+      consumes:
+      - application/json
+      description: Update an existing category, the payload is sent as a json body.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/category.CategoryUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryUpdateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Update an existing category
+      tags:
+      - Category
+  /api/category/activate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Activate a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryActivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Activate a category
+      tags:
+      - Category
+  /api/category/deactivate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Deactivate a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryDeactivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Deactivate a category
+      tags:
+      - Category
   /api/product:
     get:
       consumes:
@@ -245,6 +626,43 @@ paths:
       tags:
       - Product
   /api/product/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductDeleteRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Delete a product
+      tags:
+      - Product
     get:
       consumes:
       - application/json
@@ -408,44 +826,6 @@ paths:
           schema:
             $ref: '#/definitions/dto.Response'
       summary: Deactivate a product
-      tags:
-      - Product
-  /api/product/delete/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a specific product.
-      parameters:
-      - description: Product ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dto.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/product.ProductDeleteRes'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dto.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.Response'
-      summary: Delete a product
       tags:
       - Product
 securityDefinitions:

@@ -9,11 +9,11 @@ import (
 
 type (
 	ProductDetailReq struct {
-		ID int64
+		Id int64
 	}
 
 	ProductDetailRes struct {
-		ID          int64           `json:"id"`
+		Id          int64           `json:"id"`
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		Price       decimal.Decimal `json:"price"`
@@ -29,7 +29,7 @@ type (
 // ToProductDetailRes mapping the table model.Product to the response object.
 func ToProductDetailRes(product model.Product) ProductDetailRes {
 	return ProductDetailRes{
-		ID:          product.Id,
+		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
 		Price:       product.Price,

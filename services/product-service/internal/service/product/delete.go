@@ -6,7 +6,7 @@ import (
 	"product-service/internal/configuration"
 	dto "product-service/internal/dto/product"
 	"product-service/internal/exception"
-	productRepo "product-service/internal/repository/product"
+	repo "product-service/internal/repository/product"
 
 	"gorm.io/gorm"
 )
@@ -16,10 +16,10 @@ func Delete(ctx context.Context, request dto.ProductDeleteReq) (dto.ProductDelet
 	orm := configuration.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := productRepo.Detail(orm, "id", request.Id)
+	product, err := repo.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.ProductDeleteRes{}, exception.ErrProductNotFound
+			return dto.ProductDeleteRes{}, exception.ErrNotFound
 		}
 
 		return dto.ProductDeleteRes{}, err
@@ -27,14 +27,10 @@ func Delete(ctx context.Context, request dto.ProductDeleteReq) (dto.ProductDelet
 
 	// Delete product
 	product.IsDeleted = true
-	_, err = productRepo.Update(orm, product)
+	_, err = repo.Update(orm, product)
 	if err != nil {
 		return dto.ProductDeleteRes{}, err
 	}
 
-	return dto.ProductDeleteRes{
-		Id:     product.Id,
-		Name:   product.Name,
-		Status: "deleted",
-	}, nil
+	return dto.ToProductDeleteRes(product), nil
 }

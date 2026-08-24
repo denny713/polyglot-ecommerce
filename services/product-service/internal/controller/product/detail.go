@@ -28,10 +28,10 @@ import (
 func Detail(c *echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
-		return exception.HTTPError(exception.ErrProductIDInvalid)
+		return exception.HTTPError(exception.ErrInvalidIdentifier)
 	}
 
-	response, err := service.Detail(c.Request().Context(), product.ProductDetailReq{ID: id})
+	response, err := service.Detail(c.Request().Context(), product.ProductDetailReq{Id: id})
 	if err != nil {
 		return exception.HTTPError(err)
 	}

@@ -2,33 +2,12 @@ package product
 
 import (
 	"errors"
+	"product-service/internal/constant"
 	"product-service/internal/model"
 	"strings"
 
 	"github.com/shopspring/decimal"
 )
-
-const (
-	defaultPage     = 1
-	defaultPageSize = 10
-	maxPageSize     = 100
-
-	defaultSortBy = "id"
-
-	SortOrderAsc  = "asc"
-	SortOrderDesc = "desc"
-)
-
-// allowedSortBy lists the logical fields the result can be ordered by, the
-// repository is the one mapping them to the real columns.
-var allowedSortBy = map[string]bool{
-	"id":         true,
-	"name":       true,
-	"price":      true,
-	"stock":      true,
-	"created_at": true,
-	"updated_at": true,
-}
 
 type (
 	ProductSearchReq struct {
@@ -47,11 +26,26 @@ type (
 	ProductSearchRes struct {
 		Data []ProductDetailRes `json:"data"`
 	}
+
+	ProductSearchFilter struct {
+		Name        string
+		Description string
+		MinPrice    decimal.Decimal
+		MaxPrice    decimal.Decimal
+		MinStock    int
+		MaxStock    int
+		SortBy      string
+		SortOrder   string
+		Limit       int
+		Offset      int
+	}
 )
 
 // Validate checks the filters make sense before the query is built. Every
 // filter is optional, a zero value simply means the filter is not applied.
 func (p ProductSearchReq) Validate() error {
+	sortAllowed := allowedSortBy()
+
 	if p.MinPrice.IsNegative() || p.MaxPrice.IsNegative() {
 		return errors.New("price filter must not be negative")
 	}
@@ -68,12 +62,12 @@ func (p ProductSearchReq) Validate() error {
 		return errors.New("min_stock must not be greater than max_stock")
 	}
 
-	if sortBy := strings.ToLower(strings.TrimSpace(p.SortBy)); sortBy != "" && !allowedSortBy[sortBy] {
+	if sortBy := strings.ToLower(strings.TrimSpace(p.SortBy)); sortBy != "" && !sortAllowed[sortBy] {
 		return errors.New("sort_by must be one of id, name, price, stock, created_at, or updated_at")
 	}
 
 	if sortOrder := strings.ToLower(strings.TrimSpace(p.SortOrder)); sortOrder != "" &&
-		sortOrder != SortOrderAsc && sortOrder != SortOrderDesc {
+		sortOrder != constant.SortOrderAsc && sortOrder != constant.SortOrderDesc {
 		return errors.New("sort_order must be one of asc or desc")
 	}
 
@@ -87,29 +81,30 @@ func (p ProductSearchReq) Validate() error {
 // Normalize trims the text filters and fills the sorting and paging defaults so
 // the repository always receives a ready to use request.
 func (p ProductSearchReq) Normalize() ProductSearchReq {
+	sortAllowed := allowedSortBy()
 	p.Name = strings.TrimSpace(p.Name)
 	p.Description = strings.TrimSpace(p.Description)
 
 	p.SortBy = strings.ToLower(strings.TrimSpace(p.SortBy))
-	if !allowedSortBy[p.SortBy] {
-		p.SortBy = defaultSortBy
+	if !sortAllowed[p.SortBy] {
+		p.SortBy = constant.DefaultSortBy
 	}
 
 	p.SortOrder = strings.ToLower(strings.TrimSpace(p.SortOrder))
-	if p.SortOrder != SortOrderAsc {
-		p.SortOrder = SortOrderDesc
+	if p.SortOrder != constant.SortOrderAsc {
+		p.SortOrder = constant.SortOrderDesc
 	}
 
 	if p.Page <= 0 {
-		p.Page = defaultPage
+		p.Page = constant.DefaultPage
 	}
 
 	if p.PageSize <= 0 {
-		p.PageSize = defaultPageSize
+		p.PageSize = constant.DefaultPageSize
 	}
 
-	if p.PageSize > maxPageSize {
-		p.PageSize = maxPageSize
+	if p.PageSize > constant.MaxPageSize {
+		p.PageSize = constant.MaxPageSize
 	}
 
 	return p
@@ -133,4 +128,42 @@ func ToProductSearchRes(products []model.Product) ProductSearchRes {
 	}
 
 	return ProductSearchRes{Data: data}
+}
+
+// OrderClause builds the order clause of the search, an unknown sort field falls
+// back to the newest product first.
+func OrderClause(filter ProductSearchFilter) string {
+	sortColumns := map[string]string{
+		"id":         "product.id",
+		"name":       "product.name",
+		"price":      "product.price",
+		"stock":      "stock.quantity",
+		"created_at": "product.created_at",
+		"updated_at": "product.updated_at",
+	}
+
+	column, ok := sortColumns[filter.SortBy]
+	if !ok {
+		column = sortColumns["id"]
+	}
+
+	direction := "DESC"
+	if strings.EqualFold(filter.SortOrder, "asc") {
+		direction = "ASC"
+	}
+
+	return column + " " + direction
+}
+
+// allowedSortBy returns a map of allowed sort fields for the product search.
+// This is used to validate the sort_by parameter in the request.
+func allowedSortBy() map[string]bool {
+	return map[string]bool{
+		"id":         true,
+		"name":       true,
+		"price":      true,
+		"stock":      true,
+		"created_at": true,
+		"updated_at": true,
+	}
 }

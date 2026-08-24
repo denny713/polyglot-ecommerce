@@ -16,7 +16,7 @@ type Supplier struct {
 	Base
 
 	// Relation
-	Products *[]Product `gorm:"foreignKey:SupplierId;references:Id" json:"products"`
+	//Products *[]Product `gorm:"foreignKey:SupplierId;references:Id" json:"products"`
 }
 
 func (Supplier) TableName() string {

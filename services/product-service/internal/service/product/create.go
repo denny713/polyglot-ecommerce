@@ -53,7 +53,7 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		return dto.ProductCreateRes{}, err
 	}
 
-	return dto.ToProductCreateRes(product), nil
+	return dto.ToResponse(product), nil
 }
 
 // removeUploadedImage cleans up the object so a failed create does not leave an

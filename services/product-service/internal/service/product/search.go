@@ -4,7 +4,7 @@ import (
 	"context"
 	"product-service/internal/configuration"
 	dto "product-service/internal/dto/product"
-	productRepo "product-service/internal/repository/product"
+	repo "product-service/internal/repository/product"
 )
 
 // Search implement service for search product
@@ -15,7 +15,7 @@ func Search(ctx context.Context, request dto.ProductSearchReq) (dto.ProductSearc
 	request = request.Normalize()
 
 	// Search product by the requested filters
-	products, err := productRepo.Search(orm, productRepo.SearchFilter{
+	products, err := repo.Search(orm, dto.ProductSearchFilter{
 		Name:        request.Name,
 		Description: request.Description,
 		MinPrice:    request.MinPrice,

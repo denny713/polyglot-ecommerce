@@ -28,7 +28,7 @@ import (
 func Deactivate(c *echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
-		return exception.HTTPError(exception.ErrProductIDInvalid)
+		return exception.HTTPError(exception.ErrInvalidIdentifier)
 	}
 
 	response, err := service.Deactivate(c.Request().Context(), product.ProductDeactivateReq{Id: id})

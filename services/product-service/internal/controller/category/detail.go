@@ -1,37 +1,36 @@
-package product
+package category
 
 import (
 	"net/http"
-	"strconv"
-
 	"product-service/internal/constant"
-	dto "product-service/internal/dto"
-	product "product-service/internal/dto/product"
+	"product-service/internal/dto"
+	"product-service/internal/dto/category"
 	"product-service/internal/exception"
-	service "product-service/internal/service/product"
+	service "product-service/internal/service/category"
+	"strconv"
 
 	"github.com/labstack/echo/v5"
 )
 
-// Activate godoc
-// @Summary Activate a product
-// @Description Activate a specific product.
-// @Tags Product
+// Detail godoc
+// @Summary Detail a category
+// @Description Get details of a specific category.
+// @Tags Category
 // @Accept  json
 // @Produce  json
-// @Param id path string true "Product ID"
-// @Success 200 {object} dto.Response{data=product.ProductActivateRes}
+// @Param id path string true "Category ID"
+// @Success 200 {object} dto.Response{data=category.CategoryDetailRes}
 // @Failure 400 {object} dto.Response
 // @Failure 404 {object} dto.Response
 // @Failure 500 {object} dto.Response
-// @Router /api/product/activate/{id} [put]
-func Activate(c *echo.Context) error {
+// @Router /api/category/{id} [get]
+func Detail(c *echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
 		return exception.HTTPError(exception.ErrInvalidIdentifier)
 	}
 
-	response, err := service.Activate(c.Request().Context(), product.ProductActivateReq{Id: id})
+	response, err := service.Detail(c.Request().Context(), category.CategoryDetailReq{Id: id})
 	if err != nil {
 		return exception.HTTPError(err)
 	}

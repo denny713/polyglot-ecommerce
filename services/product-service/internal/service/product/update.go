@@ -9,6 +9,7 @@ import (
 	storageRepo "product-service/internal/repository/storage"
 )
 
+// Update implement service for update product
 func Update(ctx context.Context, request dto.ProductUpdateReq) (dto.ProductUpdateRes, error) {
 	var (
 		err        error

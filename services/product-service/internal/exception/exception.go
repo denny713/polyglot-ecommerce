@@ -107,10 +107,10 @@ func HTTPError(err error) error {
 	return echo.NewHTTPError(exception.Status, exception.Message)
 }
 
-// Product exceptions.
+// Data exceptions.
 var (
-	ErrProductIDInvalid       = BadRequest("product ID must be a valid number")
-	ErrProductNotFound        = NotFound("product not found")
-	ErrProductAlreadyActive   = Conflict("product already active")
-	ErrProductAlreadyInactive = Conflict("product already inactive")
+	ErrInvalidIdentifier = BadRequest("Identifier must be a valid number")
+	ErrNotFound          = NotFound("The specific data not found")
+	ErrAlreadyActive     = Conflict("The specific data already active")
+	ErrAlreadyInactive   = Conflict("The specific data already inactive")
 )

@@ -7,7 +7,7 @@ type StockPosition struct {
 	Base
 
 	// Relation
-	Product *Product `gorm:"foreignKey:ProductId;references:Id" json:"product"`
+	//Product *Product `gorm:"foreignKey:ProductId;references:Id" json:"product"`
 }
 
 func (StockPosition) TableName() string {

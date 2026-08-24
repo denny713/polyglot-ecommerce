@@ -38,7 +38,6 @@ type (
 		Price       decimal.Decimal `json:"price"`
 		ImageUrl    string          `json:"image_url"`
 		IsActive    bool            `json:"is_active"`
-		IsDeleted   bool            `json:"is_deleted"`
 		CreatedAt   time.Time       `json:"created_at"`
 		UpdatedAt   time.Time       `json:"updated_at"`
 	}
@@ -50,12 +49,7 @@ func (p ProductCreateReq) ToObjectModel() model.Product {
 		Name:        p.Name,
 		Description: p.Description,
 		Price:       p.Price,
-		Base: model.Base{
-			IsActive:  true,
-			IsDeleted: false,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
+		Base:        model.PrePersist(),
 	}
 }
 
@@ -90,8 +84,8 @@ func (p ProductCreateReq) ValidateImage() error {
 	return nil
 }
 
-// ToProductCreateRes mapping the table model.Product to the response object.
-func ToProductCreateRes(product model.Product) ProductCreateRes {
+// ToResponse mapping the table model.Product to the response object.
+func ToResponse(product model.Product) ProductCreateRes {
 	return ProductCreateRes{
 		Id:          product.Id,
 		Name:        product.Name,
@@ -99,7 +93,6 @@ func ToProductCreateRes(product model.Product) ProductCreateRes {
 		Price:       product.Price,
 		ImageUrl:    product.ImageURL,
 		IsActive:    product.IsActive,
-		IsDeleted:   product.IsDeleted,
 		CreatedAt:   product.CreatedAt,
 		UpdatedAt:   product.UpdatedAt,
 	}

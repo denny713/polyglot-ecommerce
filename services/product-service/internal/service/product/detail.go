@@ -6,7 +6,7 @@ import (
 	"product-service/internal/configuration"
 	dto "product-service/internal/dto/product"
 	"product-service/internal/exception"
-	productRepo "product-service/internal/repository/product"
+	repo "product-service/internal/repository/product"
 
 	"gorm.io/gorm"
 )
@@ -16,10 +16,10 @@ func Detail(ctx context.Context, request dto.ProductDetailReq) (dto.ProductDetai
 	orm := configuration.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := productRepo.Detail(orm, "id", request.ID)
+	product, err := repo.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.ProductDetailRes{}, exception.ErrProductNotFound
+			return dto.ProductDetailRes{}, exception.ErrNotFound
 		}
 
 		return dto.ProductDetailRes{}, err

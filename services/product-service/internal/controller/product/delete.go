@@ -24,11 +24,11 @@ import (
 // @Failure 400 {object} dto.Response
 // @Failure 404 {object} dto.Response
 // @Failure 500 {object} dto.Response
-// @Router /api/product/delete/{id} [delete]
+// @Router /api/product/{id} [delete]
 func Delete(c *echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
-		return exception.HTTPError(exception.ErrProductIDInvalid)
+		return exception.HTTPError(exception.ErrInvalidIdentifier)
 	}
 
 	response, err := service.Delete(c.Request().Context(), product.ProductDeleteReq{Id: id})
