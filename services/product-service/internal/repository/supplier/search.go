@@ -21,7 +21,7 @@ var sortColumns = map[string]string{
 }
 
 // Search implement repository for search supplier by its profile and address
-func Search(orm *gorm.DB, filter supplier.SupplierSearchFilter) ([]model.Supplier, error) {
+func (r repository) Search(orm *gorm.DB, filter supplier.SupplierSearchFilter) ([]model.Supplier, error) {
 	suppliers := make([]model.Supplier, 0)
 
 	query := orm.Preload("Products", "is_deleted = FALSE").

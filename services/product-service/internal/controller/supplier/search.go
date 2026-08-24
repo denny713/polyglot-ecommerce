@@ -6,7 +6,6 @@ import (
 	"product-service/internal/dto"
 	"product-service/internal/dto/supplier"
 	"product-service/internal/exception"
-	service "product-service/internal/service/supplier"
 	"product-service/internal/util"
 	"strings"
 
@@ -36,7 +35,7 @@ import (
 // @Failure 400 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /api/supplier [get]
-func Search(c *echo.Context) error {
+func (ctrl Controller) Search(c *echo.Context) error {
 	request, err := bindSupplierSearchReq(c)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -46,7 +45,7 @@ func Search(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	response, err := service.Search(c.Request().Context(), request)
+	response, err := ctrl.service.Search(c.Request().Context(), request)
 	if err != nil {
 		return exception.HTTPError(err)
 	}

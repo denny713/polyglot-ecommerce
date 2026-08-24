@@ -3,20 +3,19 @@ package product
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/product"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/product"
 
 	"gorm.io/gorm"
 )
 
 // Activate implement service for activate product
-func Activate(ctx context.Context, request dto.ProductActivateReq) (dto.ProductActivateRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Activate(ctx context.Context, request dto.ProductActivateReq) (dto.ProductActivateRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := repo.Detail(orm, "id", request.Id)
+	product, err := s.products.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductActivateRes{}, exception.ErrNotFound
@@ -33,7 +32,7 @@ func Activate(ctx context.Context, request dto.ProductActivateReq) (dto.ProductA
 	// Update product status to active
 	product.IsActive = true
 	product.Base = product.Base.Touch()
-	_, err = repo.Update(orm, product)
+	_, err = s.products.Update(orm, product)
 	if err != nil {
 		return dto.ProductActivateRes{}, err
 	}

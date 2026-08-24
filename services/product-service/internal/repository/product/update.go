@@ -8,7 +8,7 @@ import (
 )
 
 // Update implement repository for update product
-func Update(orm *gorm.DB, product model.Product) (model.Product, error) {
+func (r repository) Update(orm *gorm.DB, product model.Product) (model.Product, error) {
 	var err error
 
 	updates := map[string]interface{}{

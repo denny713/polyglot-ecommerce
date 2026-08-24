@@ -10,7 +10,6 @@ import (
 	"product-service/internal/dto"
 	product "product-service/internal/dto/product"
 	exception "product-service/internal/exception"
-	service "product-service/internal/service/product"
 
 	"github.com/labstack/echo/v5"
 	"github.com/shopspring/decimal"
@@ -33,7 +32,7 @@ import (
 // @Failure 400 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /api/product/{id} [put]
-func Update(c *echo.Context) error {
+func (ctrl Controller) Update(c *echo.Context) error {
 	request, err := bindProductUpdateReq(c)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -47,7 +46,7 @@ func Update(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	response, err := service.Update(c.Request().Context(), request)
+	response, err := ctrl.service.Update(c.Request().Context(), request)
 	if err != nil {
 		return exception.HTTPError(err)
 	}

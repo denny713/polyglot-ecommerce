@@ -13,7 +13,15 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 )
 
-func Routes(e *echo.Echo) {
+// Controllers gathers the handlers the routes are bound to, so the wiring done
+// at start up is the only place that knows how they are built.
+type Controllers struct {
+	Category category.Controller
+	Product  product.Controller
+	Supplier supplier.Controller
+}
+
+func Routes(e *echo.Echo, controllers Controllers) {
 	e.Use(middleware.RequestLogger())
 
 	e.GET("/", Health)
@@ -21,45 +29,45 @@ func Routes(e *echo.Echo) {
 
 	api := e.Group("/api")
 	registerSwaggerRoutes(api)
-	registerCategoryRoutes(api)
-	registerProductRoutes(api)
-	registerSupplierRoutes(api)
+	registerCategoryRoutes(api, controllers.Category)
+	registerProductRoutes(api, controllers.Product)
+	registerSupplierRoutes(api, controllers.Supplier)
 }
 
-func registerCategoryRoutes(api *echo.Group) {
+func registerCategoryRoutes(api *echo.Group, ctrl category.Controller) {
 	group := api.Group("/category")
 
-	group.POST("", category.Create)
-	group.GET("", category.Search)
-	group.GET("/:id", category.Detail)
-	group.PUT("/:id", category.Update)
-	group.PUT("/activate/:id", category.Activate)
-	group.PUT("/deactivate/:id", category.Deactivate)
-	group.DELETE("/:id", category.Delete)
+	group.POST("", ctrl.Create)
+	group.GET("", ctrl.Search)
+	group.GET("/:id", ctrl.Detail)
+	group.PUT("/:id", ctrl.Update)
+	group.PUT("/activate/:id", ctrl.Activate)
+	group.PUT("/deactivate/:id", ctrl.Deactivate)
+	group.DELETE("/:id", ctrl.Delete)
 }
 
-func registerProductRoutes(api *echo.Group) {
+func registerProductRoutes(api *echo.Group, ctrl product.Controller) {
 	group := api.Group("/product")
 
-	group.POST("", product.Create)
-	group.GET("", product.Search)
-	group.GET("/:id", product.Detail)
-	group.PUT("/:id", product.Update)
-	group.PUT("/activate/:id", product.Activate)
-	group.PUT("/deactivate/:id", product.Deactivate)
-	group.DELETE("/:id", product.Delete)
+	group.POST("", ctrl.Create)
+	group.GET("", ctrl.Search)
+	group.GET("/:id", ctrl.Detail)
+	group.PUT("/:id", ctrl.Update)
+	group.PUT("/activate/:id", ctrl.Activate)
+	group.PUT("/deactivate/:id", ctrl.Deactivate)
+	group.DELETE("/:id", ctrl.Delete)
 }
 
-func registerSupplierRoutes(api *echo.Group) {
+func registerSupplierRoutes(api *echo.Group, ctrl supplier.Controller) {
 	group := api.Group("/supplier")
 
-	group.POST("", supplier.Create)
-	group.GET("", supplier.Search)
-	group.GET("/:id", supplier.Detail)
-	group.PUT("/:id", supplier.Update)
-	group.PUT("/activate/:id", supplier.Activate)
-	group.PUT("/deactivate/:id", supplier.Deactivate)
-	group.DELETE("/:id", supplier.Delete)
+	group.POST("", ctrl.Create)
+	group.GET("", ctrl.Search)
+	group.GET("/:id", ctrl.Detail)
+	group.PUT("/:id", ctrl.Update)
+	group.PUT("/activate/:id", ctrl.Activate)
+	group.PUT("/deactivate/:id", ctrl.Deactivate)
+	group.DELETE("/:id", ctrl.Delete)
 }
 
 func registerSwaggerRoutes(api *echo.Group) {

@@ -3,20 +3,19 @@ package product
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/product"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/product"
 
 	"gorm.io/gorm"
 )
 
 // Detail implement service for get product detail
-func Detail(ctx context.Context, request dto.ProductDetailReq) (dto.ProductDetailRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Detail(ctx context.Context, request dto.ProductDetailReq) (dto.ProductDetailRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := repo.Detail(orm, "id", request.Id)
+	product, err := s.products.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductDetailRes{}, exception.ErrNotFound

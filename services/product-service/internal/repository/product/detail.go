@@ -8,7 +8,7 @@ import (
 )
 
 // Detail implement repository for get product detail
-func Detail(orm *gorm.DB, param string, value interface{}) (model.Product, error) {
+func (r repository) Detail(orm *gorm.DB, param string, value interface{}) (model.Product, error) {
 	var product model.Product
 	err := orm.
 		Preload("Category", "is_deleted = FALSE").

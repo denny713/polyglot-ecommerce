@@ -6,7 +6,6 @@ import (
 	"product-service/internal/dto"
 	"product-service/internal/dto/category"
 	"product-service/internal/exception"
-	service "product-service/internal/service/category"
 	"strconv"
 	"strings"
 
@@ -25,7 +24,7 @@ import (
 // @Failure 400 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /api/category/{id} [put]
-func Update(c *echo.Context) error {
+func (ctrl Controller) Update(c *echo.Context) error {
 	var request category.CategoryUpdateReq
 	if err := c.Bind(&request); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "request body must be a valid json")
@@ -44,7 +43,7 @@ func Update(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	response, err := service.Update(c.Request().Context(), request)
+	response, err := ctrl.service.Update(c.Request().Context(), request)
 	if err != nil {
 		return exception.HTTPError(err)
 	}

@@ -3,20 +3,19 @@ package category
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/category"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/category"
 
 	"gorm.io/gorm"
 )
 
 // Activate implement service for activate category
-func Activate(ctx context.Context, request dto.CategoryActivateReq) (dto.CategoryActivateRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Activate(ctx context.Context, request dto.CategoryActivateReq) (dto.CategoryActivateRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get category detail by parameter
-	category, err := repo.Detail(orm, "id", request.Id)
+	category, err := s.categories.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.CategoryActivateRes{}, exception.ErrNotFound
@@ -33,7 +32,7 @@ func Activate(ctx context.Context, request dto.CategoryActivateReq) (dto.Categor
 	// Update category status to active
 	category.IsActive = true
 	category.Base = category.Base.Touch()
-	_, err = repo.Update(orm, category)
+	_, err = s.categories.Update(orm, category)
 	if err != nil {
 		return dto.CategoryActivateRes{}, err
 	}

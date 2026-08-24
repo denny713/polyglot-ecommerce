@@ -3,20 +3,19 @@ package category
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/category"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/category"
 
 	"gorm.io/gorm"
 )
 
 // Update implement service for update category
-func Update(ctx context.Context, request dto.CategoryUpdateReq) (dto.CategoryUpdateRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Update(ctx context.Context, request dto.CategoryUpdateReq) (dto.CategoryUpdateRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get existing category
-	existing, err := repo.Detail(orm, "id", request.Id)
+	existing, err := s.categories.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.CategoryUpdateRes{}, exception.ErrNotFound
@@ -26,7 +25,7 @@ func Update(ctx context.Context, request dto.CategoryUpdateReq) (dto.CategoryUpd
 	}
 
 	// Update category
-	category, err := repo.Update(orm, request.ToObjectModel(existing))
+	category, err := s.categories.Update(orm, request.ToObjectModel(existing))
 	if err != nil {
 		return dto.CategoryUpdateRes{}, err
 	}

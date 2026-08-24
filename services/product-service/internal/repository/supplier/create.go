@@ -7,7 +7,7 @@ import (
 )
 
 // Create implement repository for create new supplier
-func Create(orm *gorm.DB, supplier model.Supplier) (model.Supplier, error) {
+func (r repository) Create(orm *gorm.DB, supplier model.Supplier) (model.Supplier, error) {
 	err := orm.Create(&supplier).Error
 	if err != nil {
 		return model.Supplier{}, err

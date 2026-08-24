@@ -3,19 +3,19 @@ package category
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/category"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/category"
 
 	"gorm.io/gorm"
 )
 
-func Detail(ctx context.Context, request dto.CategoryDetailReq) (dto.CategoryDetailRes, error) {
-	orm := configuration.Orm(ctx)
+// Detail implement service for get category detail
+func (s service) Detail(ctx context.Context, request dto.CategoryDetailReq) (dto.CategoryDetailRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get category detail by parameter
-	category, err := repo.Detail(orm, "id", request.Id)
+	category, err := s.categories.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.CategoryDetailRes{}, exception.ErrNotFound

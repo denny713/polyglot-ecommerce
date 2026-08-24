@@ -2,18 +2,16 @@ package product
 
 import (
 	"context"
-	"product-service/internal/configuration"
+
 	"product-service/internal/constant"
 	dto "product-service/internal/dto/product"
 	"product-service/internal/model"
-	categoryRepo "product-service/internal/repository/category"
-	productRepo "product-service/internal/repository/product"
-	storageRepo "product-service/internal/repository/storage"
-	supplierRepo "product-service/internal/repository/supplier"
+
+	"gorm.io/gorm"
 )
 
 // Create implement service for create new product
-func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreateRes, error) {
+func (s service) Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreateRes, error) {
 	var (
 		err        error
 		objectName string
@@ -21,17 +19,26 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		category   model.Category
 		supplier   model.Supplier
 
-		orm = configuration.Orm(ctx)
+		orm = s.db.Orm(ctx)
 	)
 
+	// The image is removed again when the write below panics, so a request that
+	// dies half way does not leave an orphan file in the bucket.
+	defer func() {
+		if r := recover(); r != nil {
+			s.removeUploadedImage(ctx, objectName)
+			panic(r)
+		}
+	}()
+
 	// Get existing category Data
-	category, err = categoryRepo.Detail(orm, "id", *request.CategoryId)
+	category, err = s.categories.Detail(orm, "id", *request.CategoryId)
 	if err != nil {
 		return dto.ProductCreateRes{}, err
 	}
 
 	// Get existing supplier data
-	supplier, err = supplierRepo.Detail(orm, "id", *request.SupplierId)
+	supplier, err = s.suppliers.Detail(orm, "id", *request.SupplierId)
 	if err != nil {
 		return dto.ProductCreateRes{}, err
 	}
@@ -41,28 +48,22 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	// The image is uploaded before the row is written, so the image_url stored on
 	// the product is the object that really ended up in the bucket.
 	if request.Image != nil {
-		objectName, err = storageRepo.Upload(ctx, constant.ImageFolder, request.Image)
+		objectName, err = s.storage.Upload(ctx, constant.ImageFolder, request.Image)
 		if err != nil {
 			return dto.ProductCreateRes{}, err
 		}
 
-		newProduct.ImageURL = configuration.MinioObjectURL(objectName)
+		newProduct.ImageURL = s.storage.ObjectURL(objectName)
 	}
 
-	// Begin transaction
-	tx := orm.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			RemoveUploadedImage(ctx, objectName)
-		}
-	}()
-
 	// Submit new product
-	product, err = productRepo.Create(tx, newProduct)
+	err = s.db.Transaction(ctx, func(tx *gorm.DB) error {
+		product, err = s.products.Create(tx, newProduct)
+
+		return err
+	})
 	if err != nil {
-		tx.Rollback()
-		RemoveUploadedImage(ctx, objectName)
+		s.removeUploadedImage(ctx, objectName)
 
 		return dto.ProductCreateRes{}, err
 	}
@@ -70,23 +71,5 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	product.Category = &category
 	product.Supplier = &supplier
 
-	// Commit transaction
-	if err = tx.Commit().Error; err != nil {
-		RemoveUploadedImage(ctx, objectName)
-
-		return dto.ProductCreateRes{}, err
-	}
-
 	return dto.ToProductCreateRes(product), nil
-}
-
-// RemoveUploadedImage cleans up the object so a failed write does not leave an
-// orphan file in the bucket. The cleanup error is intentionally ignored, the
-// original error is the one worth returning to the caller.
-func RemoveUploadedImage(ctx context.Context, objectName string) {
-	if objectName == "" {
-		return
-	}
-
-	_ = storageRepo.Remove(ctx, objectName)
 }

@@ -3,20 +3,19 @@ package supplier
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/supplier"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/supplier"
 
 	"gorm.io/gorm"
 )
 
 // Activate implement service for activate supplier
-func Activate(ctx context.Context, request dto.SupplierActivateReq) (dto.SupplierActivateRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Activate(ctx context.Context, request dto.SupplierActivateReq) (dto.SupplierActivateRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get supplier detail by parameter
-	supplier, err := repo.Detail(orm, "id", request.Id)
+	supplier, err := s.suppliers.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.SupplierActivateRes{}, exception.ErrNotFound
@@ -33,7 +32,7 @@ func Activate(ctx context.Context, request dto.SupplierActivateReq) (dto.Supplie
 	// Update supplier status to active
 	supplier.IsActive = true
 	supplier.Base = supplier.Base.Touch()
-	_, err = repo.Update(orm, supplier)
+	_, err = s.suppliers.Update(orm, supplier)
 	if err != nil {
 		return dto.SupplierActivateRes{}, err
 	}

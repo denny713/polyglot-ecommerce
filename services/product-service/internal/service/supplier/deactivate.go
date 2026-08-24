@@ -3,20 +3,19 @@ package supplier
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/supplier"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/supplier"
 
 	"gorm.io/gorm"
 )
 
 // Deactivate implement service for deactivate supplier
-func Deactivate(ctx context.Context, request dto.SupplierDeactivateReq) (dto.SupplierDeactivateRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Deactivate(ctx context.Context, request dto.SupplierDeactivateReq) (dto.SupplierDeactivateRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get supplier detail by parameter
-	supplier, err := repo.Detail(orm, "id", request.Id)
+	supplier, err := s.suppliers.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.SupplierDeactivateRes{}, exception.ErrNotFound
@@ -33,7 +32,7 @@ func Deactivate(ctx context.Context, request dto.SupplierDeactivateReq) (dto.Sup
 	// Update supplier status to inactive
 	supplier.IsActive = false
 	supplier.Base = supplier.Base.Touch()
-	_, err = repo.Update(orm, supplier)
+	_, err = s.suppliers.Update(orm, supplier)
 	if err != nil {
 		return dto.SupplierDeactivateRes{}, err
 	}

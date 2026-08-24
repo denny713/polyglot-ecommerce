@@ -8,7 +8,7 @@ import (
 )
 
 // Update implement repository for update supplier
-func Update(orm *gorm.DB, supplier model.Supplier) (model.Supplier, error) {
+func (r repository) Update(orm *gorm.DB, supplier model.Supplier) (model.Supplier, error) {
 	var err error
 
 	updates := map[string]interface{}{

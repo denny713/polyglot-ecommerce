@@ -7,7 +7,7 @@ import (
 )
 
 // Create implement repository for create new product
-func Create(orm *gorm.DB, product model.Product) (model.Product, error) {
+func (r repository) Create(orm *gorm.DB, product model.Product) (model.Product, error) {
 	err := orm.Create(&product).Error
 	if err != nil {
 		return model.Product{}, err

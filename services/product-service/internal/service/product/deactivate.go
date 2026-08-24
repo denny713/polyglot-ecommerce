@@ -3,20 +3,19 @@ package product
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/product"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/product"
 
 	"gorm.io/gorm"
 )
 
 // Deactivate implement service for deactivate product
-func Deactivate(ctx context.Context, request dto.ProductDeactivateReq) (dto.ProductDeactivateRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Deactivate(ctx context.Context, request dto.ProductDeactivateReq) (dto.ProductDeactivateRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := repo.Detail(orm, "id", request.Id)
+	product, err := s.products.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductDeactivateRes{}, exception.ErrNotFound
@@ -33,7 +32,7 @@ func Deactivate(ctx context.Context, request dto.ProductDeactivateReq) (dto.Prod
 	// Update product status to inactive
 	product.IsActive = false
 	product.Base = product.Base.Touch()
-	_, err = repo.Update(orm, product)
+	_, err = s.products.Update(orm, product)
 	if err != nil {
 		return dto.ProductDeactivateRes{}, err
 	}

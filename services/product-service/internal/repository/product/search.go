@@ -19,7 +19,7 @@ var sortColumns = map[string]string{
 }
 
 // Search implement repository for search product by name, description, price range and stock range
-func Search(orm *gorm.DB, filter product.ProductSearchFilter) ([]model.Product, error) {
+func (r repository) Search(orm *gorm.DB, filter product.ProductSearchFilter) ([]model.Product, error) {
 	products := make([]model.Product, 0)
 
 	query := orm.

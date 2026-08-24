@@ -3,20 +3,19 @@ package category
 import (
 	"context"
 	"errors"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/category"
 	"product-service/internal/exception"
-	repo "product-service/internal/repository/category"
 
 	"gorm.io/gorm"
 )
 
 // Delete implement service for delete category
-func Delete(ctx context.Context, request dto.CategoryDeleteReq) (dto.CategoryDeleteRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Delete(ctx context.Context, request dto.CategoryDeleteReq) (dto.CategoryDeleteRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Get category detail by parameter
-	category, err := repo.Detail(orm, "id", request.Id)
+	category, err := s.categories.Detail(orm, "id", request.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.CategoryDeleteRes{}, exception.ErrNotFound
@@ -28,7 +27,7 @@ func Delete(ctx context.Context, request dto.CategoryDeleteReq) (dto.CategoryDel
 	// Delete category
 	category.IsDeleted = true
 	category.Base = category.Base.Touch()
-	_, err = repo.Update(orm, category)
+	_, err = s.categories.Update(orm, category)
 	if err != nil {
 		return dto.CategoryDeleteRes{}, err
 	}

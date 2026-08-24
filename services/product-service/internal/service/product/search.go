@@ -2,21 +2,20 @@ package product
 
 import (
 	"context"
-	"product-service/internal/configuration"
+
 	"product-service/internal/dto/base"
 	dto "product-service/internal/dto/product"
-	repo "product-service/internal/repository/product"
 )
 
 // Search implement service for search product
-func Search(ctx context.Context, request dto.ProductSearchReq) (dto.ProductSearchRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Search(ctx context.Context, request dto.ProductSearchReq) (dto.ProductSearchRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Fill the sorting and paging defaults before the query is built
 	request = request.Normalize()
 
 	// Search product by the requested filters
-	products, err := repo.Search(orm, dto.ProductSearchFilter{
+	products, err := s.products.Search(orm, dto.ProductSearchFilter{
 		Name:        request.Name,
 		Description: request.Description,
 		MinPrice:    request.MinPrice,

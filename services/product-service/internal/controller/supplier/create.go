@@ -8,7 +8,6 @@ import (
 	"product-service/internal/dto"
 	"product-service/internal/dto/supplier"
 	"product-service/internal/exception"
-	service "product-service/internal/service/supplier"
 
 	"github.com/labstack/echo/v5"
 )
@@ -24,7 +23,7 @@ import (
 // @Failure 400 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /api/supplier [post]
-func Create(c *echo.Context) error {
+func (ctrl Controller) Create(c *echo.Context) error {
 	var request supplier.SupplierCreateReq
 	if err := c.Bind(&request); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "request body must be a valid json")
@@ -46,7 +45,7 @@ func Create(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	response, err := service.Create(c.Request().Context(), request)
+	response, err := ctrl.service.Create(c.Request().Context(), request)
 	if err != nil {
 		return exception.HTTPError(err)
 	}

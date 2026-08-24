@@ -3,8 +3,19 @@ package main
 import (
 	"log"
 	"os"
+
 	"product-service/internal/configuration"
 	"product-service/internal/controller"
+	categoryCtrl "product-service/internal/controller/category"
+	productCtrl "product-service/internal/controller/product"
+	supplierCtrl "product-service/internal/controller/supplier"
+	categoryRepo "product-service/internal/repository/category"
+	productRepo "product-service/internal/repository/product"
+	storageRepo "product-service/internal/repository/storage"
+	supplierRepo "product-service/internal/repository/supplier"
+	categorySvc "product-service/internal/service/category"
+	productSvc "product-service/internal/service/product"
+	supplierSvc "product-service/internal/service/supplier"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
@@ -30,13 +41,32 @@ func main() {
 		port = "7130"
 	}
 
-	configuration.ConnectDatabase()
-	configuration.ConnectStorage()
+	orm := configuration.ConnectDatabase()
+	minioClient, storageConfig := configuration.ConnectStorage()
 
 	e := echo.New()
-	controller.Routes(e)
+	controller.Routes(e, buildControllers(
+		configuration.NewDatabase(orm),
+		storageRepo.NewStorage(minioClient, storageConfig),
+	))
 
 	if err := e.Start(":" + port); err != nil {
 		e.Logger.Error("Failed to load server", "error", err)
+	}
+}
+
+// buildControllers wires the repositories and the services into the handlers the
+// routes are bound to.
+func buildControllers(database configuration.Database, storage storageRepo.Storage) controller.Controllers {
+	categories := categoryRepo.NewRepository()
+	products := productRepo.NewRepository()
+	suppliers := supplierRepo.NewRepository()
+
+	return controller.Controllers{
+		Category: categoryCtrl.NewController(categorySvc.NewService(database, categories)),
+		Product: productCtrl.NewController(
+			productSvc.NewService(database, products, categories, suppliers, storage),
+		),
+		Supplier: supplierCtrl.NewController(supplierSvc.NewService(database, suppliers)),
 	}
 }

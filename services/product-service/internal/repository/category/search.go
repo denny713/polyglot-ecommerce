@@ -18,7 +18,7 @@ var sortColumns = map[string]string{
 }
 
 // Search implement repository for search category by name and description
-func Search(orm *gorm.DB, filter category.CategorySearchFilter) ([]model.Category, error) {
+func (r repository) Search(orm *gorm.DB, filter category.CategorySearchFilter) ([]model.Category, error) {
 	categories := make([]model.Category, 0)
 
 	query := orm.Preload("Products", "is_deleted = FALSE").

@@ -2,17 +2,16 @@ package supplier
 
 import (
 	"context"
-	"product-service/internal/configuration"
+
 	dto "product-service/internal/dto/supplier"
-	repo "product-service/internal/repository/supplier"
 )
 
 // Create implement service for create new supplier
-func Create(ctx context.Context, request dto.SupplierCreateReq) (dto.SupplierCreateRes, error) {
-	orm := configuration.Orm(ctx)
+func (s service) Create(ctx context.Context, request dto.SupplierCreateReq) (dto.SupplierCreateRes, error) {
+	orm := s.db.Orm(ctx)
 
 	// Submit new supplier
-	supplier, err := repo.Create(orm, request.ToObjectModel())
+	supplier, err := s.suppliers.Create(orm, request.ToObjectModel())
 	if err != nil {
 		return dto.SupplierCreateRes{}, err
 	}

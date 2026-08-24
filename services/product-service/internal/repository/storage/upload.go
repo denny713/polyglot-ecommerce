@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
-	"product-service/internal/configuration"
 	"strings"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 )
 
 // Upload stores the uploaded file under the given folder and returns the object name.
-func Upload(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+func (s storage) Upload(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
 	src, err := file.Open()
 	if err != nil {
 		return "", err
@@ -27,7 +26,7 @@ func Upload(ctx context.Context, folder string, file *multipart.FileHeader) (str
 		contentType = "application/octet-stream"
 	}
 
-	_, err = configuration.Minio.PutObject(ctx, configuration.MinioBucket, objectName, src, file.Size, minio.PutObjectOptions{
+	_, err = s.client.PutObject(ctx, s.config.Bucket, objectName, src, file.Size, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
