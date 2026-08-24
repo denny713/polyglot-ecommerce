@@ -1,11 +1,21 @@
 package category
 
 import (
+	"product-service/internal/dto/base"
 	"product-service/internal/dto/category"
 	"product-service/internal/model"
 
 	"gorm.io/gorm"
 )
+
+// sortColumns maps user-facing sort keys to database column names for category.
+var sortColumns = map[string]string{
+	"id":          "category.id",
+	"name":        "category.name",
+	"description": "category.description",
+	"created_at":  "category.created_at",
+	"updated_at":  "category.updated_at",
+}
 
 // Search implement repository for search category by name and description
 func Search(orm *gorm.DB, filter category.CategorySearchFilter) ([]model.Category, error) {
@@ -23,15 +33,15 @@ func Search(orm *gorm.DB, filter category.CategorySearchFilter) ([]model.Categor
 		query = query.Where("category.description ILIKE ?", "%"+filter.Description+"%")
 	}
 
-	if filter.Limit > 0 {
-		query = query.Limit(filter.Limit)
+	if limit := filter.Paging.Limit(); limit > 0 {
+		query = query.Limit(limit)
 	}
 
-	if filter.Offset > 0 {
-		query = query.Offset(filter.Offset)
+	if offset := filter.Paging.Offset(); offset > 0 {
+		query = query.Offset(offset)
 	}
 
-	err := query.Order(category.OrderClause(filter)).Find(&categories).Error
+	err := query.Order(base.OrderClause(sortColumns, filter.SortBy, filter.SortOrder)).Find(&categories).Error
 	if err != nil {
 		return nil, err
 	}

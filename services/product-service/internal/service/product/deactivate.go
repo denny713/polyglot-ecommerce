@@ -32,6 +32,7 @@ func Deactivate(ctx context.Context, request dto.ProductDeactivateReq) (dto.Prod
 
 	// Update product status to inactive
 	product.IsActive = false
+	product.Base = product.Base.Touch()
 	_, err = repo.Update(orm, product)
 	if err != nil {
 		return dto.ProductDeactivateRes{}, err

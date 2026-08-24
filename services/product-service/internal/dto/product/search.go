@@ -3,6 +3,7 @@ package product
 import (
 	"errors"
 	"product-service/internal/constant"
+	"product-service/internal/dto/base"
 	"product-service/internal/model"
 	"strings"
 
@@ -17,10 +18,7 @@ type (
 		MaxPrice    decimal.Decimal
 		MinStock    int
 		MaxStock    int
-		SortBy      string
-		SortOrder   string
-		Page        int
-		PageSize    int
+		base.Paging
 	}
 
 	ProductSearchRes struct {
@@ -34,10 +32,7 @@ type (
 		MaxPrice    decimal.Decimal
 		MinStock    int
 		MaxStock    int
-		SortBy      string
-		SortOrder   string
-		Limit       int
-		Offset      int
+		base.Paging
 	}
 )
 
@@ -81,43 +76,11 @@ func (p ProductSearchReq) Validate() error {
 // Normalize trims the text filters and fills the sorting and paging defaults so
 // the repository always receives a ready to use request.
 func (p ProductSearchReq) Normalize() ProductSearchReq {
-	sortAllowed := allowedSortBy()
 	p.Name = strings.TrimSpace(p.Name)
 	p.Description = strings.TrimSpace(p.Description)
-
-	p.SortBy = strings.ToLower(strings.TrimSpace(p.SortBy))
-	if !sortAllowed[p.SortBy] {
-		p.SortBy = constant.DefaultSortBy
-	}
-
-	p.SortOrder = strings.ToLower(strings.TrimSpace(p.SortOrder))
-	if p.SortOrder != constant.SortOrderAsc {
-		p.SortOrder = constant.SortOrderDesc
-	}
-
-	if p.Page <= 0 {
-		p.Page = constant.DefaultPage
-	}
-
-	if p.PageSize <= 0 {
-		p.PageSize = constant.DefaultPageSize
-	}
-
-	if p.PageSize > constant.MaxPageSize {
-		p.PageSize = constant.MaxPageSize
-	}
+	p.Paging = p.Paging.Normalize(allowedSortBy())
 
 	return p
-}
-
-// Limit is the number of rows a single page holds.
-func (p ProductSearchReq) Limit() int {
-	return p.PageSize
-}
-
-// Offset is the number of rows skipped to reach the requested page.
-func (p ProductSearchReq) Offset() int {
-	return (p.Page - 1) * p.PageSize
 }
 
 // ToProductSearchRes mapping the table model.Product rows to the response object.
@@ -128,31 +91,6 @@ func ToProductSearchRes(products []model.Product) ProductSearchRes {
 	}
 
 	return ProductSearchRes{Data: data}
-}
-
-// OrderClause builds the order clause of the search, an unknown sort field falls
-// back to the newest product first.
-func OrderClause(filter ProductSearchFilter) string {
-	sortColumns := map[string]string{
-		"id":         "product.id",
-		"name":       "product.name",
-		"price":      "product.price",
-		"stock":      "stock.quantity",
-		"created_at": "product.created_at",
-		"updated_at": "product.updated_at",
-	}
-
-	column, ok := sortColumns[filter.SortBy]
-	if !ok {
-		column = sortColumns["id"]
-	}
-
-	direction := "DESC"
-	if strings.EqualFold(filter.SortOrder, "asc") {
-		direction = "ASC"
-	}
-
-	return column + " " + direction
 }
 
 // allowedSortBy returns a map of allowed sort fields for the product search.

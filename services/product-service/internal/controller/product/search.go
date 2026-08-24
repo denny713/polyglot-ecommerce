@@ -1,9 +1,7 @@
 package product
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"product-service/internal/constant"
@@ -11,9 +9,9 @@ import (
 	product "product-service/internal/dto/product"
 	exception "product-service/internal/exception"
 	service "product-service/internal/service/product"
+	"product-service/internal/util"
 
 	"github.com/labstack/echo/v5"
-	"github.com/shopspring/decimal"
 )
 
 // Search godoc
@@ -68,32 +66,32 @@ func bindProductSearchReq(c *echo.Context) (product.ProductSearchReq, error) {
 	request.SortBy = strings.TrimSpace(c.QueryParam("sort_by"))
 	request.SortOrder = strings.TrimSpace(c.QueryParam("sort_order"))
 
-	minPrice, err := decimalQueryParam(c, "min_price")
+	minPrice, err := util.DecimalQueryParam(c, "min_price")
 	if err != nil {
 		return request, err
 	}
 
-	maxPrice, err := decimalQueryParam(c, "max_price")
+	maxPrice, err := util.DecimalQueryParam(c, "max_price")
 	if err != nil {
 		return request, err
 	}
 
-	minStock, err := intQueryParam(c, "min_stock")
+	minStock, err := util.IntQueryParam(c, "min_stock")
 	if err != nil {
 		return request, err
 	}
 
-	maxStock, err := intQueryParam(c, "max_stock")
+	maxStock, err := util.IntQueryParam(c, "max_stock")
 	if err != nil {
 		return request, err
 	}
 
-	page, err := intQueryParam(c, "page")
+	page, err := util.IntQueryParam(c, "page")
 	if err != nil {
 		return request, err
 	}
 
-	pageSize, err := intQueryParam(c, "page_size")
+	pageSize, err := util.IntQueryParam(c, "page_size")
 	if err != nil {
 		return request, err
 	}
@@ -106,34 +104,4 @@ func bindProductSearchReq(c *echo.Context) (product.ProductSearchReq, error) {
 	request.PageSize = pageSize
 
 	return request, nil
-}
-
-// decimalQueryParam parses a decimal query parameter, an empty one is zero.
-func decimalQueryParam(c *echo.Context, name string) (decimal.Decimal, error) {
-	value := strings.TrimSpace(c.QueryParam(name))
-	if value == "" {
-		return decimal.Zero, nil
-	}
-
-	parsed, err := decimal.NewFromString(value)
-	if err != nil {
-		return decimal.Zero, errors.New(name + " must be a valid number")
-	}
-
-	return parsed, nil
-}
-
-// intQueryParam parses an integer query parameter, an empty one is zero.
-func intQueryParam(c *echo.Context, name string) (int, error) {
-	value := strings.TrimSpace(c.QueryParam(name))
-	if value == "" {
-		return 0, nil
-	}
-
-	parsed, err := strconv.Atoi(value)
-	if err != nil {
-		return 0, errors.New(name + " must be a valid number")
-	}
-
-	return parsed, nil
 }

@@ -2,7 +2,6 @@ package product
 
 import (
 	"product-service/internal/model"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -15,9 +14,11 @@ func Update(orm *gorm.DB, product model.Product) (model.Product, error) {
 		"Name":        product.Name,
 		"Description": product.Description,
 		"Price":       product.Price,
+		"ImageURL":    product.ImageURL,
 		"IsActive":    product.IsActive,
 		"IsDeleted":   product.IsDeleted,
-		"UpdatedAt":   time.Now(),
+		"UpdatedBy":   product.UpdatedBy,
+		"UpdatedAt":   product.UpdatedAt,
 	}
 
 	err = orm.Model(&product).

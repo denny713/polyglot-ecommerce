@@ -27,6 +27,7 @@ func Delete(ctx context.Context, request dto.CategoryDeleteReq) (dto.CategoryDel
 
 	// Delete category
 	category.IsDeleted = true
+	category.Base = category.Base.Touch()
 	_, err = repo.Update(orm, category)
 	if err != nil {
 		return dto.CategoryDeleteRes{}, err

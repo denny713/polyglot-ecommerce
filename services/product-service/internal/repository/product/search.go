@@ -1,19 +1,32 @@
 package product
 
 import (
+	"product-service/internal/dto/base"
 	"product-service/internal/dto/product"
 	"product-service/internal/model"
 
 	"gorm.io/gorm"
 )
 
+// sortColumns maps user-facing sort keys to database column names for product.
+var sortColumns = map[string]string{
+	"id":         "product.id",
+	"name":       "product.name",
+	"price":      "product.price",
+	"stock":      "stock_position.quantity",
+	"created_at": "product.created_at",
+	"updated_at": "product.updated_at",
+}
+
 // Search implement repository for search product by name, description, price range and stock range
 func Search(orm *gorm.DB, filter product.ProductSearchFilter) ([]model.Product, error) {
 	products := make([]model.Product, 0)
 
+	// The StockPosition relation is commented out on model.Product, so it cannot
+	// be preloaded here yet. Restore the Preload together with the relation, the
+	// join below is what the stock filter and sort rely on.
 	query := orm.Model(&model.Product{}).
 		Select("product.*").
-		Preload("StockPosition").
 		Where("product.is_deleted = FALSE")
 
 	if filter.Name != "" {
@@ -44,15 +57,15 @@ func Search(orm *gorm.DB, filter product.ProductSearchFilter) ([]model.Product, 
 		query = query.Where("stock_position.quantity <= ?", filter.MaxStock)
 	}
 
-	if filter.Limit > 0 {
-		query = query.Limit(filter.Limit)
+	if limit := filter.Paging.Limit(); limit > 0 {
+		query = query.Limit(limit)
 	}
 
-	if filter.Offset > 0 {
-		query = query.Offset(filter.Offset)
+	if offset := filter.Paging.Offset(); offset > 0 {
+		query = query.Offset(offset)
 	}
 
-	err := query.Order(product.OrderClause(filter)).Find(&products).Error
+	err := query.Order(base.OrderClause(sortColumns, filter.SortBy, filter.SortOrder)).Find(&products).Error
 	if err != nil {
 		return nil, err
 	}

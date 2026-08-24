@@ -28,3 +28,14 @@ func PreUpdate() Base {
 		UpdatedAt: time.Now(),
 	}
 }
+
+// Touch stamps the audit fields of a record that was loaded from the database
+// and is about to be written back. Unlike PreUpdate it keeps the status flags
+// and the creation trail already held by the record, so it is the one to use
+// when only a flag such as IsActive or IsDeleted changes.
+func (b Base) Touch() Base {
+	b.UpdatedBy = 1
+	b.UpdatedAt = time.Now()
+
+	return b
+}

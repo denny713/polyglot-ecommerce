@@ -4,9 +4,13 @@ import (
 	"net/url"
 	"path"
 	"strings"
+
+	"product-service/internal/configuration"
 )
 
-// Get extracts the image file name from a file URL.
+// Get extracts the object name of a stored file from its URL. MinIO addresses an
+// object by its full name, folder included, so the folder segments are kept and
+// only the scheme, the host and the bucket are dropped.
 func Get(fileURL string) string {
 	fileURL = strings.TrimSpace(fileURL)
 	if fileURL == "" {
@@ -18,15 +22,19 @@ func Get(fileURL string) string {
 		filePath = parsed.Path
 	}
 
-	name := path.Base(strings.TrimRight(filePath, "/"))
-	if name == "." || name == "/" {
+	filePath = strings.Trim(path.Clean(filePath), "/")
+	if bucket := configuration.MinioBucket; bucket != "" {
+		filePath = strings.TrimPrefix(filePath, bucket+"/")
+	}
+
+	if filePath == "" || filePath == "." || filePath == "/" {
 		return ""
 	}
 
-	result, err := url.PathUnescape(name)
+	unescaped, err := url.PathUnescape(filePath)
 	if err != nil {
-		return name
+		return filePath
 	}
 
-	return result
+	return unescaped
 }

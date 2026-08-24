@@ -32,6 +32,7 @@ func Activate(ctx context.Context, request dto.ProductActivateReq) (dto.ProductA
 
 	// Update product status to active
 	product.IsActive = true
+	product.Base = product.Base.Touch()
 	_, err = repo.Update(orm, product)
 	if err != nil {
 		return dto.ProductActivateRes{}, err

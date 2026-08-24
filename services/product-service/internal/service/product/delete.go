@@ -27,6 +27,7 @@ func Delete(ctx context.Context, request dto.ProductDeleteReq) (dto.ProductDelet
 
 	// Delete product
 	product.IsDeleted = true
+	product.Base = product.Base.Touch()
 	_, err = repo.Update(orm, product)
 	if err != nil {
 		return dto.ProductDeleteRes{}, err

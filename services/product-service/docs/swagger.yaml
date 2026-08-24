@@ -205,6 +205,191 @@ definitions:
       updated_at:
         type: string
     type: object
+  supplier.SupplierActivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  supplier.SupplierCreateReq:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+    type: object
+  supplier.SupplierCreateRes:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      created_at:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  supplier.SupplierDeactivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  supplier.SupplierDeleteRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  supplier.SupplierDetailRes:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      created_at:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  supplier.SupplierSearchRes:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/supplier.SupplierDetailRes'
+        type: array
+    type: object
+  supplier.SupplierUpdateReq:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+    type: object
+  supplier.SupplierUpdateRes:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      created_at:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+      updated_at:
+        type: string
+    type: object
 host: localhost:7130
 info:
   contact: {}
@@ -828,6 +1013,327 @@ paths:
       summary: Deactivate a product
       tags:
       - Product
+  /api/supplier:
+    get:
+      consumes:
+      - application/json
+      description: Search suppliers by their profile and address fields (ILIKE).
+      parameters:
+      - description: Supplier name, matched partially
+        in: query
+        name: name
+        type: string
+      - description: Supplier phone, matched partially
+        in: query
+        name: phone
+        type: string
+      - description: Supplier email, matched partially
+        in: query
+        name: email
+        type: string
+      - description: Supplier contact person, matched partially
+        in: query
+        name: contact_person
+        type: string
+      - description: Supplier province, matched partially
+        in: query
+        name: province
+        type: string
+      - description: Supplier city, matched partially
+        in: query
+        name: city
+        type: string
+      - description: Supplier district, matched partially
+        in: query
+        name: district
+        type: string
+      - description: Supplier subdistrict, matched partially
+        in: query
+        name: subdistrict
+        type: string
+      - description: Supplier postal code, matched partially
+        in: query
+        name: postal_code
+        type: string
+      - description: Sort field
+        enum:
+        - id
+        - name
+        - email
+        - contact_person
+        - province
+        - city
+        - created_at
+        - updated_at
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      - description: Page number, starts at 1
+        in: query
+        name: page
+        type: integer
+      - description: Rows per page, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierSearchRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Search suppliers
+      tags:
+      - Supplier
+    post:
+      consumes:
+      - application/json
+      description: Create a new supplier, the payload is sent as a json body.
+      parameters:
+      - description: Supplier payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/supplier.SupplierCreateReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierCreateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Create a new supplier
+      tags:
+      - Supplier
+  /api/supplier/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierDeleteRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Delete a supplier
+      tags:
+      - Supplier
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierDetailRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Detail a supplier
+      tags:
+      - Supplier
+    put:
+      consumes:
+      - application/json
+      description: Update an existing supplier, the payload is sent as a json body.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Supplier payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/supplier.SupplierUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierUpdateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Update an existing supplier
+      tags:
+      - Supplier
+  /api/supplier/activate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Activate a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierActivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Activate a supplier
+      tags:
+      - Supplier
+  /api/supplier/deactivate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Deactivate a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierDeactivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Deactivate a supplier
+      tags:
+      - Supplier
 securityDefinitions:
   BearerAuth:
     description: Provide access token with Bearer prefix, e.g. "Bearer {token}".

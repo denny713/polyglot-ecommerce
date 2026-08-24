@@ -3,6 +3,7 @@ package category
 import (
 	"context"
 	"product-service/internal/configuration"
+	"product-service/internal/dto/base"
 	dto "product-service/internal/dto/category"
 	repo "product-service/internal/repository/category"
 )
@@ -18,10 +19,12 @@ func Search(ctx context.Context, request dto.CategorySearchReq) (dto.CategorySea
 	categories, err := repo.Search(orm, dto.CategorySearchFilter{
 		Name:        request.Name,
 		Description: request.Description,
-		SortBy:      request.SortBy,
-		SortOrder:   request.SortOrder,
-		Limit:       request.Limit(),
-		Offset:      request.Offset(),
+		Paging: base.Paging{
+			SortBy:    request.SortBy,
+			SortOrder: request.SortOrder,
+			Page:      request.Page,
+			PageSize:  request.PageSize,
+		},
 	})
 	if err != nil {
 		return dto.CategorySearchRes{}, err

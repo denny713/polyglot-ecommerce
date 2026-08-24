@@ -32,6 +32,7 @@ func Deactivate(ctx context.Context, request dto.CategoryDeactivateReq) (dto.Cat
 
 	// Update category status to inactive
 	category.IsActive = false
+	category.Base = category.Base.Touch()
 	_, err = repo.Update(orm, category)
 	if err != nil {
 		return dto.CategoryDeactivateRes{}, err

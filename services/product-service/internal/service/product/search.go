@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"product-service/internal/configuration"
+	"product-service/internal/dto/base"
 	dto "product-service/internal/dto/product"
 	repo "product-service/internal/repository/product"
 )
@@ -22,10 +23,12 @@ func Search(ctx context.Context, request dto.ProductSearchReq) (dto.ProductSearc
 		MaxPrice:    request.MaxPrice,
 		MinStock:    request.MinStock,
 		MaxStock:    request.MaxStock,
-		SortBy:      request.SortBy,
-		SortOrder:   request.SortOrder,
-		Limit:       request.Limit(),
-		Offset:      request.Offset(),
+		Paging: base.Paging{
+			SortBy:    request.SortBy,
+			SortOrder: request.SortOrder,
+			Page:      request.Page,
+			PageSize:  request.PageSize,
+		},
 	})
 	if err != nil {
 		return dto.ProductSearchRes{}, err

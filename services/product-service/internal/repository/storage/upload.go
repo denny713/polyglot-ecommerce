@@ -22,7 +22,6 @@ func Upload(ctx context.Context, folder string, file *multipart.FileHeader) (str
 	defer src.Close()
 
 	objectName := fmt.Sprintf("%s/%d%s", folder, time.Now().UnixNano(), strings.ToLower(filepath.Ext(file.Filename)))
-
 	contentType := file.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"

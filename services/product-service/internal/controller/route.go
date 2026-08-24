@@ -6,6 +6,7 @@ import (
 	"product-service/docs"
 	"product-service/internal/controller/category"
 	"product-service/internal/controller/product"
+	"product-service/internal/controller/supplier"
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
@@ -22,6 +23,7 @@ func Routes(e *echo.Echo) {
 	registerSwaggerRoutes(api)
 	registerCategoryRoutes(api)
 	registerProductRoutes(api)
+	registerSupplierRoutes(api)
 }
 
 func registerCategoryRoutes(api *echo.Group) {
@@ -46,6 +48,18 @@ func registerProductRoutes(api *echo.Group) {
 	group.PUT("/activate/:id", product.Activate)
 	group.PUT("/deactivate/:id", product.Deactivate)
 	group.DELETE("/:id", product.Delete)
+}
+
+func registerSupplierRoutes(api *echo.Group) {
+	group := api.Group("/supplier")
+
+	group.POST("", supplier.Create)
+	group.GET("", supplier.Search)
+	group.GET("/:id", supplier.Detail)
+	group.PUT("/:id", supplier.Update)
+	group.PUT("/activate/:id", supplier.Activate)
+	group.PUT("/deactivate/:id", supplier.Deactivate)
+	group.DELETE("/:id", supplier.Delete)
 }
 
 func registerSwaggerRoutes(api *echo.Group) {

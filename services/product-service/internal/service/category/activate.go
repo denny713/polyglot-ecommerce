@@ -32,6 +32,7 @@ func Activate(ctx context.Context, request dto.CategoryActivateReq) (dto.Categor
 
 	// Update category status to active
 	category.IsActive = true
+	category.Base = category.Base.Touch()
 	_, err = repo.Update(orm, category)
 	if err != nil {
 		return dto.CategoryActivateRes{}, err

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"mime/multipart"
 	"path/filepath"
+	"product-service/internal/constant"
 	"product-service/internal/model"
 	"strings"
 	"time"
@@ -34,22 +35,17 @@ type (
 	}
 )
 
-// ToProductModel mapping the request object to table model.Product.
+// ToProductModel maps the request object onto the product loaded from the
+// database, so the status flags, the image and the creation trail of the
+// existing row are preserved and only the audit fields are stamped again.
 func (p ProductUpdateReq) ToProductModel(product model.Product) model.Product {
-	return model.Product{
-		Id:          p.Id,
-		Name:        p.Name,
-		Description: p.Description,
-		Price:       p.Price,
-		Base: model.Base{
-			IsActive:  product.IsActive,
-			IsDeleted: product.IsDeleted,
-			CreatedBy: product.CreatedBy,
-			UpdatedBy: product.UpdatedBy,
-			CreatedAt: product.CreatedAt,
-			UpdatedAt: time.Now(),
-		},
-	}
+	product.Id = p.Id
+	product.Name = p.Name
+	product.Description = p.Description
+	product.Price = p.Price
+	product.Base = product.Base.Touch()
+
+	return product
 }
 
 // Validate checks the required fields for creating a new product.
@@ -71,12 +67,12 @@ func (p ProductUpdateReq) ValidateImage() error {
 		return nil
 	}
 
-	if p.Image.Size > maxImageSize {
+	if p.Image.Size > constant.MaxImageSize {
 		return errors.New("image size must not exceed 5 MB")
 	}
 
 	ext := strings.ToLower(filepath.Ext(p.Image.Filename))
-	if !allowedImageExt[ext] {
+	if !AllowedImageExt()[ext] {
 		return errors.New("image format must be one of jpg, jpeg, png, or webp")
 	}
 

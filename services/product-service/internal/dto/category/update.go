@@ -23,14 +23,16 @@ type (
 	}
 )
 
-// ToObjectModel mapping the request object to table model.Category.
-func (c CategoryUpdateReq) ToObjectModel() model.Category {
-	return model.Category{
-		Id:          c.Id,
-		Name:        c.Name,
-		Description: c.Description,
-		Base:        model.PreUpdate(),
-	}
+// ToObjectModel maps the request object onto the category loaded from the
+// database, so the status flags and the creation trail of the existing row are
+// preserved and only the audit fields are stamped again.
+func (c CategoryUpdateReq) ToObjectModel(category model.Category) model.Category {
+	category.Id = c.Id
+	category.Name = c.Name
+	category.Description = c.Description
+	category.Base = category.Base.Touch()
+
+	return category
 }
 
 // Validate checks the required fields for updating an existing category.

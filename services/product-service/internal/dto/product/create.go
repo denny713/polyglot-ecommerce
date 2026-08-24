@@ -4,24 +4,13 @@ import (
 	"errors"
 	"mime/multipart"
 	"path/filepath"
+	"product-service/internal/constant"
 	"product-service/internal/model"
 	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
 )
-
-const (
-	maxImageSize = 5 << 20
-	ImageFolder  = "product"
-)
-
-var allowedImageExt = map[string]bool{
-	".jpg":  true,
-	".jpeg": true,
-	".png":  true,
-	".webp": true,
-}
 
 type (
 	ProductCreateReq struct {
@@ -72,16 +61,26 @@ func (p ProductCreateReq) ValidateImage() error {
 		return nil
 	}
 
-	if p.Image.Size > maxImageSize {
+	if p.Image.Size > constant.MaxImageSize {
 		return errors.New("image size must not exceed 5 MB")
 	}
 
 	ext := strings.ToLower(filepath.Ext(p.Image.Filename))
-	if !allowedImageExt[ext] {
+	if !AllowedImageExt()[ext] {
 		return errors.New("image format must be one of jpg, jpeg, png, or webp")
 	}
 
 	return nil
+}
+
+// AllowedImageExt returns a map of allowed image extensions for product images.
+func AllowedImageExt() map[string]bool {
+	return map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".webp": true,
+	}
 }
 
 // ToResponse mapping the table model.Product to the response object.
