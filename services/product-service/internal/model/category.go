@@ -7,7 +7,7 @@ type Category struct {
 	Base
 
 	// Relation
-	//Products *[]Product `gorm:"foreignKey:CategoryId;references:Id" json:"products"`
+	Products *[]Product `gorm:"foreignKey:CategoryId;references:Id" json:"products"`
 }
 
 func (Category) TableName() string {

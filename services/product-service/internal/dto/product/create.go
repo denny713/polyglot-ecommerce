@@ -18,6 +18,8 @@ type (
 		Description string
 		Price       decimal.Decimal
 		Image       *multipart.FileHeader
+		CategoryId  *int64
+		SupplierId  *int64
 	}
 
 	ProductCreateRes struct {
@@ -25,6 +27,8 @@ type (
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		Price       decimal.Decimal `json:"price"`
+		Category    string          `json:"category"`
+		Supplier    string          `json:"supplier"`
 		ImageUrl    string          `json:"image_url"`
 		IsActive    bool            `json:"is_active"`
 		CreatedAt   time.Time       `json:"created_at"`
@@ -34,18 +38,36 @@ type (
 
 // ToObjectModel mapping the request object to table model.Product.
 func (p ProductCreateReq) ToObjectModel() model.Product {
-	return model.Product{
+	product := model.Product{
 		Name:        p.Name,
 		Description: p.Description,
 		Price:       p.Price,
 		Base:        model.PrePersist(),
 	}
+
+	if p.CategoryId != nil {
+		product.CategoryId = *p.CategoryId
+	}
+
+	if p.SupplierId != nil {
+		product.SupplierId = *p.SupplierId
+	}
+
+	return product
 }
 
 // Validate checks the required fields for creating a new product.
 func (p ProductCreateReq) Validate() error {
 	if p.Name == "" {
 		return errors.New("name is required")
+	}
+
+	if p.CategoryId == nil {
+		return errors.New("category is required")
+	}
+
+	if p.SupplierId == nil {
+		return errors.New("supplier is required")
 	}
 
 	if p.Price.IsZero() || p.Price.LessThanOrEqual(decimal.Zero) {
@@ -83,9 +105,9 @@ func AllowedImageExt() map[string]bool {
 	}
 }
 
-// ToResponse mapping the table model.Product to the response object.
-func ToResponse(product model.Product) ProductCreateRes {
-	return ProductCreateRes{
+// ToProductCreateRes mapping the table model.Product to the response object.
+func ToProductCreateRes(product model.Product) ProductCreateRes {
+	result := ProductCreateRes{
 		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
@@ -95,4 +117,14 @@ func ToResponse(product model.Product) ProductCreateRes {
 		CreatedAt:   product.CreatedAt,
 		UpdatedAt:   product.UpdatedAt,
 	}
+
+	if product.Category != nil {
+		result.Category = product.Category.Name
+	}
+
+	if product.Supplier != nil {
+		result.Supplier = product.Supplier.Name
+	}
+
+	return result
 }

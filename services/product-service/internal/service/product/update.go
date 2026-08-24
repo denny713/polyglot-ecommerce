@@ -7,8 +7,10 @@ import (
 	"product-service/internal/constant"
 	dto "product-service/internal/dto/product"
 	"product-service/internal/exception"
+	categoryRepo "product-service/internal/repository/category"
 	productRepo "product-service/internal/repository/product"
 	storageRepo "product-service/internal/repository/storage"
+	supplierRepo "product-service/internal/repository/supplier"
 
 	"gorm.io/gorm"
 )
@@ -31,7 +33,21 @@ func Update(ctx context.Context, request dto.ProductUpdateReq) (dto.ProductUpdat
 		return dto.ProductUpdateRes{}, err
 	}
 
+	// Get existing category Data
+	category, err := categoryRepo.Detail(orm, "id", *request.CategoryId)
+	if err != nil {
+		return dto.ProductUpdateRes{}, err
+	}
+
+	// Get existing supplier data
+	supplier, err := supplierRepo.Detail(orm, "id", *request.SupplierId)
+	if err != nil {
+		return dto.ProductUpdateRes{}, err
+	}
+
 	newProduct := request.ToProductModel(existing)
+	newProduct.CategoryId = category.Id
+	newProduct.SupplierId = supplier.Id
 
 	// The new image is uploaded before the row is written, so image_url never
 	// points at an object that is missing from the bucket. A request without an
@@ -69,6 +85,9 @@ func Update(ctx context.Context, request dto.ProductUpdateReq) (dto.ProductUpdat
 
 		return dto.ProductUpdateRes{}, err
 	}
+
+	product.Category = &category
+	product.Supplier = &supplier
 
 	// The image being replaced is dropped only once the new row is committed, a
 	// failed update must leave the product with a reachable image.

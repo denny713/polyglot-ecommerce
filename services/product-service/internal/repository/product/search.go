@@ -22,10 +22,12 @@ var sortColumns = map[string]string{
 func Search(orm *gorm.DB, filter product.ProductSearchFilter) ([]model.Product, error) {
 	products := make([]model.Product, 0)
 
-	// The StockPosition relation is commented out on model.Product, so it cannot
-	// be preloaded here yet. Restore the Preload together with the relation, the
-	// join below is what the stock filter and sort rely on.
-	query := orm.Model(&model.Product{}).
+	query := orm.
+		Preload("Category", "is_deleted = FALSE").
+		Preload("Supplier", "is_deleted = FALSE").
+		Preload("Stock").
+		Preload("StockPosition", "is_deleted = FALSE").
+		Model(&model.Product{}).
 		Select("product.*").
 		Where("product.is_deleted = FALSE")
 

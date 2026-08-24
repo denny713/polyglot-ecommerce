@@ -3,12 +3,13 @@ package product
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"product-service/internal/constant"
 	"product-service/internal/dto"
-	product "product-service/internal/dto/product"
-	exception "product-service/internal/exception"
+	"product-service/internal/dto/product"
+	"product-service/internal/exception"
 	service "product-service/internal/service/product"
 
 	"github.com/labstack/echo/v5"
@@ -24,6 +25,8 @@ import (
 // @Param name formData string true "Product name"
 // @Param description formData string false "Product description"
 // @Param price formData number true "Product price"
+// @Param category_id formData number true "Product category"
+// @Param supplier_id formData number true "Product supplier"
 // @Param image formData file false "Product image (jpg, jpeg, png, webp, max 5 MB)"
 // @Success 201 {object} dto.Response{data=product.ProductCreateRes}
 // @Failure 400 {object} dto.Response
@@ -66,6 +69,24 @@ func bindProductCreateReq(c *echo.Context) (product.ProductCreateReq, error) {
 
 	request.Name = strings.TrimSpace(c.FormValue("name"))
 	request.Description = strings.TrimSpace(c.FormValue("description"))
+
+	if categoryId := strings.TrimSpace(c.FormValue("category_id")); categoryId != "" {
+		parsedCategoryId, err := strconv.ParseInt(categoryId, 10, 64)
+		if err != nil {
+			return request, errors.New("category_id must be a valid number")
+		}
+
+		request.CategoryId = &parsedCategoryId
+	}
+
+	if supplierId := strings.TrimSpace(c.FormValue("supplier_id")); supplierId != "" {
+		parsedSupplierId, err := strconv.ParseInt(supplierId, 10, 64)
+		if err != nil {
+			return request, errors.New("supplier_id must be a valid number")
+		}
+
+		request.SupplierId = &parsedSupplierId
+	}
 
 	if price := strings.TrimSpace(c.FormValue("price")); price != "" {
 		parsedPrice, err := decimal.NewFromString(price)

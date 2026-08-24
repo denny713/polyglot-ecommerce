@@ -24,7 +24,8 @@ var sortColumns = map[string]string{
 func Search(orm *gorm.DB, filter supplier.SupplierSearchFilter) ([]model.Supplier, error) {
 	suppliers := make([]model.Supplier, 0)
 
-	query := orm.Model(&model.Supplier{}).
+	query := orm.Preload("Products", "is_deleted = FALSE").
+		Model(&model.Supplier{}).
 		Select("supplier.*").
 		Where("supplier.is_deleted = FALSE")
 

@@ -117,6 +117,8 @@ definitions:
     type: object
   product.ProductCreateRes:
     properties:
+      category:
+        type: string
       created_at:
         type: string
       description:
@@ -131,6 +133,8 @@ definitions:
         type: string
       price:
         type: number
+      supplier:
+        type: string
       updated_at:
         type: string
     type: object
@@ -154,6 +158,8 @@ definitions:
     type: object
   product.ProductDetailRes:
     properties:
+      category:
+        type: string
       created_at:
         type: string
       description:
@@ -170,8 +176,8 @@ definitions:
         type: string
       price:
         type: number
-      stock:
-        type: integer
+      supplier:
+        type: string
       updated_at:
         type: string
     type: object
@@ -184,6 +190,8 @@ definitions:
     type: object
   product.ProductUpdateRes:
     properties:
+      category:
+        type: string
       created_at:
         type: string
       description:
@@ -202,6 +210,8 @@ definitions:
         type: number
       stock:
         type: integer
+      supplier:
+        type: string
       updated_at:
         type: string
     type: object
@@ -783,6 +793,16 @@ paths:
         name: price
         required: true
         type: number
+      - description: Product category
+        in: formData
+        name: category_id
+        required: true
+        type: number
+      - description: Product supplier
+        in: formData
+        name: supplier_id
+        required: true
+        type: number
       - description: Product image (jpg, jpeg, png, webp, max 5 MB)
         in: formData
         name: image
@@ -908,6 +928,16 @@ paths:
       - description: Product price
         in: formData
         name: price
+        required: true
+        type: number
+      - description: Product category
+        in: formData
+        name: category_id
+        required: true
+        type: number
+      - description: Product supplier
+        in: formData
+        name: supplier_id
         required: true
         type: number
       - description: Product image (jpg, jpeg, png, webp, max 5 MB)

@@ -10,7 +10,7 @@ import (
 // Detail implement repository for get category detail
 func Detail(orm *gorm.DB, param string, value interface{}) (model.Category, error) {
 	var category model.Category
-	err := orm.Where(
+	err := orm.Preload("Products", "is_deleted = FALSE").Where(
 		fmt.Sprintf("%s = ? AND is_deleted = FALSE", param), value).
 		First(&category).Error
 	if err != nil {

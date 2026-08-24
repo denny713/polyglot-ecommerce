@@ -26,6 +26,8 @@ import (
 // @Param name formData string true "Product name"
 // @Param description formData string false "Product description"
 // @Param price formData number true "Product price"
+// @Param category_id formData number true "Product category"
+// @Param supplier_id formData number true "Product supplier"
 // @Param image formData file false "Product image (jpg, jpeg, png, webp, max 5 MB)"
 // @Success 201 {object} dto.Response{data=product.ProductUpdateRes}
 // @Failure 400 {object} dto.Response
@@ -74,6 +76,24 @@ func bindProductUpdateReq(c *echo.Context) (product.ProductUpdateReq, error) {
 	request.Id = id
 	request.Name = strings.TrimSpace(c.FormValue("name"))
 	request.Description = strings.TrimSpace(c.FormValue("description"))
+
+	if categoryId := strings.TrimSpace(c.FormValue("category_id")); categoryId != "" {
+		parsedCategoryId, err := strconv.ParseInt(categoryId, 10, 64)
+		if err != nil {
+			return request, errors.New("category_id must be a valid number")
+		}
+
+		request.CategoryId = &parsedCategoryId
+	}
+
+	if supplierId := strings.TrimSpace(c.FormValue("supplier_id")); supplierId != "" {
+		parsedSupplierId, err := strconv.ParseInt(supplierId, 10, 64)
+		if err != nil {
+			return request, errors.New("supplier_id must be a valid number")
+		}
+
+		request.SupplierId = &parsedSupplierId
+	}
 
 	if price := strings.TrimSpace(c.FormValue("price")); price != "" {
 		parsedPrice, err := decimal.NewFromString(price)

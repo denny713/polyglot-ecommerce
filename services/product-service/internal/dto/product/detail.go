@@ -17,8 +17,9 @@ type (
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		Price       decimal.Decimal `json:"price"`
-		Stock       int             `json:"stock"`
 		ImageUrl    string          `json:"image_url"`
+		Category    string          `json:"category"`
+		Supplier    string          `json:"supplier"`
 		IsActive    bool            `json:"is_active"`
 		IsDeleted   bool            `json:"is_deleted"`
 		CreatedAt   time.Time       `json:"created_at"`
@@ -28,7 +29,7 @@ type (
 
 // ToProductDetailRes mapping the table model.Product to the response object.
 func ToProductDetailRes(product model.Product) ProductDetailRes {
-	return ProductDetailRes{
+	result := ProductDetailRes{
 		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
@@ -39,4 +40,14 @@ func ToProductDetailRes(product model.Product) ProductDetailRes {
 		CreatedAt:   product.CreatedAt,
 		UpdatedAt:   product.UpdatedAt,
 	}
+
+	if product.Category != nil {
+		result.Category = product.Category.Name
+	}
+
+	if product.Supplier != nil {
+		result.Supplier = product.Supplier.Name
+	}
+
+	return result
 }

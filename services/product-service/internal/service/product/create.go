@@ -5,8 +5,11 @@ import (
 	"product-service/internal/configuration"
 	"product-service/internal/constant"
 	dto "product-service/internal/dto/product"
+	"product-service/internal/model"
+	categoryRepo "product-service/internal/repository/category"
 	productRepo "product-service/internal/repository/product"
 	storageRepo "product-service/internal/repository/storage"
+	supplierRepo "product-service/internal/repository/supplier"
 )
 
 // Create implement service for create new product
@@ -14,9 +17,24 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	var (
 		err        error
 		objectName string
+		product    model.Product
+		category   model.Category
+		supplier   model.Supplier
 
 		orm = configuration.Orm(ctx)
 	)
+
+	// Get existing category Data
+	category, err = categoryRepo.Detail(orm, "id", *request.CategoryId)
+	if err != nil {
+		return dto.ProductCreateRes{}, err
+	}
+
+	// Get existing supplier data
+	supplier, err = supplierRepo.Detail(orm, "id", *request.SupplierId)
+	if err != nil {
+		return dto.ProductCreateRes{}, err
+	}
 
 	newProduct := request.ToObjectModel()
 
@@ -41,13 +59,16 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 	}()
 
 	// Submit new product
-	product, err := productRepo.Create(tx, newProduct)
+	product, err = productRepo.Create(tx, newProduct)
 	if err != nil {
 		tx.Rollback()
 		RemoveUploadedImage(ctx, objectName)
 
 		return dto.ProductCreateRes{}, err
 	}
+
+	product.Category = &category
+	product.Supplier = &supplier
 
 	// Commit transaction
 	if err = tx.Commit().Error; err != nil {
@@ -56,7 +77,7 @@ func Create(ctx context.Context, request dto.ProductCreateReq) (dto.ProductCreat
 		return dto.ProductCreateRes{}, err
 	}
 
-	return dto.ToResponse(product), nil
+	return dto.ToProductCreateRes(product), nil
 }
 
 // RemoveUploadedImage cleans up the object so a failed write does not leave an

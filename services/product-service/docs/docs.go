@@ -630,6 +630,20 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "number",
+                        "description": "Product category",
+                        "name": "category_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Product supplier",
+                        "name": "supplier_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
                         "type": "file",
                         "description": "Product image (jpg, jpeg, png, webp, max 5 MB)",
                         "name": "image",
@@ -892,6 +906,20 @@ const docTemplate = `{
                         "type": "number",
                         "description": "Product price",
                         "name": "price",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Product category",
+                        "name": "category_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Product supplier",
+                        "name": "supplier_id",
                         "in": "formData",
                         "required": true
                     },
@@ -1690,6 +1718,9 @@ const docTemplate = `{
         "product.ProductCreateRes": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1710,6 +1741,9 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "number"
+                },
+                "supplier": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1747,6 +1781,9 @@ const docTemplate = `{
         "product.ProductDetailRes": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1771,8 +1808,8 @@ const docTemplate = `{
                 "price": {
                     "type": "number"
                 },
-                "stock": {
-                    "type": "integer"
+                "supplier": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1793,6 +1830,9 @@ const docTemplate = `{
         "product.ProductUpdateRes": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1819,6 +1859,9 @@ const docTemplate = `{
                 },
                 "stock": {
                     "type": "integer"
+                },
+                "supplier": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"

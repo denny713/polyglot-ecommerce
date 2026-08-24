@@ -10,7 +10,7 @@ import (
 // Detail implement repository for get supplier detail
 func Detail(orm *gorm.DB, param string, value interface{}) (model.Supplier, error) {
 	var supplier model.Supplier
-	err := orm.Where(
+	err := orm.Preload("Products", "is_deleted = FALSE").Where(
 		fmt.Sprintf("%s = ? AND is_deleted = FALSE", param), value).
 		First(&supplier).Error
 	if err != nil {
