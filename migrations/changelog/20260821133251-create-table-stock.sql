@@ -1,21 +1,24 @@
 --liquibase formatted sql
 --
 -- create table stock
-
 --changeset denny.afrizal:20260821133251-create-table-stock
-
 CREATE TABLE IF NOT EXISTS stock
 (
-    id              BIGSERIAL PRIMARY KEY,
-    product_id      BIGINT      NOT NULL REFERENCES product (id) ON DELETE CASCADE,
-    document_number VARCHAR(30) NOT NULL,
-    document_type   VARCHAR(10) NOT NULL,
-    activity        VARCHAR(5)  NOT NULL,
-    quantity        INT         NOT NULL DEFAULT 0,
-    created_by      BIGINT,
-    updated_by      BIGINT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                 BIGSERIAL PRIMARY KEY,
+    created_by         BIGINT,
+    updated_by         BIGINT,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    product_id         BIGINT      NOT NULL REFERENCES product (id) ON DELETE CASCADE,
+    document_number    VARCHAR(30) NOT NULL,
+    document_type      VARCHAR(10) NOT NULL,
+    activity           VARCHAR(5)  NOT NULL,
+    quantity           INT         NOT NULL DEFAULT 0,
+    purchase_order_id  BIGINT REFERENCES purchase_order (id) ON DELETE CASCADE,
+    purchase_return_id BIGINT REFERENCES purchase_return (id) ON DELETE CASCADE,
+    CONSTRAINT chk_stock_activity CHECK (activity IN ('IN', 'OUT')),
+    CONSTRAINT chk_stock_document_type CHECK (document_type IN ('PO', 'PR')),
+    CONSTRAINT chk_stock_quantity CHECK (quantity > 0)
 );
 
 --rollback DROP TABLE IF EXISTS stock;
