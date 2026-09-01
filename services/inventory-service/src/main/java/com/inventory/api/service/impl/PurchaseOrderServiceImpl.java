@@ -72,6 +72,30 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return new Response(isNew ? 201 : 200, ResponseMsg.SUCCESS, setPOResponse(po));
     }
 
+    @Override
+    @Transactional
+    public Response doDetail(Long id) {
+        return new Response(200, ResponseMsg.SUCCESS, setPOResponse(poRepository.doGet(id)));
+    }
+
+    @Override
+    @Transactional
+    public Response doActivate(Long id) {
+        return new Response(200, ResponseMsg.SUCCESS, setPOResponse(poRepository.doActivate(id)));
+    }
+
+    @Override
+    @Transactional
+    public Response doDeactivate(Long id) {
+        return new Response(200, ResponseMsg.SUCCESS, setPOResponse(poRepository.doDeactivate(id)));
+    }
+
+    @Override
+    @Transactional
+    public Response doDelete(Long id) {
+        return new Response(200, ResponseMsg.SUCCESS, setPOResponse(poRepository.doDelete(id)));
+    }
+
     private List<PurchaseOrderDetail> syncDetails(PurchaseOrder po, List<PODetailSubmitReq> reqDetails) {
         Map<Long, Product> products = getProducts(reqDetails);
         Map<Long, PurchaseOrderDetail> existing = getExistingDetails(po);
