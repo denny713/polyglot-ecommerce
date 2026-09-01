@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class PODetailSubmitRes {
+public class PODetailRes {
 
     private Long id;
     private Long productId;

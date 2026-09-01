@@ -1,6 +1,8 @@
 package com.inventory.api.controller;
 
+import com.inventory.api.model.dto.request.po.POSearchReq;
 import com.inventory.api.model.dto.request.po.POSubmitReq;
+import com.inventory.api.model.dto.response.PagingResponse;
 import com.inventory.api.model.dto.response.Response;
 import com.inventory.api.service.PurchaseOrderService;
 import jakarta.validation.Valid;
@@ -43,5 +45,10 @@ public class PurchaseOrderController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Response> doDelete(@PathVariable Long id) {
         return ResponseEntity.ok(poService.doDelete(id));
+    }
+
+    @PostMapping("/list")
+    public ResponseEntity<PagingResponse> doSearch(@Valid @RequestBody POSearchReq req) {
+        return ResponseEntity.ok(poService.doSearch(req));
     }
 }

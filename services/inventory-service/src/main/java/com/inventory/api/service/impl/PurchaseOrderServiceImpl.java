@@ -1,23 +1,29 @@
 package com.inventory.api.service.impl;
 
 import com.inventory.api.constant.ResponseMsg;
+import com.inventory.api.dao.PurchaseOrderDao;
 import com.inventory.api.enums.DocStatus;
 import com.inventory.api.enums.DocType;
 import com.inventory.api.exception.BadRequestException;
 import com.inventory.api.exception.NotFoundException;
+import com.inventory.api.exception.ServiceException;
 import com.inventory.api.model.dto.request.po.PODetailSubmitReq;
+import com.inventory.api.model.dto.request.po.POSearchReq;
 import com.inventory.api.model.dto.request.po.POSubmitReq;
+import com.inventory.api.model.dto.response.PagingResponse;
 import com.inventory.api.model.dto.response.Response;
-import com.inventory.api.model.dto.response.po.PODetailSubmitRes;
-import com.inventory.api.model.dto.response.po.POSubmitRes;
+import com.inventory.api.model.dto.response.po.PODetailRes;
+import com.inventory.api.model.dto.response.po.PORes;
 import com.inventory.api.model.entity.Product;
 import com.inventory.api.model.entity.PurchaseOrder;
 import com.inventory.api.model.entity.PurchaseOrderDetail;
 import com.inventory.api.repository.*;
 import com.inventory.api.service.PurchaseOrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +34,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
@@ -94,6 +101,24 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Transactional
     public Response doDelete(Long id) {
         return new Response(200, ResponseMsg.SUCCESS, setPOResponse(poRepository.doDelete(id)));
+    }
+
+    @Override
+    @Transactional
+    public PagingResponse doSearch(POSearchReq req) {
+        try {
+            PurchaseOrderDao poDao = new PurchaseOrderDao();
+            List<PORes> results = new ArrayList<>();
+
+            Page<PurchaseOrder> pos = poRepository.doSearch(poDao.buildSearchPO(req), req);
+            pos.forEach(x -> results.add(setPOResponse(x)));
+
+            return new PagingResponse(200, ResponseMsg.SUCCESS, results,
+                    pos.getTotalElements(), pos.getTotalElements());
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new ServiceException(e.getMessage());
+        }
     }
 
     private List<PurchaseOrderDetail> syncDetails(PurchaseOrder po, List<PODetailSubmitReq> reqDetails) {
@@ -169,35 +194,32 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         if (!keptIds.add(reqDetail.getId())) {
-            throw new BadRequestException(String.format(
-                    "Duplicate detail id %s in the request", reqDetail.getId()));
+            throw new BadRequestException(String.format("Duplicate detail id %s in the request", reqDetail.getId()));
         }
 
         PurchaseOrderDetail detail = existing.get(reqDetail.getId());
         if (detail == null) {
-            throw new BadRequestException(String.format(
-                    "Detail with id %s does not belong to purchase order %s",
+            throw new BadRequestException(String.format("Detail with id %s does not belong to purchase order %s",
                     reqDetail.getId(), poId));
         }
 
         return detail;
     }
 
-    public POSubmitRes setPOResponse(PurchaseOrder po) {
-        POSubmitRes res = new POSubmitRes();
+    public PORes setPOResponse(PurchaseOrder po) {
+        PORes res = new PORes();
 
         BeanUtils.copyProperties(po, res);
         res.setSupplierId(po.getSupplier().getId());
         res.setSupplierName(po.getSupplier().getName());
         res.setDetails(po.getPurchaseOrderDetails().stream()
-                .map(this::setPODetailResponse)
-                .toList());
+                .map(this::setPODetailResponse).toList());
 
         return res;
     }
 
-    private PODetailSubmitRes setPODetailResponse(PurchaseOrderDetail detail) {
-        PODetailSubmitRes res = new PODetailSubmitRes();
+    private PODetailRes setPODetailResponse(PurchaseOrderDetail detail) {
+        PODetailRes res = new PODetailRes();
 
         BeanUtils.copyProperties(detail, res);
         res.setProductId(detail.getProduct().getId());

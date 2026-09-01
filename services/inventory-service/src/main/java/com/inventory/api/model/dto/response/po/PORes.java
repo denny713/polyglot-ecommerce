@@ -14,7 +14,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class POSubmitRes {
+public class PORes {
 
     private Long id;
     private String documentNumber;
@@ -23,6 +23,7 @@ public class POSubmitRes {
     private DocStatus status;
     private BigDecimal grandTotal;
     private String note;
+    private Boolean isActive;
     private LocalDateTime createdAt;
-    private List<PODetailSubmitRes> details;
+    private List<PODetailRes> details;
 }
