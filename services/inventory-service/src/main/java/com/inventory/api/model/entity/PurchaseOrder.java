@@ -1,9 +1,11 @@
 package com.inventory.api.model.entity;
 
+import com.inventory.api.enums.DocStatus;
 import com.inventory.api.model.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.NotFoundAction;
 
 import java.math.BigDecimal;
@@ -26,8 +28,9 @@ public class PurchaseOrder extends Base {
     @JoinColumn(name = "supplier_id", referencedColumnName = "id")
     private Supplier supplier;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private DocStatus status;
 
     @Column(name = "grand_total")
     private BigDecimal grandTotal;
@@ -36,5 +39,6 @@ public class PurchaseOrder extends Base {
     private String note;
 
     @OneToMany(mappedBy = "purchaseOrder", fetch = FetchType.LAZY)
+    @SQLRestriction("is_deleted = false")
     private List<PurchaseOrderDetail> purchaseOrderDetails;
 }

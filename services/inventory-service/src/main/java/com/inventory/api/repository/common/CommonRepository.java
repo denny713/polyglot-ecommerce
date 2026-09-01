@@ -5,12 +5,16 @@ import com.inventory.api.model.entity.base.Base;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.NoRepositoryBean;
 
-@Repository
+import java.util.List;
+
+@NoRepositoryBean
 public interface CommonRepository<T extends Base, ID> extends JpaRepository<T, ID> {
 
     Page<T> doSearch(Specification<T> spec, PageReq req);
+
+    List<T> doList(List<ID> ids);
 
     T doGet(ID id);
 

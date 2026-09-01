@@ -3,6 +3,7 @@ package com.inventory.api.model.entity;
 import com.inventory.api.model.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.List;
 
@@ -22,5 +23,6 @@ public class Category extends Base {
     private String description;
 
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
+    @SQLRestriction("is_deleted = false")
     private List<Product> products;
 }

@@ -14,6 +14,8 @@ import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+
 public class CommonRepositoryImpl<T extends Base, ID> extends SimpleJpaRepository<T, ID> implements CommonRepository<T, ID> {
 
     private final JpaEntityInformation<T, ?> entityInfo;
@@ -33,6 +35,11 @@ public class CommonRepositoryImpl<T extends Base, ID> extends SimpleJpaRepositor
                         StringUtils.hasText(req.getSortBy()) ? req.getSortBy() : "id"
                 )
         ));
+    }
+
+    @Override
+    public List<T> doList(List<ID> ids) {
+        return super.findAllById(ids);
     }
 
     @Override

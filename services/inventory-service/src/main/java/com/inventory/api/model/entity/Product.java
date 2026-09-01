@@ -4,6 +4,7 @@ import com.inventory.api.model.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.NotFoundAction;
 
 import java.math.BigDecimal;
@@ -31,6 +32,7 @@ public class Product extends Base {
     private String imageUrl;
 
     @OneToMany(mappedBy = "product")
+    @SQLRestriction("is_deleted = false")
     private List<Stock> stocks;
 
     @OneToOne

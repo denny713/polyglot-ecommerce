@@ -1,4 +1,9 @@
 package com.inventory.api.service;
 
+import com.inventory.api.model.dto.request.po.POSubmitReq;
+import com.inventory.api.model.dto.response.Response;
+
 public interface PurchaseOrderService {
+
+    Response doSubmit(Long id, POSubmitReq req);
 }

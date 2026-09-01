@@ -32,5 +32,6 @@
   <include file="changelog/20260827164845-create-table-purchase-order-detail.sql" relativeToChangelogFile="true"/>
   <include file="changelog/20260827164856-create-table-purchase-return.sql" relativeToChangelogFile="true"/>
   <include file="changelog/20260827164912-create-table-purchase-return-detail.sql" relativeToChangelogFile="true"/>
+  <include file="changelog/20260901142604-create-function-generate-document-number.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
