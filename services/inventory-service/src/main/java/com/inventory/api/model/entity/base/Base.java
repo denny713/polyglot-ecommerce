@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -58,13 +59,20 @@ public abstract class Base {
 
     public void doDelete() {
         this.isDeleted = true;
+        cascadeChildren().forEach(Base::doDelete);
     }
 
     public void doActivate() {
         this.isActive = true;
+        cascadeChildren().forEach(Base::doActivate);
     }
 
     public void doDeactivate() {
         this.isActive = false;
+        cascadeChildren().forEach(Base::doDeactivate);
+    }
+
+    protected List<? extends Base> cascadeChildren() {
+        return List.of();
     }
 }

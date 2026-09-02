@@ -15,4 +15,4 @@ CREATE TABLE IF NOT EXISTS stock_position
     quantity   INT         NOT NULL DEFAULT 0
 );
 
---rollback DROP TABLE IF EXISTS stock_position
+--rollback DROP TABLE IF EXISTS stock_position;

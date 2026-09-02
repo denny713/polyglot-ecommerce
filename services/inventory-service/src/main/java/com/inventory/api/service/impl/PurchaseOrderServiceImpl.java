@@ -4,6 +4,7 @@ import com.inventory.api.constant.ResponseMsg;
 import com.inventory.api.dao.PurchaseOrderDao;
 import com.inventory.api.enums.DocStatus;
 import com.inventory.api.enums.DocType;
+import com.inventory.api.enums.StockActivity;
 import com.inventory.api.exception.BadRequestException;
 import com.inventory.api.exception.NotFoundException;
 import com.inventory.api.exception.ServiceException;
@@ -14,9 +15,7 @@ import com.inventory.api.model.dto.response.PagingResponse;
 import com.inventory.api.model.dto.response.Response;
 import com.inventory.api.model.dto.response.po.PODetailRes;
 import com.inventory.api.model.dto.response.po.PORes;
-import com.inventory.api.model.entity.Product;
-import com.inventory.api.model.entity.PurchaseOrder;
-import com.inventory.api.model.entity.PurchaseOrderDetail;
+import com.inventory.api.model.entity.*;
 import com.inventory.api.repository.*;
 import com.inventory.api.service.PurchaseOrderService;
 import lombok.RequiredArgsConstructor;
@@ -39,17 +38,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
+    private final DocumentNumberRepository docNoRepository;
     private final PurchaseOrderRepository poRepository;
     private final PurchaseOrderDetailRepository poDetailRepository;
     private final SupplierRepository supplierRepository;
-    private final ProductRepository productRepository;
-    private final DocumentNumberRepository docNoRepository;
+    private final StockRepository stockRepository;
+    private final StockPositionRepository stockPositionRepository;
 
     @Override
     @Transactional
     public Response doSubmit(Long id, POSubmitReq req) {
         boolean isNew = (id == null);
         PurchaseOrder po = isNew ? new PurchaseOrder() : poRepository.doGet(id);
+        Supplier supplier = supplierRepository.doGet(req.getSupplierId());
 
         if (isNew) {
             po.setStatus(DocStatus.DRAFT);
@@ -61,7 +62,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             throw new BadRequestException("Only draft or cancelled purchase orders can be submitted");
         }
 
-        po.setSupplier(supplierRepository.doGet(req.getSupplierId()));
+        po.setSupplier(supplier);
         po.setNote(StringUtils.isEmpty(req.getNote()) ? "-" : req.getNote());
         if (po.getStatus() == DocStatus.CANCELLED) {
             po.setStatus(DocStatus.DRAFT);
@@ -69,8 +70,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         List<PurchaseOrderDetail> details = syncDetails(po, req.getDetails());
 
-        po.setGrandTotal(details.stream()
-                .map(PurchaseOrderDetail::getSubtotal)
+        po.setRealGrandTotal(BigDecimal.ZERO);
+        po.setOrderGrandTotal(details.stream()
+                .map(PurchaseOrderDetail::getOrderSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         poRepository.save(po);
@@ -105,6 +107,56 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     @Override
     @Transactional
+    public Response doApprove(Long id, POSubmitReq req) {
+        PurchaseOrder po = poRepository.doGet(id);
+
+        if (po.getStatus() != DocStatus.DRAFT) {
+            throw new BadRequestException("Only draft purchase orders can be approved");
+        }
+
+        Map<Long, PurchaseOrderDetail> existing = getExistingDetails(po);
+        Map<Long, StockPosition> positions = getStockPositions(req.getDetails());
+
+        List<PurchaseOrderDetail> details = new ArrayList<>(req.getDetails().size());
+        List<Stock> stocks = new ArrayList<>(req.getDetails().size());
+        BigDecimal realGrandTotal = BigDecimal.ZERO;
+
+        for (PODetailSubmitReq reqDetail : req.getDetails()) {
+            PurchaseOrderDetail detail = approveDetail(po, reqDetail, existing);
+
+            details.add(detail);
+            stocks.add(buildStock(po, reqDetail, detail));
+            addStockPosition(positions, reqDetail, detail);
+
+            realGrandTotal = realGrandTotal.add(detail.getRealSubtotal());
+        }
+
+        po.setStatus(DocStatus.APPROVED);
+        po.setRealGrandTotal(realGrandTotal);
+        po.setPurchaseOrderDetails(details);
+
+        stockRepository.saveAll(stocks);
+        stockPositionRepository.saveAll(positions.values());
+
+        return new Response(200, ResponseMsg.SUCCESS, setPOResponse(po));
+    }
+
+    @Override
+    @Transactional
+    public Response doCancel(Long id) {
+        PurchaseOrder po = poRepository.doGet(id);
+
+        if (po.getStatus() != DocStatus.DRAFT) {
+            throw new BadRequestException("Only draft purchase orders can be cancelled");
+        }
+
+        po.setStatus(DocStatus.CANCELLED);
+
+        return new Response(200, ResponseMsg.SUCCESS, setPOResponse(poRepository.save(po)));
+    }
+
+    @Override
+    @Transactional
     public PagingResponse doSearch(POSearchReq req) {
         try {
             PurchaseOrderDao poDao = new PurchaseOrderDao();
@@ -122,7 +174,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     private List<PurchaseOrderDetail> syncDetails(PurchaseOrder po, List<PODetailSubmitReq> reqDetails) {
-        Map<Long, Product> products = getProducts(reqDetails);
+        if (reqDetails.isEmpty()) {
+            throw new BadRequestException("Details cannot be empty");
+        }
+
+        Map<Long, Product> products = getAndSyncProducts(reqDetails, po.getSupplier());
         Map<Long, PurchaseOrderDetail> existing = getExistingDetails(po);
         Set<Long> keptIds = new HashSet<>();
 
@@ -132,8 +188,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         List<PurchaseOrderDetail> removed = existing.values().stream()
-                .filter(detail -> !keptIds.contains(detail.getId()))
-                .toList();
+                .filter(detail -> !keptIds.contains(detail.getId())).toList();
 
         removed.forEach(PurchaseOrderDetail::doDelete);
         poDetailRepository.saveAll(removed);
@@ -141,19 +196,16 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return details;
     }
 
-    private Map<Long, Product> getProducts(List<PODetailSubmitReq> reqDetails) {
-        List<Long> productIds = reqDetails.stream()
-                .map(PODetailSubmitReq::getProductId).distinct().toList();
-
-        Map<Long, Product> products = productRepository.doList(productIds).stream()
+    private Map<Long, Product> getAndSyncProducts(List<PODetailSubmitReq> reqDetails, Supplier supplier) {
+        List<Long> productIds = reqDetails.stream().map(PODetailSubmitReq::getProductId).distinct().toList();
+        Map<Long, Product> products = supplier.getProducts().stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
 
-        List<Long> missingIds = productIds.stream()
-                .filter(productId -> !products.containsKey(productId)).toList();
-
+        List<Long> missingIds = productIds.stream().filter(id -> !products.containsKey(id)).toList();
         if (!missingIds.isEmpty()) {
             throw new NotFoundException(String.format(
-                    "Data Product with id %s not found", missingIds));
+                    "Data Product with id %s not found in supplier %s",
+                    missingIds, supplier.getName()));
         }
 
         return products;
@@ -165,27 +217,92 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .collect(Collectors.toMap(PurchaseOrderDetail::getId, Function.identity()));
     }
 
-    private PurchaseOrderDetail buildDetail(PurchaseOrder po, PODetailSubmitReq reqDetail,
-                                            Map<Long, Product> products,
-                                            Map<Long, PurchaseOrderDetail> existing,
-                                            Set<Long> keptIds) {
+    private Map<Long, StockPosition> getStockPositions(List<PODetailSubmitReq> reqDetails) {
+        List<Long> productIds = reqDetails.stream()
+                .map(PODetailSubmitReq::getProductId).distinct().toList();
+
+        return stockPositionRepository.findByProductIdIn(productIds).stream()
+                .collect(Collectors.toMap(position -> position.getProduct().getId(),
+                        Function.identity(), (first, duplicate) -> first, LinkedHashMap::new));
+    }
+
+    private PurchaseOrderDetail approveDetail(
+            PurchaseOrder po, PODetailSubmitReq reqDetail,
+            Map<Long, PurchaseOrderDetail> existing) {
+        PurchaseOrderDetail detail = existing.get(reqDetail.getId());
+
+        if (detail == null) {
+            throw new NotFoundException(String.format(
+                    "Detail with id %s not found in purchase order %s",
+                    reqDetail.getId(), po.getDocumentNumber()));
+        }
+
+        if (reqDetail.getQuantity() > detail.getOrderQuantity()) {
+            throw new BadRequestException(String.format(
+                    "Real quantity (%s) cannot be greater than order quantity (%s) for product %s",
+                    reqDetail.getQuantity(), detail.getOrderQuantity(), detail.getProduct().getName()));
+        }
+
+        detail.setRealQuantity(reqDetail.getQuantity());
+        detail.setRealSubtotal(detail.getProduct().getPrice()
+                .multiply(BigDecimal.valueOf(reqDetail.getQuantity())));
+        detail.setNote(StringUtils.isEmpty(reqDetail.getNote()) ? detail.getNote() : reqDetail.getNote());
+
+        return detail;
+    }
+
+    private Stock buildStock(PurchaseOrder po, PODetailSubmitReq reqDetail, PurchaseOrderDetail detail) {
+        Stock stock = new Stock();
+        stock.setProduct(detail.getProduct());
+        stock.setDocumentNumber(po.getDocumentNumber());
+        stock.setDocumentType(DocType.PO);
+        stock.setActivity(StockActivity.IN);
+        stock.setQuantity(reqDetail.getQuantity());
+        stock.setPurchaseOrder(po);
+
+        return stock;
+    }
+
+    private void addStockPosition(
+            Map<Long, StockPosition> positions,
+            PODetailSubmitReq reqDetail, PurchaseOrderDetail detail) {
+        StockPosition position = positions.get(reqDetail.getProductId());
+
+        if (position == null) {
+            position = new StockPosition();
+            position.setProduct(detail.getProduct());
+            position.setQuantity(reqDetail.getQuantity());
+            positions.put(reqDetail.getProductId(), position);
+        } else {
+            position.setQuantity(position.getQuantity() + reqDetail.getQuantity());
+        }
+    }
+
+    private PurchaseOrderDetail buildDetail(
+            PurchaseOrder po, PODetailSubmitReq reqDetail,
+            Map<Long, Product> products,
+            Map<Long, PurchaseOrderDetail> existing,
+            Set<Long> keptIds) {
         PurchaseOrderDetail detail = resolveDetail(reqDetail, existing, keptIds, po.getId());
         Product product = products.get(reqDetail.getProductId());
         BigDecimal price = product.getPrice();
 
         detail.setPurchaseOrder(po);
         detail.setProduct(product);
-        detail.setOrderQuantity(reqDetail.getOrderQuantity());
+        detail.setRealQuantity(0);
+        detail.setOrderQuantity(reqDetail.getQuantity());
         detail.setNote(reqDetail.getNote());
         detail.setUnitPrice(price);
-        detail.setSubtotal(price.multiply(BigDecimal.valueOf(reqDetail.getOrderQuantity())));
+        detail.setRealSubtotal(BigDecimal.ZERO);
+        detail.setOrderSubtotal(price.multiply(BigDecimal.valueOf(reqDetail.getQuantity())));
 
         return detail;
     }
 
-    private PurchaseOrderDetail resolveDetail(PODetailSubmitReq reqDetail,
-                                              Map<Long, PurchaseOrderDetail> existing,
-                                              Set<Long> keptIds, Long poId) {
+    private PurchaseOrderDetail resolveDetail(
+            PODetailSubmitReq reqDetail,
+            Map<Long, PurchaseOrderDetail> existing,
+            Set<Long> keptIds, Long poId) {
         if (reqDetail.getId() == null) {
             PurchaseOrderDetail detail = new PurchaseOrderDetail();
             detail.setRealQuantity(0);
@@ -212,8 +329,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         BeanUtils.copyProperties(po, res);
         res.setSupplierId(po.getSupplier().getId());
         res.setSupplierName(po.getSupplier().getName());
-        res.setDetails(po.getPurchaseOrderDetails().stream()
-                .map(this::setPODetailResponse).toList());
+        res.setDetails(po.getPurchaseOrderDetails().stream().map(this::setPODetailResponse).toList());
 
         return res;
     }

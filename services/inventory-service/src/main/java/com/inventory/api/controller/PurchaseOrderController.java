@@ -47,6 +47,16 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(poService.doDelete(id));
     }
 
+    @PutMapping("/approve/{id}")
+    public ResponseEntity<Response> doApprove(@PathVariable Long id, @Valid @RequestBody POSubmitReq req) {
+        return ResponseEntity.ok(poService.doApprove(id, req));
+    }
+
+    @PutMapping("/cancel/{id}")
+    public ResponseEntity<Response> doCancel(@PathVariable Long id) {
+        return ResponseEntity.ok(poService.doCancel(id));
+    }
+
     @PostMapping("/list")
     public ResponseEntity<PagingResponse> doSearch(@Valid @RequestBody POSearchReq req) {
         return ResponseEntity.ok(poService.doSearch(req));

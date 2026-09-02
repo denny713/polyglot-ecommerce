@@ -128,9 +128,7 @@ cat > "$file_path" <<TEMPLATE
 --liquibase formatted sql
 --
 -- ${slug//-/ }
-
 --changeset ${AUTHOR}:${changeset_id}
-
 CREATE TABLE IF NOT EXISTS table_name (
     id          BIGSERIAL       PRIMARY KEY,
     is_active   BOOLEAN        NOT NULL DEFAULT TRUE,

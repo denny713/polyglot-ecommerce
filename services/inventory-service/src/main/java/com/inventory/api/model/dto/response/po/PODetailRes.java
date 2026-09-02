@@ -18,6 +18,7 @@ public class PODetailRes {
     private String productName;
     private Integer orderQuantity;
     private BigDecimal unitPrice;
-    private BigDecimal subtotal;
+    private BigDecimal orderSubtotal;
+    private BigDecimal realSubtotal;
     private String note;
 }

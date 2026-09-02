@@ -4,6 +4,7 @@ import com.inventory.api.enums.DocStatus;
 import com.inventory.api.model.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.NotFound;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.NotFoundAction;
@@ -43,5 +44,11 @@ public class PurchaseReturn extends Base {
 
     @OneToMany(mappedBy = "purchaseReturn", fetch = FetchType.LAZY)
     @SQLRestriction("is_deleted = false")
+    @BatchSize(size = 50)
     private List<PurchaseReturnDetail> purchaseReturnDetails;
+
+    @Override
+    protected List<? extends Base> cascadeChildren() {
+        return (purchaseReturnDetails == null) ? List.of() : purchaseReturnDetails;
+    }
 }

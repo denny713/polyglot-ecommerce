@@ -1,7 +1,6 @@
 --liquibase formatted sql
 --
 -- create function generate document number
-
 --changeset denny.afrizal:20260901142604-create-function-generate-document-number
 CREATE OR REPLACE FUNCTION generate_document_number(p_type TEXT, p_date DATE)
     RETURNS VARCHAR
@@ -13,11 +12,9 @@ DECLARE
     v_prefix      TEXT;
     v_next_prefix TEXT;
     v_sequence    BIGINT;
+
 BEGIN
-    v_table := CASE p_type
-                   WHEN 'PO' THEN 'purchase_order'
-                   WHEN 'PR' THEN 'purchase_return'
-                   END;
+    v_table := CASE p_type WHEN 'PO' THEN 'purchase_order' WHEN 'PR' THEN 'purchase_return' END;
 
     IF v_table IS NULL THEN
         RAISE EXCEPTION 'Unknown document type: %', p_type;

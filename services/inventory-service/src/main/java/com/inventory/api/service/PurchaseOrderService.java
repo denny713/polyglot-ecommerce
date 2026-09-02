@@ -17,5 +17,9 @@ public interface PurchaseOrderService {
 
     Response doDelete(Long id);
 
+    Response doApprove(Long id, POSubmitReq req);
+
+    Response doCancel(Long id);
+
     PagingResponse doSearch(POSearchReq req);
 }

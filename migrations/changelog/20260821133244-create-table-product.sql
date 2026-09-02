@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS product
     image_url   TEXT,
     category_id BIGINT         NOT NULL REFERENCES category (id) ON DELETE CASCADE,
     supplier_id BIGINT         NOT NULL REFERENCES supplier (id) ON DELETE CASCADE,
-
     CONSTRAINT chk_product_price CHECK (price >= 0)
 );
 

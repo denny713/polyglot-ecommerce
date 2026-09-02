@@ -5,6 +5,8 @@ import com.inventory.api.repository.common.CommonRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface StockRepository extends CommonRepository<Stock, Long>, JpaSpecificationExecutor<Stock> {
 }

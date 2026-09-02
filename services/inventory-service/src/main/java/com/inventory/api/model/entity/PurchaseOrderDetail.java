@@ -36,8 +36,11 @@ public class PurchaseOrderDetail extends Base {
     @Column(name = "unit_price")
     private BigDecimal unitPrice;
 
-    @Column(name = "subtotal")
-    private BigDecimal subtotal;
+    @Column(name = "order_subtotal")
+    private BigDecimal orderSubtotal;
+
+    @Column(name = "real_subtotal")
+    private BigDecimal realSubtotal;
 
     @Column(name = "note")
     private String note;

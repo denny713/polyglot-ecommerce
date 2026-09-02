@@ -1,5 +1,7 @@
 package com.inventory.api.model.entity;
 
+import com.inventory.api.enums.DocType;
+import com.inventory.api.enums.StockActivity;
 import com.inventory.api.model.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,21 +25,27 @@ public class Stock extends Base {
     @Column(name = "document_number")
     private String documentNumber;
 
+    // STRING, or JPA defaults to ORDINAL and writes 0/1 into a VARCHAR guarded
+    // by CHECK (document_type IN ('PO', 'PR')) / CHECK (activity IN ('IN', 'OUT')).
+    @Enumerated(EnumType.STRING)
     @Column(name = "document_type")
-    private String documentType;
+    private DocType documentType;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "activity")
-    private String activity;
+    private StockActivity activity;
 
     @Column(name = "quantity")
     private Integer quantity;
 
-    @OneToOne
+    // ManyToOne: one document produces one movement per line, and neither
+    // foreign key is unique in the schema.
+    @ManyToOne
     @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "purchase_order_id", referencedColumnName = "id")
     private PurchaseOrder purchaseOrder;
 
-    @OneToOne
+    @ManyToOne
     @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "purchase_return_id", referencedColumnName = "id")
     private PurchaseReturn purchaseReturn;

@@ -21,7 +21,8 @@ public class PORes {
     private Long supplierId;
     private String supplierName;
     private DocStatus status;
-    private BigDecimal grandTotal;
+    private BigDecimal orderGrandTotal;
+    private BigDecimal realGrandTotal;
     private String note;
     private Boolean isActive;
     private LocalDateTime createdAt;
