@@ -17,7 +17,7 @@ public interface PurchaseReturnService {
 
     Response doDelete(Long id);
 
-    Response doApprove(Long id, PRSubmitReq req);
+    Response doApprove(Long id);
 
     Response doCancel(Long id);
 

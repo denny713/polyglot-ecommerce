@@ -14,6 +14,7 @@ public class PRSubmitReq {
 
     @NotNull(message = "Supplier id cannot be null")
     private Long supplierId;
+    private String reason;
     private String note;
 
     @Valid

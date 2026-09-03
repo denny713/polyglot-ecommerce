@@ -18,5 +18,6 @@ public class PRDetailSubmitReq {
     @Positive(message = "Quantity must be greater than 0")
     private Integer quantity;
 
+    private String reason;
     private String note;
 }

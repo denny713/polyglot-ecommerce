@@ -48,8 +48,8 @@ public class PurchaseReturnController {
     }
 
     @PutMapping("/approve/{id}")
-    public ResponseEntity<Response> doApprove(@PathVariable Long id, @Valid @RequestBody PRSubmitReq req) {
-        return ResponseEntity.ok(prService.doApprove(id, req));
+    public ResponseEntity<Response> doApprove(@PathVariable Long id) {
+        return ResponseEntity.ok(prService.doApprove(id));
     }
 
     @PutMapping("/cancel/{id}")

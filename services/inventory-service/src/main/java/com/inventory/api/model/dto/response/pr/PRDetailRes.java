@@ -16,9 +16,8 @@ public class PRDetailRes {
     private Long id;
     private Long productId;
     private String productName;
-    private Integer orderQuantity;
+    private Integer quantity;
     private BigDecimal unitPrice;
     private BigDecimal subtotal;
-    private String reason;
     private String note;
 }
