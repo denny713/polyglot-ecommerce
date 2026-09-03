@@ -5,10 +5,6 @@ import com.inventory.api.repository.common.CommonRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
 public interface StockPositionRepository extends CommonRepository<StockPosition, Long>, JpaSpecificationExecutor<StockPosition> {
-
-    List<StockPosition> findByProductIdIn(List<Long> productIds);
 }

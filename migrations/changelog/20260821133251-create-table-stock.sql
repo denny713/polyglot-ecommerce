@@ -13,13 +13,13 @@ CREATE TABLE IF NOT EXISTS stock
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     product_id         BIGINT      NOT NULL REFERENCES product (id) ON DELETE CASCADE,
     document_number    VARCHAR(30) NOT NULL,
-    document_type      VARCHAR(10) NOT NULL,
-    activity           VARCHAR(5)  NOT NULL,
+    document_type      VARCHAR(20) NOT NULL,
+    activity           VARCHAR(10) NOT NULL,
     quantity           INT         NOT NULL DEFAULT 0,
     purchase_order_id  BIGINT REFERENCES purchase_order (id) ON DELETE CASCADE,
     purchase_return_id BIGINT REFERENCES purchase_return (id) ON DELETE CASCADE,
-    CONSTRAINT chk_stock_activity CHECK (activity IN ('IN', 'OUT')),
-    CONSTRAINT chk_stock_document_type CHECK (document_type IN ('PO', 'PR')),
+    CONSTRAINT chk_stock_activity CHECK (activity IN ('Stock In', 'Stock Out')),
+    CONSTRAINT chk_stock_document_type CHECK (document_type IN ('Purchase Order', 'Purchase Return')),
     CONSTRAINT chk_stock_quantity CHECK (quantity > 0)
 );
 

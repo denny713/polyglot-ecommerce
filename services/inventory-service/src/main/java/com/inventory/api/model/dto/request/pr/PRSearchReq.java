@@ -1,4 +1,4 @@
-package com.inventory.api.model.dto.request.po;
+package com.inventory.api.model.dto.request.pr;
 
 import com.inventory.api.enums.DocStatus;
 import com.inventory.api.model.dto.request.PageReq;
@@ -10,15 +10,13 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class POSearchReq extends PageReq {
+public class PRSearchReq extends PageReq {
 
     private String documentNumber;
     private Long supplierId;
     private DocStatus status;
-    private BigDecimal minOrderGrandTotal;
-    private BigDecimal maxOrderGrandTotal;
-    private BigDecimal minRealGrandTotal;
-    private BigDecimal maxRealGrandTotal;
+    private BigDecimal minGrandTotal;
+    private BigDecimal maxGrandTotal;
     private Boolean isActive;
     private LocalDateTime createdFrom;
     private LocalDateTime createdTo;

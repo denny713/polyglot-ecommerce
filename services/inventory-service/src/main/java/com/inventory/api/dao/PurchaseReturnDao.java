@@ -1,7 +1,7 @@
 package com.inventory.api.dao;
 
-import com.inventory.api.model.dto.request.po.POSearchReq;
-import com.inventory.api.model.entity.PurchaseOrder;
+import com.inventory.api.model.dto.request.pr.PRSearchReq;
+import com.inventory.api.model.entity.PurchaseReturn;
 import jakarta.persistence.criteria.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
@@ -9,9 +9,9 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PurchaseOrderDao extends CommonDao {
+public class PurchaseReturnDao extends CommonDao {
 
-    public Specification<PurchaseOrder> buildSearchPO(POSearchReq req) {
+    public Specification<PurchaseReturn> buildSearchPR(PRSearchReq req) {
         return (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -22,20 +22,12 @@ public class PurchaseOrderDao extends CommonDao {
             add(predicates, equals(req.getSupplierId(), "id", root.get("supplier"), cb));
             add(predicates, equals(req.getStatus(), "status", root, cb));
 
-            if (isPositive(req.getMinOrderGrandTotal())) {
-                add(predicates, greaterThanEqualTo(req.getMinOrderGrandTotal(), "orderGrandTotal", root, cb));
+            if (isPositive(req.getMinGrandTotal())) {
+                add(predicates, greaterThanEqualTo(req.getMinGrandTotal(), "grandTotal", root, cb));
             }
 
-            if (isPositive(req.getMaxOrderGrandTotal())) {
-                add(predicates, lessThanEqualTo(req.getMaxOrderGrandTotal(), "orderGrandTotal", root, cb));
-            }
-
-            if (isPositive(req.getMinRealGrandTotal())) {
-                add(predicates, greaterThanEqualTo(req.getMinRealGrandTotal(), "realGrandTotal", root, cb));
-            }
-
-            if (isPositive(req.getMaxRealGrandTotal())) {
-                add(predicates, lessThanEqualTo(req.getMaxRealGrandTotal(), "realGrandTotal", root, cb));
+            if (isPositive(req.getMaxGrandTotal())) {
+                add(predicates, lessThanEqualTo(req.getMaxGrandTotal(), "grandTotal", root, cb));
             }
 
             add(predicates, greaterThanEqualTo(req.getCreatedFrom(), "createdAt", root, cb));

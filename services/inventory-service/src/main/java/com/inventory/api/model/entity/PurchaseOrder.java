@@ -29,7 +29,6 @@ public class PurchaseOrder extends Base {
     @JoinColumn(name = "supplier_id", referencedColumnName = "id")
     private Supplier supplier;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private DocStatus status;
 
