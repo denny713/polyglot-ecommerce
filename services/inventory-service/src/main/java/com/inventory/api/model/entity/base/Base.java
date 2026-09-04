@@ -1,5 +1,6 @@
 package com.inventory.api.model.entity.base;
 
+import com.inventory.api.util.AccountUtil;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -46,15 +47,15 @@ public abstract class Base {
     public void prePersist() {
         this.setIsActive(true);
         this.setIsDeleted(false);
-        this.setCreatedBy(UUID.randomUUID());
-        this.setUpdatedBy(UUID.randomUUID());
+        this.setCreatedBy(AccountUtil.getUserLogin());
+        this.setUpdatedBy(AccountUtil.getUserLogin());
         this.setCreatedAt(LocalDateTime.now());
         this.setUpdatedAt(LocalDateTime.now());
     }
 
     @PreUpdate
     public void preUpdate() {
-        this.setUpdatedBy(UUID.randomUUID());
+        this.setUpdatedBy(AccountUtil.getUserLogin());
         this.setUpdatedAt(LocalDateTime.now());
     }
 
