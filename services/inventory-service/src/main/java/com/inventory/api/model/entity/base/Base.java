@@ -9,6 +9,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -30,10 +31,10 @@ public abstract class Base {
     protected Boolean isDeleted;
 
     @Column(name = "created_by")
-    public Long createdBy;
+    public UUID createdBy;
 
     @Column(name = "updated_by")
-    protected Long updatedBy;
+    protected UUID updatedBy;
 
     @Column(name = "created_at")
     protected LocalDateTime createdAt;
@@ -45,15 +46,15 @@ public abstract class Base {
     public void prePersist() {
         this.setIsActive(true);
         this.setIsDeleted(false);
-        this.setCreatedBy(1L);
-        this.setUpdatedBy(1L);
+        this.setCreatedBy(UUID.randomUUID());
+        this.setUpdatedBy(UUID.randomUUID());
         this.setCreatedAt(LocalDateTime.now());
         this.setUpdatedAt(LocalDateTime.now());
     }
 
     @PreUpdate
     public void preUpdate() {
-        this.setUpdatedBy(1L);
+        this.setUpdatedBy(UUID.randomUUID());
         this.setUpdatedAt(LocalDateTime.now());
     }
 
