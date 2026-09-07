@@ -2,6 +2,7 @@
 --
 -- create table stock
 --changeset denny.afrizal:20260821133251-create-table-stock
+
 CREATE TABLE IF NOT EXISTS stock
 (
     id                 BIGSERIAL PRIMARY KEY,
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS stock
     quantity           INT         NOT NULL DEFAULT 0,
     purchase_order_id  BIGINT REFERENCES purchase_order (id) ON DELETE CASCADE,
     purchase_return_id BIGINT REFERENCES purchase_return (id) ON DELETE CASCADE,
+
     CONSTRAINT chk_stock_activity CHECK (activity IN ('Stock In', 'Stock Out')),
     CONSTRAINT chk_stock_document_type CHECK (document_type IN ('Purchase Order', 'Purchase Return')),
     CONSTRAINT chk_stock_quantity CHECK (quantity > 0)

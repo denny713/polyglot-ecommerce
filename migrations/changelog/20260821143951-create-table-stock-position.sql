@@ -2,6 +2,7 @@
 --
 -- create table stock position
 --changeset denny.afrizal:20260821143951-create-table-stock-position
+
 CREATE TABLE IF NOT EXISTS stock_position
 (
     id         BIGSERIAL PRIMARY KEY,

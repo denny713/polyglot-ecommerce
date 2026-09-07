@@ -26,7 +26,7 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - polygot
+      - ecommerce
 
   minio:
     image: minio/minio:latest
@@ -48,7 +48,7 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - polygot
+      - ecommerce
 
   minio-init:
     image: minio/mc:latest
@@ -67,7 +67,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - polygot
+      - ecommerce
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7
@@ -100,7 +100,7 @@ services:
       retries: 10
       start_period: 300s
     networks:
-      - polygot
+      - ecommerce
 
   # gateway-service:
   #   build:
@@ -115,7 +115,7 @@ services:
   #   ports:
   #     - "${GATEWAY_PORT:-7100}:7100"
   #   networks:
-  #     - polygot
+  #     - ecommerce
 
   # auth-service:
   #   build:
@@ -143,7 +143,7 @@ services:
   #     retries: 5
   #     start_period: 60s
   #   networks:
-  #     - polygot
+  #     - ecommerce
 
   # product-service:
   #   build:
@@ -181,12 +181,12 @@ services:
   #     retries: 5
   #     start_period: 30s
   #   networks:
-  #     - polygot
+  #     - ecommerce
 
 volumes:
   postgres-data:
   minio-data:
 
 networks:
-  polygot:
+  ecommerce:
     driver: bridge

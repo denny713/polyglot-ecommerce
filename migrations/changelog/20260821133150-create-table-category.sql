@@ -2,6 +2,7 @@
 --
 -- create table category
 --changeset denny.afrizal:20260821133150-create-table-category
+
 CREATE TABLE IF NOT EXISTS category
 (
     id          BIGSERIAL PRIMARY KEY,

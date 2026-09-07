@@ -1,8 +1,9 @@
 --liquibase formatted sql
 --
--- create function generate document number
---changeset denny.afrizal:20260901142604-create-function-generate-document-number
-CREATE OR REPLACE FUNCTION generate_document_number(p_type TEXT, p_date DATE)
+-- create function generate doc no
+--changeset denny.afrizal:20260901142604-create-function-generate-doc_no splitStatements:false
+
+CREATE OR REPLACE FUNCTION generate_doc_no(p_type TEXT, p_date DATE)
     RETURNS VARCHAR
     LANGUAGE plpgsql
 AS
@@ -41,4 +42,4 @@ BEGIN
 END;
 $$;
 
---rollback DROP FUNCTION IF EXISTS generate_document_number(TEXT, DATE);
+--rollback DROP FUNCTION IF EXISTS generate_doc_no(TEXT, DATE);

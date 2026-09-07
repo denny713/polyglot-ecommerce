@@ -56,7 +56,7 @@ brings it up along with PostgreSQL, MinIO and Keycloak. It is published on
 To rebuild just this service after a configuration change:
 
 ```shell script
-docker compose -p polygot-ecommerce -f app/docker-compose.yml up -d --build gateway
+docker compose -p app -f app/docker-compose.yml up -d --build gateway
 ```
 
 Standalone, without the rest of the stack:
@@ -81,7 +81,7 @@ cd services/auth-service && QUARKUS_HTTP_PORT=8081 ./mvnw quarkus:dev
 
 `AUTH_SERVICE_HOST` overrides the default from `settings/auth_service.json` and
 is the only thing that has to change once auth-service is containerised on the
-`polygot` network — set it to `http://auth-service:8080` in
+`ecommerce` network — set it to `http://auth-service:8080` in
 `app/docker-compose.yml` (or in `.env`) and drop the `extra_hosts` entry. No
 rebuild of the image is needed; the template is rendered on every start.
 

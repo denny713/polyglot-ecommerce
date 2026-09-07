@@ -15,7 +15,7 @@ set -euo pipefail
 # Resolve paths relative to this script so it works from any working directory.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/app/docker-compose.yml"
-PROJECT_NAME="ecommerce"
+PROJECT_NAME="app"
 
 die() {
   printf '\033[31merror:\033[0m %s\n' "$1" >&2

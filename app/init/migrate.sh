@@ -34,8 +34,8 @@
 #   DB_PORT              its port                     (5432)
 #   LIQUIBASE_RUNNER     docker | local               (docker)
 #   LIQUIBASE_IMAGE      image used by the runner      (liquibase/liquibase:4.33-alpine)
-#   COMPOSE_PROJECT_NAME compose project name         (ecommerce)
-#   COMPOSE_NETWORK      network to attach to         (<project>_polygot)
+#   COMPOSE_PROJECT_NAME compose project name         (app)
+#   COMPOSE_NETWORK      network to attach to         (<project>_ecommerce)
 #   POSTGRES_CONTAINER   container polled for readiness (postgres)
 #   CHANGELOG_FILE       master changelog, relative to ./migrations
 #                                                     (db.changelog-master.xml)
@@ -64,12 +64,12 @@ MIGRATIONS_DIR="${MIGRATIONS_DIR:-$REPO_ROOT/migrations}"
 RUNNER="${LIQUIBASE_RUNNER:-docker}"
 LIQUIBASE_IMAGE="${LIQUIBASE_IMAGE:-liquibase/liquibase:4.33-alpine}"
 # Must match the network `docker compose up` actually created. Compose prefixes
-# it with the project name, and build.sh/down.sh pass `--project-name ecommerce`
+# it with the project name, and build.sh/down.sh pass `--project-name app`
 # explicitly - so the default here is derived from the same name rather than
 # hardcoded, otherwise the Liquibase container starts off the compose network
 # and cannot resolve Postgres by its service name.
-COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ecommerce}"
-COMPOSE_NETWORK="${COMPOSE_NETWORK:-${COMPOSE_PROJECT_NAME}_polygot}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-app}"
+COMPOSE_NETWORK="${COMPOSE_NETWORK:-${COMPOSE_PROJECT_NAME}_ecommerce}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-postgres}"
 
 DB_USER="${POSTGRES_USER:-postgres}"

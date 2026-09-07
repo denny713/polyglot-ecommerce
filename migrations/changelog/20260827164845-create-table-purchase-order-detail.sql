@@ -2,6 +2,7 @@
 --
 -- create table purchase order detail
 --changeset denny.afrizal:20260827164845-create-table-purchase-order-detail
+
 CREATE TABLE IF NOT EXISTS purchase_order_detail
 (
     id                BIGSERIAL PRIMARY KEY,
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_detail
     order_subtotal    DECIMAL(12, 2) NOT NULL,
     real_subtotal     DECIMAL(12, 2) NOT NULL,
     note              TEXT,
+
     CONSTRAINT chk_purchase_order_detail_order_quantity CHECK (order_quantity > 0),
     CONSTRAINT chk_purchase_order_detail_unit_price CHECK (unit_price >= 0),
     CONSTRAINT chk_purchase_order_detail_order_subtotal CHECK (order_subtotal >= 0)

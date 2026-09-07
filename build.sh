@@ -37,7 +37,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/app/docker-compose.yml"
 KEYCLOAK_INIT="$SCRIPT_DIR/app/init/keycloak-init.sh"
 DB_MIGRATE="$SCRIPT_DIR/app/init/migrate.sh"
-PROJECT_NAME="ecommerce"
+PROJECT_NAME="app"
 
 die() {
   printf '\033[31merror:\033[0m %s\n' "$1" >&2

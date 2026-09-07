@@ -9,6 +9,6 @@ import java.time.LocalDate;
 
 public interface DocumentNumberRepository extends Repository<PurchaseOrder, Long> {
 
-    @Query(value = "SELECT generate_document_number(CAST(:type AS TEXT), CAST(:date AS DATE))", nativeQuery = true)
+    @Query(value = "SELECT generate_doc_no(CAST(:type AS TEXT), CAST(:date AS DATE))", nativeQuery = true)
     String generateDocumentNumber(@Param("type") String type, @Param("date") LocalDate date);
 }
