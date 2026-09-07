@@ -12,6 +12,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Identity, auditing and soft-delete for every entity in this service.
+ * <p>
+ * Rows are never removed: {@code doDelete} only sets {@code is_deleted}, and the
+ * {@code @SQLRestriction} on this class is what keeps those rows out of every
+ * query, so a soft-deleted row reads as absent rather than as inactive.
+ * <p>
+ * {@code createdBy} and {@code updatedBy} are stamped from
+ * {@link com.inventory.api.util.AccountUtil}, which is populated per request by
+ * {@code TokenFilter}. A write from outside a request thread therefore leaves them
+ * null.
+ * <p>
+ * {@code cascadeChildren} is the extension point: an entity that overrides it has
+ * delete, activate and deactivate propagate to its children in one call. The
+ * default is empty, so a leaf entity needs no override.
+ */
 @Getter
 @Setter
 @MappedSuperclass

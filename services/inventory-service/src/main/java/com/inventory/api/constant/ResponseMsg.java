@@ -1,5 +1,12 @@
 package com.inventory.api.constant;
 
+/**
+ * Human-readable text for the {@code status} field of every {@code Response} and
+ * {@code PagingResponse}.
+ * <p>
+ * It travels next to the numeric HTTP code rather than replacing it, so a client
+ * reading the body alone still sees what happened.
+ */
 public class ResponseMsg {
 
     public static final String SUCCESS = "Success";

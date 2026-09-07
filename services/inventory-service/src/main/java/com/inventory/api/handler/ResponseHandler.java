@@ -19,6 +19,17 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Turns the exceptions thrown by this service into the same {@code Response}
+ * envelope the successful paths return, so a client only ever parses one shape.
+ * <p>
+ * It also flattens bean-validation failures into a single comma-separated message
+ * instead of a field-keyed map.
+ * <p>
+ * Its reach stops at Spring MVC. {@code TokenFilter} runs before the dispatcher
+ * servlet, so a rejected token never arrives here — that is why the filter builds
+ * an equivalent body itself.
+ */
 @Slf4j
 @ControllerAdvice
 public class ResponseHandler {

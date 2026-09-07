@@ -8,6 +8,16 @@ import lombok.*;
 import org.hibernate.annotations.NotFound;
 import org.hibernate.annotations.NotFoundAction;
 
+/**
+ * One stock movement — the append-only history behind
+ * {@link com.inventory.api.model.entity.StockPosition}.
+ * <p>
+ * A row is written when a document is approved and is never revised, so the ledger
+ * stays a faithful record: {@code activity} says which way the goods went and the
+ * document number and type say what caused it. The two document associations are
+ * mutually exclusive; whichever kind approved the movement is set, the other stays
+ * null.
+ */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

@@ -10,6 +10,18 @@ import org.hibernate.annotations.NotFoundAction;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * What is ordered, returned and counted. Owned by another service in the stack;
+ * inventory reads it and never writes it.
+ * <p>
+ * {@code price} is read at submit time and copied onto the document line, so a
+ * later price change does not rewrite documents that were already created.
+ * <p>
+ * The {@code stockPosition} association joins on this row's own id against
+ * {@code product_id}, which is what makes it a one-to-one from the product side,
+ * and {@code NotFoundAction.IGNORE} leaves it null for a product that has never
+ * moved rather than failing the read.
+ */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

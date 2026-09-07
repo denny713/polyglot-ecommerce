@@ -10,6 +10,17 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * HTTP surface for purchase orders, under {@code /po}.
+ * <p>
+ * Create and update share one method: {@code doSubmit} treats a null id as a new
+ * document. Note that approve takes a body while cancel does not, because
+ * approving is where the real received quantity per line is reported and stock is
+ * moved.
+ * <p>
+ * Authorization is not declared here. {@code TokenFilter} requires the Keycloak
+ * {@code admin} role before the request ever reaches this class.
+ */
 @RestController
 @RequestMapping("/po")
 @AllArgsConstructor

@@ -9,6 +9,7 @@ logs/
 !**/src/test/**/target/
 .DS_Store
 .gitattributes
+lombok.config
 
 ### STS ###
 .apt_generated

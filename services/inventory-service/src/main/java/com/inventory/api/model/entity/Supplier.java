@@ -7,6 +7,14 @@ import org.hibernate.annotations.SQLRestriction;
 
 import java.util.List;
 
+/**
+ * Who goods are ordered from and returned to. Owned by another service in the
+ * stack; inventory reads it and never writes it.
+ * <p>
+ * The {@code products} association is not just for display — it is what the
+ * services validate against, so a document can only contain products that
+ * supplier actually offers.
+ */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

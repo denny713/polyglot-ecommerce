@@ -12,6 +12,16 @@ import org.hibernate.annotations.NotFoundAction;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Goods ordered from a supplier.
+ * <p>
+ * It carries two totals because ordered and received are not the same thing:
+ * {@code orderGrandTotal} is set on submit, {@code realGrandTotal} stays zero
+ * until approval reports what actually arrived.
+ * <p>
+ * Overriding {@code cascadeChildren} is what makes delete, activate and deactivate
+ * reach the detail lines.
+ */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

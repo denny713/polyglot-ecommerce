@@ -8,6 +8,14 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Filters for {@code POST /pr/list}, on top of the paging fields of
+ * {@code PageReq}.
+ * <p>
+ * Every field is optional and an omitted one is simply not applied. There is one
+ * grand-total range here rather than two, because a return has no
+ * ordered-versus-received split.
+ */
 @Getter
 @Setter
 public class PRSearchReq extends PageReq {

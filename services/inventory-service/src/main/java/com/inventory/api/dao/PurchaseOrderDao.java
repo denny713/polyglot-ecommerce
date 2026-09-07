@@ -9,6 +9,15 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Turns a {@code POSearchReq} into the JPA {@code Specification} behind
+ * {@code POST /po/list}.
+ * <p>
+ * Every filter is optional and absent ones are dropped by {@code CommonDao}, so an
+ * empty request matches everything. Document number matches case-insensitively on
+ * a substring; the money ranges are applied only when positive, so a zero bound
+ * does not silently exclude free lines.
+ */
 public class PurchaseOrderDao extends CommonDao {
 
     public Specification<PurchaseOrder> buildSearchPO(POSearchReq req) {

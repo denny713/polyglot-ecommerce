@@ -7,6 +7,12 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
+/**
+ * One purchase return line as returned to the caller.
+ * <p>
+ * The product is flattened to an id and a name. There is a single
+ * {@code subtotal}: a return has no ordered-versus-received distinction.
+ */
 @Getter
 @Setter
 @AllArgsConstructor

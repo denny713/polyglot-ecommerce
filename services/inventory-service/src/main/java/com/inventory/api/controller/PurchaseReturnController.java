@@ -10,6 +10,16 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * HTTP surface for purchase returns, under {@code /pr}.
+ * <p>
+ * Mirrors {@code PurchaseOrderController} with one difference: approve carries no
+ * body, because a return ships the quantities already recorded on the document
+ * instead of reporting new ones.
+ * <p>
+ * Authorization is not declared here. {@code TokenFilter} requires the Keycloak
+ * {@code admin} role before the request ever reaches this class.
+ */
 @RestController
 @RequestMapping("/pr")
 @AllArgsConstructor

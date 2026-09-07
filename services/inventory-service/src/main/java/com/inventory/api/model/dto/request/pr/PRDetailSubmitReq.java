@@ -5,6 +5,16 @@ import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * One line of a purchase return being submitted.
+ * <p>
+ * {@code id} carries the intent: null adds a new line, a value updates that line,
+ * and a line the request omits entirely is soft-deleted by the service. Repeating
+ * the same id in one request is rejected.
+ * <p>
+ * {@code reason} is per line, and is separate from the document-level reason on
+ * {@code PRSubmitReq} — one return can send items back for different causes.
+ */
 @Getter
 @Setter
 public class PRDetailSubmitReq {

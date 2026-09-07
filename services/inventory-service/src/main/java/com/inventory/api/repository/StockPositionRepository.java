@@ -5,6 +5,12 @@ import com.inventory.api.repository.common.CommonRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+/**
+ * Data access for per-product stock levels.
+ * <p>
+ * Used only at approval time, where the services save the positions they have
+ * adjusted in one batch.
+ */
 @Repository
 public interface StockPositionRepository extends CommonRepository<StockPosition, Long>, JpaSpecificationExecutor<StockPosition> {
 }

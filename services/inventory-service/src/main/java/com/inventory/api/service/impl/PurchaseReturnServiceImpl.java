@@ -33,6 +33,21 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Implements the purchase return lifecycle.
+ * <p>
+ * Submitting reconciles the details the same way {@code PurchaseOrderServiceImpl}
+ * does: lines with an id are updated, lines without one are added, and omitted
+ * lines are soft-deleted.
+ * <p>
+ * Approving deducts stock instead of adding it, and takes its quantities from the
+ * stored document rather than from a payload, so approval cannot change what is
+ * being returned. Ledger rows and positions are written in the same transaction as
+ * the status change.
+ * <p>
+ * A return that would drive a product's position below zero is rejected rather
+ * than recorded, so the ledger cannot claim more went out than ever came in.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -9,6 +9,13 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Turns a {@code PRSearchReq} into the JPA {@code Specification} behind
+ * {@code POST /pr/list}.
+ * <p>
+ * Same contract as {@code PurchaseOrderDao} over a single {@code grandTotal},
+ * since a return has no ordered-versus-received distinction to filter on.
+ */
 public class PurchaseReturnDao extends CommonDao {
 
     public Specification<PurchaseReturn> buildSearchPR(PRSearchReq req) {

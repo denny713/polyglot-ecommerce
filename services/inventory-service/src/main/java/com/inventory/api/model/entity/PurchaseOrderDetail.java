@@ -8,6 +8,14 @@ import org.hibernate.annotations.NotFoundAction;
 
 import java.math.BigDecimal;
 
+/**
+ * One product line of a purchase order.
+ * <p>
+ * {@code unitPrice} is a copy of the product price taken when the line was
+ * written, not a live reference, so the document keeps the price it was agreed at.
+ * The {@code order}/{@code real} pairs follow the same split as the parent: the
+ * real values stay zero until approval.
+ */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

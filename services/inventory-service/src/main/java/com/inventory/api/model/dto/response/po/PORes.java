@@ -10,6 +10,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * A purchase order as returned to the caller.
+ * <p>
+ * Assembled with {@code BeanUtils.copyProperties} plus the supplier fields copied
+ * by hand, so a field only appears here if it is named exactly as on the entity —
+ * renaming one silently drops it from the response.
+ */
 @Getter
 @Setter
 @AllArgsConstructor
