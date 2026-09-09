@@ -31,7 +31,7 @@ func (s service) Update(ctx context.Context, request dto.ProductUpdateReq) (dto.
 	}()
 
 	// Get existing product
-	existing, err := s.products.Detail(orm, "id", request.Id)
+	existing, err := s.products.Detail(orm, "id", request.Id, false)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductUpdateRes{}, exception.ErrNotFound

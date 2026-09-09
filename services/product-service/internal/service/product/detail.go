@@ -15,7 +15,7 @@ func (s service) Detail(ctx context.Context, request dto.ProductDetailReq) (dto.
 	orm := s.db.Orm(ctx)
 
 	// Get product detail by parameter
-	product, err := s.products.Detail(orm, "id", request.Id)
+	product, err := s.products.Detail(orm, "id", request.Id, false)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return dto.ProductDetailRes{}, exception.ErrNotFound

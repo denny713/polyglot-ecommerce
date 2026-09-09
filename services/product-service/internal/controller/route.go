@@ -52,6 +52,7 @@ func registerProductRoutes(api *echo.Group, ctrl product.Controller) {
 	group.POST("", ctrl.Create)
 	group.GET("", ctrl.Search)
 	group.GET("/:id", ctrl.Detail)
+	group.GET("/history/:id", ctrl.History)
 	group.PUT("/:id", ctrl.Update)
 	group.PUT("/activate/:id", ctrl.Activate)
 	group.PUT("/deactivate/:id", ctrl.Deactivate)

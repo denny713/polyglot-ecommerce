@@ -15,10 +15,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// DetailCall is the lookup a repository Detail was asked for.
+// DetailCall is the lookup a repository Detail was asked for. WithStockHistory
+// only carries a meaning for the product repository, the others leave it false.
 type DetailCall struct {
-	Param string
-	Value interface{}
+	Param            string
+	Value            interface{}
+	WithStockHistory bool
 }
 
 // CategoryRepository is a double of the category repository.
@@ -122,7 +124,7 @@ func (m *SupplierRepository) Update(orm *gorm.DB, supplier model.Supplier) (mode
 // ProductRepository is a double of the product repository.
 type ProductRepository struct {
 	CreateFn func(orm *gorm.DB, product model.Product) (model.Product, error)
-	DetailFn func(orm *gorm.DB, param string, value interface{}) (model.Product, error)
+	DetailFn func(orm *gorm.DB, param string, value interface{}, withStockHistory bool) (model.Product, error)
 	SearchFn func(orm *gorm.DB, filter productDto.ProductSearchFilter) ([]model.Product, error)
 	UpdateFn func(orm *gorm.DB, product model.Product) (model.Product, error)
 
@@ -141,13 +143,13 @@ func (m *ProductRepository) Create(orm *gorm.DB, product model.Product) (model.P
 	return m.CreateFn(orm, product)
 }
 
-func (m *ProductRepository) Detail(orm *gorm.DB, param string, value interface{}) (model.Product, error) {
-	m.DetailCalls = append(m.DetailCalls, DetailCall{Param: param, Value: value})
+func (m *ProductRepository) Detail(orm *gorm.DB, param string, value interface{}, withStockHistory bool) (model.Product, error) {
+	m.DetailCalls = append(m.DetailCalls, DetailCall{Param: param, Value: value, WithStockHistory: withStockHistory})
 	if m.DetailFn == nil {
 		return model.Product{}, nil
 	}
 
-	return m.DetailFn(orm, param, value)
+	return m.DetailFn(orm, param, value, withStockHistory)
 }
 
 func (m *ProductRepository) Search(orm *gorm.DB, filter productDto.ProductSearchFilter) ([]model.Product, error) {
@@ -166,6 +168,22 @@ func (m *ProductRepository) Update(orm *gorm.DB, product model.Product) (model.P
 	}
 
 	return m.UpdateFn(orm, product)
+}
+
+// StockRepository is a double of the stock position repository.
+type StockRepository struct {
+	CreateFn func(orm *gorm.DB, position model.StockPosition) (model.StockPosition, error)
+
+	CreateCalls []model.StockPosition
+}
+
+func (m *StockRepository) Create(orm *gorm.DB, position model.StockPosition) (model.StockPosition, error) {
+	m.CreateCalls = append(m.CreateCalls, position)
+	if m.CreateFn == nil {
+		return position, nil
+	}
+
+	return m.CreateFn(orm, position)
 }
 
 // Storage is a double of the object storage repository.

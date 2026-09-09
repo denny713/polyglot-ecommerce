@@ -13,11 +13,16 @@ import (
 	"product-service/internal/mocks"
 	"product-service/internal/model"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
 var errDatabase = errors.New("connection reset by peer")
+
+// existingActor is the audit trail a row loaded from the database already
+// carries, the writes under test have to leave it on CreatedBy.
+var existingActor = uuid.MustParse("2b1f8f4a-0000-4000-8000-00000000002a")
 
 func newService(t *testing.T) (Service, *mocks.CategoryRepository, *mocks.Database) {
 	t.Helper()
@@ -37,8 +42,8 @@ func existingCategory() model.Category {
 		Description: "Perangkat elektronik",
 		Base: model.Base{
 			IsActive:  true,
-			CreatedBy: 42,
-			UpdatedBy: 42,
+			CreatedBy: existingActor,
+			UpdatedBy: existingActor,
 			CreatedAt: created,
 			UpdatedAt: created,
 		},
@@ -187,8 +192,8 @@ func TestUpdate(t *testing.T) {
 	require.Equal(t, int64(7), written.Id)
 	require.Equal(t, "Deskripsi baru", written.Description)
 	require.True(t, written.IsActive)
-	require.Equal(t, int64(42), written.CreatedBy)
-	require.Equal(t, int64(1), written.UpdatedBy)
+	require.Equal(t, existingActor, written.CreatedBy)
+	require.NotEqual(t, uuid.Nil, written.UpdatedBy)
 }
 
 func TestUpdateNotFound(t *testing.T) {
@@ -247,7 +252,7 @@ func TestActivate(t *testing.T) {
 
 	require.Len(t, repository.UpdateCalls, 1)
 	require.True(t, repository.UpdateCalls[0].IsActive)
-	require.Equal(t, int64(1), repository.UpdateCalls[0].UpdatedBy)
+	require.NotEqual(t, uuid.Nil, repository.UpdateCalls[0].UpdatedBy)
 }
 
 func TestActivateAnAlreadyActiveCategory(t *testing.T) {

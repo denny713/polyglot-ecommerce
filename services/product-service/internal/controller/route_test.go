@@ -194,6 +194,12 @@ func TestTheProductRoutes(t *testing.T) {
 		{method: http.MethodGet, target: "/api/product/7", called: func(s *services) int {
 			return len(s.product.DetailCalls)
 		}},
+		// The static segment wins over the /:id the detail route registers, so the
+		// history endpoint is reachable rather than read as a product named
+		// "history".
+		{method: http.MethodGet, target: "/api/product/history/7", called: func(s *services) int {
+			return len(s.product.HistoryCalls)
+		}},
 		{method: http.MethodPut, target: "/api/product/activate/7", called: func(s *services) int {
 			return len(s.product.ActivateCalls)
 		}},

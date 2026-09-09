@@ -510,6 +510,67 @@ func TestDetailNotFound(t *testing.T) {
 	httpError(t, controller.Detail(c), http.StatusNotFound, exception.ErrNotFound.Message)
 }
 
+func TestHistory(t *testing.T) {
+	controller, service := newController()
+	service.HistoryFn = func(_ context.Context, request productDto.ProductHistoryReq) (productDto.ProductHistoryRes, error) {
+		return productDto.ProductHistoryRes{
+			Id:            request.Id,
+			Name:          "Kipas Angin",
+			StockQuantity: 12,
+			StockHistory: []productDto.StockRes{
+				{Id: 8, DocumentNumber: "PO-2024-0001", DocumentType: "PO", Activity: "IN", Quantity: 12},
+			},
+		}, nil
+	}
+
+	c, recorder := testutil.NewContext(httptest.NewRequest(http.MethodGet, "/api/product/history/7", nil),
+		map[string]string{"id": "7"})
+
+	require.NoError(t, controller.History(c))
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Equal(t, constant.MsgSuccess, body(t, recorder).Message)
+	require.Equal(t, []productDto.ProductHistoryReq{{Id: 7}}, service.HistoryCalls)
+}
+
+func TestHistoryWithAnInvalidIdentifier(t *testing.T) {
+	for _, id := range []string{"abc", "0", "-1", ""} {
+		t.Run("id="+id, func(t *testing.T) {
+			controller, service := newController()
+
+			c, _ := testutil.NewContext(httptest.NewRequest(http.MethodGet, "/api/product/history/"+id, nil),
+				map[string]string{"id": id})
+
+			httpError(t, controller.History(c), http.StatusBadRequest, exception.ErrInvalidIdentifier.Message)
+			require.Empty(t, service.HistoryCalls)
+		})
+	}
+}
+
+func TestHistoryNotFound(t *testing.T) {
+	controller, service := newController()
+	service.HistoryFn = func(context.Context, productDto.ProductHistoryReq) (productDto.ProductHistoryRes, error) {
+		return productDto.ProductHistoryRes{}, exception.ErrNotFound
+	}
+
+	c, _ := testutil.NewContext(httptest.NewRequest(http.MethodGet, "/api/product/history/7", nil),
+		map[string]string{"id": "7"})
+
+	// The exception the service raised keeps its status all the way out.
+	httpError(t, controller.History(c), http.StatusNotFound, exception.ErrNotFound.Message)
+}
+
+func TestHistoryFails(t *testing.T) {
+	controller, service := newController()
+	service.HistoryFn = func(context.Context, productDto.ProductHistoryReq) (productDto.ProductHistoryRes, error) {
+		return productDto.ProductHistoryRes{}, errDatabase
+	}
+
+	c, _ := testutil.NewContext(httptest.NewRequest(http.MethodGet, "/api/product/history/7", nil),
+		map[string]string{"id": "7"})
+
+	httpError(t, controller.History(c), http.StatusInternalServerError, errDatabase.Error())
+}
+
 func TestActivate(t *testing.T) {
 	controller, service := newController()
 	service.ActivateFn = func(_ context.Context, request productDto.ProductActivateReq) (productDto.ProductActivateRes, error) {

@@ -2,6 +2,7 @@ package product
 
 import (
 	"errors"
+	"regexp"
 	"testing"
 
 	"product-service/internal/dto/base"
@@ -9,6 +10,7 @@ import (
 	"product-service/internal/model"
 	"product-service/internal/testutil"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -51,10 +53,8 @@ func TestDetail(t *testing.T) {
 			Add(int64(7), "Kipas", "199.99", int64(3), int64(4), true, false))
 	fake.Query(`FROM "category"`, testutil.Rows("id", "name").Add(int64(3), "Elektronik"))
 	fake.Query(`FROM "supplier"`, testutil.Rows("id", "name").Add(int64(4), "PT Maju"))
-	fake.Query(`FROM "stock_position"`, testutil.Rows("id", "product_id", "quantity").Add(int64(1), int64(7), 12))
-	fake.Query(`FROM "stock"`, testutil.Rows("id", "product_id", "quantity").Add(int64(1), int64(7), 12))
 
-	got, err := NewRepository().Detail(orm, "id", int64(7))
+	got, err := NewRepository().Detail(orm, "id", int64(7), false)
 
 	require.NoError(t, err)
 	require.Equal(t, int64(7), got.Id)
@@ -68,16 +68,65 @@ func TestDetail(t *testing.T) {
 	require.Equal(t, "Elektronik", got.Category.Name)
 	require.NotNil(t, got.Supplier)
 	require.Equal(t, "PT Maju", got.Supplier.Name)
+
+	// The stock trail is only worth the extra queries when it was asked for.
+	require.Nil(t, got.StockPosition)
+	require.Empty(t, got.Stock)
+}
+
+func TestDetailWithStockHistory(t *testing.T) {
+	orm, fake := testutil.NewDB(t)
+	fake.Query(`SELECT \* FROM "product"`,
+		testutil.Rows("id", "name", "price", "category_id", "supplier_id", "is_active", "is_deleted").
+			Add(int64(7), "Kipas", "199.99", int64(3), int64(4), true, false))
+	fake.Query(`FROM "category"`, testutil.Rows("id", "name").Add(int64(3), "Elektronik"))
+	fake.Query(`FROM "supplier"`, testutil.Rows("id", "name").Add(int64(4), "PT Maju"))
+	fake.Query(`FROM "stock_position"`, testutil.Rows("id", "product_id", "quantity").Add(int64(1), int64(7), 12))
+	fake.Query(`FROM "stock"`,
+		testutil.Rows("id", "product_id", "quantity", "purchase_order_id", "purchase_return_id").
+			Add(int64(1), int64(7), 12, int64(21), int64(22)))
+	fake.Query(`FROM "purchase_order"`, testutil.Rows("id", "document_number").Add(int64(21), "PO-2024-0001"))
+	fake.Query(`FROM "purchase_return"`, testutil.Rows("id", "document_number").Add(int64(22), "PR-2024-0001"))
+
+	got, err := NewRepository().Detail(orm, "id", int64(7), true)
+
+	require.NoError(t, err)
+	require.Equal(t, int64(7), got.Id)
+
 	require.NotNil(t, got.StockPosition)
 	require.Equal(t, 12, got.StockPosition.Quantity)
-	require.NotNil(t, got.Stock)
+	require.NotEmpty(t, got.Stock)
+
+	// The documents a movement points at are read newest first, and the soft
+	// deleted ones are left out.
+	for _, table := range []string{"purchase_order", "purchase_return"} {
+		statement := statementFor(t, fake, `FROM "`+table+`"`)
+		require.Contains(t, statement.SQL, "is_deleted = FALSE")
+		require.Contains(t, statement.SQL, `ORDER BY created_at DESC`)
+	}
+}
+
+// statementFor returns the one statement the fake ran that matches pattern.
+func statementFor(t *testing.T, fake *testutil.FakeDB, pattern string) testutil.Statement {
+	t.Helper()
+
+	matcher := regexp.MustCompile(pattern)
+	for _, statement := range fake.Statements() {
+		if matcher.MatchString(statement.SQL) {
+			return statement
+		}
+	}
+
+	t.Fatalf("no statement matched %s", pattern)
+
+	return testutil.Statement{}
 }
 
 func TestDetailByAnotherColumn(t *testing.T) {
 	orm, fake := testutil.NewDB(t)
 	fake.Query(`SELECT \* FROM "product"`, testutil.Rows("id", "name").Add(int64(7), "Kipas"))
 
-	_, err := NewRepository().Detail(orm, "name", "Kipas")
+	_, err := NewRepository().Detail(orm, "name", "Kipas", false)
 
 	require.NoError(t, err)
 	require.Contains(t, fake.Statements()[0].SQL, "name = $1 AND is_deleted = FALSE")
@@ -87,7 +136,7 @@ func TestDetailByAnotherColumn(t *testing.T) {
 func TestDetailNotFound(t *testing.T) {
 	orm, _ := testutil.NewDB(t)
 
-	_, err := NewRepository().Detail(orm, "id", int64(7))
+	_, err := NewRepository().Detail(orm, "id", int64(7), false)
 
 	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
@@ -96,7 +145,7 @@ func TestDetailFails(t *testing.T) {
 	orm, fake := testutil.NewDB(t)
 	fake.Fail(`FROM "product"`, errDatabase)
 
-	_, err := NewRepository().Detail(orm, "id", int64(7))
+	_, err := NewRepository().Detail(orm, "id", int64(7), false)
 
 	require.ErrorIs(t, err, errDatabase)
 }
@@ -112,7 +161,7 @@ func TestUpdate(t *testing.T) {
 		ImageURL:   "http://storage.test/bucket/product/1.png",
 		CategoryId: 5,
 		SupplierId: 6,
-		Base:       model.Base{IsActive: true, UpdatedBy: 1},
+		Base:       model.Base{IsActive: true, UpdatedBy: uuid.New()},
 
 		// A relation the caller preloaded must not be written a second time.
 		Category: &model.Category{Id: 5, Name: "Elektronik"},

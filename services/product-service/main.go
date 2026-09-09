@@ -11,6 +11,7 @@ import (
 	supplierCtrl "product-service/internal/controller/supplier"
 	categoryRepo "product-service/internal/repository/category"
 	productRepo "product-service/internal/repository/product"
+	stockRepo "product-service/internal/repository/stock"
 	storageRepo "product-service/internal/repository/storage"
 	supplierRepo "product-service/internal/repository/supplier"
 	categorySvc "product-service/internal/service/category"
@@ -61,11 +62,12 @@ func buildControllers(database configuration.Database, storage storageRepo.Stora
 	categories := categoryRepo.NewRepository()
 	products := productRepo.NewRepository()
 	suppliers := supplierRepo.NewRepository()
+	stockPosition := stockRepo.NewRepository()
 
 	return controller.Controllers{
 		Category: categoryCtrl.NewController(categorySvc.NewService(database, categories)),
 		Product: productCtrl.NewController(
-			productSvc.NewService(database, products, categories, suppliers, storage),
+			productSvc.NewService(database, products, categories, suppliers, stockPosition, storage),
 		),
 		Supplier: supplierCtrl.NewController(supplierSvc.NewService(database, suppliers)),
 	}
