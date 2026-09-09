@@ -21,7 +21,10 @@ import (
 // @Param request body supplier.SupplierCreateReq true "Supplier payload"
 // @Success 201 {object} dto.Response{data=supplier.SupplierCreateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/supplier [post]
 func (ctrl Controller) Create(c *echo.Context) error {
 	var request supplier.SupplierCreateReq

@@ -30,7 +30,10 @@ import (
 // @Param image formData file false "Product image (jpg, jpeg, png, webp, max 5 MB)"
 // @Success 201 {object} dto.Response{data=product.ProductUpdateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/product/{id} [put]
 func (ctrl Controller) Update(c *echo.Context) error {
 	request, err := bindProductUpdateReq(c)

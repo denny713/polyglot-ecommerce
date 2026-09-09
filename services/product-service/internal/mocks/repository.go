@@ -7,11 +7,14 @@ import (
 	"context"
 	"mime/multipart"
 
+	"product-service/internal/constant"
 	categoryDto "product-service/internal/dto/category"
 	productDto "product-service/internal/dto/product"
 	supplierDto "product-service/internal/dto/supplier"
 	"product-service/internal/model"
+	"product-service/internal/token"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -233,6 +236,27 @@ func (m *Storage) ObjectURL(objectName string) string {
 	}
 
 	return m.ObjectURLFn(objectName)
+}
+
+// TokenVerifier is a double of the access token verifier. A nil VerifyFn
+// accepts every token as an administrator, so a test about routing does not have
+// to mint one.
+type TokenVerifier struct {
+	VerifyFn func(raw string) (token.Claims, error)
+
+	VerifyCalls []string
+}
+
+// DefaultSubject is the account the nil VerifyFn reports.
+var DefaultSubject = uuid.MustParse("11111111-2222-3333-4444-555555555555")
+
+func (m *TokenVerifier) Verify(raw string) (token.Claims, error) {
+	m.VerifyCalls = append(m.VerifyCalls, raw)
+	if m.VerifyFn == nil {
+		return token.Claims{Subject: DefaultSubject, Roles: []string{constant.AdminRole}}, nil
+	}
+
+	return m.VerifyFn(raw)
 }
 
 // Database is a double of the persistence handle the services take. The gorm

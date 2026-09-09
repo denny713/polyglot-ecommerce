@@ -49,7 +49,7 @@ func main() {
 	controller.Routes(e, buildControllers(
 		configuration.NewDatabase(orm),
 		storageRepo.NewStorage(minioClient, storageConfig),
-	))
+	), configuration.NewTokenVerifier())
 
 	if err := e.Start(":" + port); err != nil {
 		e.Logger.Error("Failed to load server", "error", err)

@@ -22,7 +22,10 @@ import (
 // @Param request body category.CategoryUpdateReq true "Category payload"
 // @Success 200 {object} dto.Response{data=category.CategoryUpdateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/category/{id} [put]
 func (ctrl Controller) Update(c *echo.Context) error {
 	var request category.CategoryUpdateReq

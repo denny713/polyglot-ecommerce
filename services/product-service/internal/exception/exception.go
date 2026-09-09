@@ -107,6 +107,16 @@ func HTTPError(err error) error {
 	return echo.NewHTTPError(exception.Status, exception.Message)
 }
 
+// Security exceptions. The messages match the ones the inventory service
+// reports, so a client sees the same wording whichever service refused it.
+var (
+	ErrTokenMissing      = Unauthorized("No access token found, please login first")
+	ErrTokenMalformed    = BadRequest("Invalid token format")
+	ErrTokenRejected     = Unauthorized("Access token is invalid or expired, please login again")
+	ErrTokenUnverifiable = Internal("Error occurred while processing token")
+	ErrForbidden         = Forbidden("You don't have permission to access this resource")
+)
+
 // Data exceptions.
 var (
 	ErrInvalidIdentifier = BadRequest("Identifier must be a valid number")

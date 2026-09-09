@@ -17,6 +17,11 @@ const docTemplate = `{
     "paths": {
         "/api/category": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Search categories by name and description (ILIKE), price range and stock range.",
                 "consumes": [
                     "application/json"
@@ -102,6 +107,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -111,6 +128,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new category, the payload is sent as a json body.",
                 "consumes": [
                     "application/json"
@@ -158,6 +180,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -169,6 +203,11 @@ const docTemplate = `{
         },
         "/api/category/activate/{id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Activate a specific category.",
                 "consumes": [
                     "application/json"
@@ -214,6 +253,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -231,6 +282,11 @@ const docTemplate = `{
         },
         "/api/category/deactivate/{id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deactivate a specific category.",
                 "consumes": [
                     "application/json"
@@ -276,6 +332,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -293,6 +361,11 @@ const docTemplate = `{
         },
         "/api/category/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get details of a specific category.",
                 "consumes": [
                     "application/json"
@@ -338,6 +411,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -353,6 +438,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update an existing category, the payload is sent as a json body.",
                 "consumes": [
                     "application/json"
@@ -407,6 +497,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -416,6 +518,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a specific category.",
                 "consumes": [
                     "application/json"
@@ -461,6 +568,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -478,6 +597,11 @@ const docTemplate = `{
         },
         "/api/product": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Search products by name and description (ILIKE), price range and stock range.",
                 "consumes": [
                     "application/json"
@@ -588,6 +712,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -597,6 +733,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new product, the image is uploaded to the object storage.",
                 "consumes": [
                     "multipart/form-data"
@@ -675,6 +816,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -686,6 +839,11 @@ const docTemplate = `{
         },
         "/api/product/activate/{id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Activate a specific product.",
                 "consumes": [
                     "application/json"
@@ -731,6 +889,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -748,6 +918,11 @@ const docTemplate = `{
         },
         "/api/product/deactivate/{id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deactivate a specific product.",
                 "consumes": [
                     "application/json"
@@ -793,6 +968,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -810,6 +997,11 @@ const docTemplate = `{
         },
         "/api/product/history/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get product stock history.",
                 "consumes": [
                     "application/json"
@@ -855,6 +1047,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -872,6 +1076,11 @@ const docTemplate = `{
         },
         "/api/product/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get details of a specific product.",
                 "consumes": [
                     "application/json"
@@ -917,6 +1126,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -932,6 +1153,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update an existing product, the image is uploaded to the object storage.",
                 "consumes": [
                     "multipart/form-data"
@@ -1017,6 +1243,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1026,6 +1264,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a specific product.",
                 "consumes": [
                     "application/json"
@@ -1071,6 +1314,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -1088,6 +1343,11 @@ const docTemplate = `{
         },
         "/api/supplier": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Search suppliers by their profile and address fields (ILIKE).",
                 "consumes": [
                     "application/json"
@@ -1218,6 +1478,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1227,6 +1499,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new supplier, the payload is sent as a json body.",
                 "consumes": [
                     "application/json"
@@ -1274,6 +1551,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1285,6 +1574,11 @@ const docTemplate = `{
         },
         "/api/supplier/activate/{id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Activate a specific supplier.",
                 "consumes": [
                     "application/json"
@@ -1330,6 +1624,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -1347,6 +1653,11 @@ const docTemplate = `{
         },
         "/api/supplier/deactivate/{id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deactivate a specific supplier.",
                 "consumes": [
                     "application/json"
@@ -1392,6 +1703,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -1409,6 +1732,11 @@ const docTemplate = `{
         },
         "/api/supplier/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get details of a specific supplier.",
                 "consumes": [
                     "application/json"
@@ -1454,6 +1782,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -1469,6 +1809,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update an existing supplier, the payload is sent as a json body.",
                 "consumes": [
                     "application/json"
@@ -1523,6 +1868,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.Response"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -1538,6 +1895,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a specific supplier.",
                 "consumes": [
                     "application/json"
@@ -1579,6 +1941,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/dto.Response"
                         }

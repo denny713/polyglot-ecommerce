@@ -20,8 +20,11 @@ import (
 // @Param id path string true "Supplier ID"
 // @Success 200 {object} dto.Response{data=supplier.SupplierActivateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 404 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/supplier/activate/{id} [put]
 func (ctrl Controller) Activate(c *echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)

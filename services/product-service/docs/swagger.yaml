@@ -587,10 +587,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Search categories
       tags:
       - Category
@@ -621,10 +631,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Create a new category
       tags:
       - Category
@@ -655,6 +675,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -663,6 +691,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Delete a category
       tags:
       - Category
@@ -692,6 +722,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -700,6 +738,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Detail a category
       tags:
       - Category
@@ -735,10 +775,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Update an existing category
       tags:
       - Category
@@ -769,6 +819,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -777,6 +835,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Activate a category
       tags:
       - Category
@@ -807,6 +867,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -815,6 +883,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Deactivate a category
       tags:
       - Category
@@ -891,10 +961,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Search products
       tags:
       - Product
@@ -947,10 +1027,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Create a new product
       tags:
       - Product
@@ -981,6 +1071,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -989,6 +1087,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Delete a product
       tags:
       - Product
@@ -1018,6 +1118,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1026,6 +1134,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Detail a new product
       tags:
       - Product
@@ -1084,10 +1194,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Update an existing product
       tags:
       - Product
@@ -1118,6 +1238,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1126,6 +1254,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Activate a product
       tags:
       - Product
@@ -1156,6 +1286,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1164,6 +1302,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Deactivate a product
       tags:
       - Product
@@ -1194,6 +1334,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1202,6 +1350,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Detail product stock history
       tags:
       - Product
@@ -1291,10 +1441,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Search suppliers
       tags:
       - Supplier
@@ -1325,10 +1485,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Create a new supplier
       tags:
       - Supplier
@@ -1359,6 +1529,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1367,6 +1545,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Delete a supplier
       tags:
       - Supplier
@@ -1396,6 +1576,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1404,6 +1592,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Detail a supplier
       tags:
       - Supplier
@@ -1439,6 +1629,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1447,6 +1645,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Update an existing supplier
       tags:
       - Supplier
@@ -1477,6 +1677,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1485,6 +1693,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Activate a supplier
       tags:
       - Supplier
@@ -1515,6 +1725,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
         "404":
           description: Not Found
           schema:
@@ -1523,6 +1741,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
       summary: Deactivate a supplier
       tags:
       - Supplier

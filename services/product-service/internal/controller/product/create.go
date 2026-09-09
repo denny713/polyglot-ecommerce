@@ -29,7 +29,10 @@ import (
 // @Param image formData file false "Product image (jpg, jpeg, png, webp, max 5 MB)"
 // @Success 201 {object} dto.Response{data=product.ProductCreateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/product [post]
 func (ctrl Controller) Create(c *echo.Context) error {
 	request, err := bindProductCreateReq(c)

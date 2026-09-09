@@ -134,3 +134,35 @@ func TestConnectStorageReadsTheSSLFlag(t *testing.T) {
 	require.True(t, config.UseSSL)
 	require.Equal(t, fake.Endpoint(), config.Endpoint)
 }
+
+func TestIssuerURI(t *testing.T) {
+	tests := []struct {
+		name string
+		env  string
+		want string
+	}{
+		{name: "unset", env: "", want: "http://localhost:8080/realms/ecommerce"},
+		{name: "blank", env: "   ", want: "http://localhost:8080/realms/ecommerce"},
+		{name: "set", env: "https://sso.test/realms/ecommerce", want: "https://sso.test/realms/ecommerce"},
+		{name: "padded", env: "  https://sso.test/realms/ecommerce  ", want: "https://sso.test/realms/ecommerce"},
+		// The value has to equal the iss claim exactly, and a realm never reports
+		// a trailing slash.
+		{name: "trailing slash", env: "https://sso.test/realms/ecommerce/", want: "https://sso.test/realms/ecommerce"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("KEYCLOAK_ISSUER_URI", test.env)
+
+			require.Equal(t, test.want, configuration.IssuerURI())
+		})
+	}
+}
+
+func TestNewTokenVerifier(t *testing.T) {
+	t.Setenv("KEYCLOAK_ISSUER_URI", "https://sso.test/realms/ecommerce")
+
+	// The verifier is built without reading the realm, so the service still boots
+	// when the identity provider is not up yet.
+	require.NotNil(t, configuration.NewTokenVerifier())
+}
