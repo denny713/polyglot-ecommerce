@@ -35,8 +35,10 @@ public class DefaultAuthenticationService implements AuthenticationService {
     private final SessionTerminationDao sessionTerminationDao;
 
     @Inject
-    public DefaultAuthenticationService(IdentityProviderDao identityProviderDao,
-                                        SessionTerminationDao sessionTerminationDao) {
+    public DefaultAuthenticationService(
+            IdentityProviderDao identityProviderDao,
+            SessionTerminationDao sessionTerminationDao
+    ) {
         this.identityProviderDao = identityProviderDao;
         this.sessionTerminationDao = sessionTerminationDao;
     }

@@ -82,6 +82,23 @@ services:
     networks:
       - polygot
 
+  # Catches the registration emails auth-service sends, so a developer can read
+  # the generated password without a real mail provider. Nothing it holds
+  # survives a restart, which is what we want for throwaway credentials — hence
+  # no volume.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - polygot
+
   auth-service:
     build:
       context: ../services/auth-service
@@ -94,11 +111,36 @@ services:
       KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
       KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
       KEYCLOAK_AUTH_GRANT_TYPE: password
+      # Bearer token validation. /api/account/{accountId} is behind it, so
+      # leaving this out would publish an unauthenticated delete-any-account
+      # endpoint on the compose network.
+      QUARKUS_OIDC_AUTH_SERVER_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+      QUARKUS_OIDC_CLIENT_ID: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
+      QUARKUS_OIDC_CREDENTIALS_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-}
+      QUARKUS_OIDC_APPLICATION_TYPE: service
+      QUARKUS_OIDC_TOKEN_AUDIENCE: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
+      # Service account for the Keycloak Admin REST API. keycloak-init.sh
+      # generates this secret and prints it — put it in app/.env as
+      # AUTH_SERVICE_CLIENT_SECRET, or /api/account answers 503.
+      KEYCLOAK_ADMIN_API_CLIENT_ID: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
+      KEYCLOAK_ADMIN_API_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-}
+      # Where the password generated at registration is sent. Mock delivery is
+      # off here — unlike dev and test mode, a container that only logged the
+      # password would hand out accounts nobody can log in to.
+      QUARKUS_MAILER_FROM: ${MAILER_FROM:-no-reply@polygot-ecommerce.local}
+      QUARKUS_MAILER_MOCK: "false"
+      QUARKUS_MAILER_HOST: ${MAILER_HOST:-mailpit}
+      QUARKUS_MAILER_PORT: ${MAILER_PORT:-1025}
+      # Path permissions are not set here on purpose: they ship with the image,
+      # in application.properties, so this file cannot silently disagree with
+      # what the code was tested against.
     ports:
       - "${AUTH_SERVICE_PORT:-7110}:${AUTH_SERVICE_PORT:-7110}"
     depends_on:
       keycloak:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test:
         - CMD-SHELL

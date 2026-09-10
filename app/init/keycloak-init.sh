@@ -27,6 +27,14 @@
 #                             confidential clients, one per backend service,
 #                             each with its own self-audience mapper and secret
 #                             (see RESOURCE_SERVER_CLIENT_SPECS)
+#   KEYCLOAK_ACCOUNT_MANAGER_CLIENTS  resource-server clients whose service
+#                             account may manage users through the Admin REST
+#                             API                       (auth-service)
+#   KEYCLOAK_ACCOUNT_MANAGER_ROLES    the realm-management client roles they
+#                             get      (manage-users,view-users,view-realm)
+#   KEYCLOAK_APP_AUDIENCES    resource-server clients whose audience is added
+#                             to tokens issued to the public client
+#                                                       (auth-service)
 #   KEYCLOAK_PASSWORD_POLICY  realm password policy     (see PASSWORD_POLICY)
 #
 # Note: bff-service and gateway-service are provisioned with the same "resource
@@ -77,6 +85,39 @@ CLIENT_NAME="${KEYCLOAK_CLIENT:-ecommerce-app}"
 #   KEYCLOAK_RESOURCE_SERVER_CLIENTS="auth-service:Authentication Service,order-service:Order Service"
 IFS=',' read -r -a RESOURCE_SERVER_CLIENT_SPECS \
   <<<"${KEYCLOAK_RESOURCE_SERVER_CLIENTS:-auth-service:Authentication Service,order-service:Order Service,product-service:Product Service,recommendation-service:Recommendation Service,bff-service:Backend for Frontend Service,gateway-service:API Gateway Service}"
+
+# Resource-server clients whose *service account* is allowed to create, update
+# and delete users through the Keycloak Admin REST API.
+#
+# auth-service needs this because POST /api/account/register and friends are a
+# thin front for /admin/realms/{realm}/users, and that endpoint answers 403 to
+# a service account without the realm-management roles below. Nothing else on
+# the platform touches user records, so nothing else is on this list —
+# manage-users is close to realm-admin in blast radius.
+IFS=',' read -r -a ACCOUNT_MANAGER_CLIENTS \
+  <<<"${KEYCLOAK_ACCOUNT_MANAGER_CLIENTS:-auth-service}"
+
+# view-users comes along with manage-users because auth-service reads the
+# account back after creating it, to return the id Keycloak assigned.
+#
+# view-realm is there for one read only: registration grants the new account the
+# "user" realm role, and mapping a role needs the role's *id*, which means a
+# GET /admin/realms/{realm}/roles/user first. That read is refused with 403 for a
+# service account holding only the two roles above. It grants no write of any
+# kind — realm configuration is still read-only to auth-service.
+IFS=',' read -r -a ACCOUNT_MANAGER_ROLES \
+  <<<"${KEYCLOAK_ACCOUNT_MANAGER_ROLES:-manage-users,view-users,view-realm}"
+
+# Resource-server clients whose audience is added to the tokens the *public*
+# client issues.
+#
+# The self-audience mapper in the loop below only puts "aud": "auth-service" on
+# tokens minted for the auth-service client itself. A customer logs in through
+# ecommerce-app, so without a mapper here their token carries no such audience
+# and auth-service — which validates quarkus.oidc.token.audience — rejects it
+# with 401 on every /api/account/me endpoint. Add a service to this
+# list when the browser app starts calling it directly with a user token.
+IFS=',' read -r -a APP_AUDIENCES <<<"${KEYCLOAK_APP_AUDIENCES:-auth-service}"
 
 ROLES=("admin" "user")
 
@@ -173,6 +214,51 @@ put_json() {
     200 | 204) printf '    %s: ok (HTTP %s)\n' "$label" "$code" ;;
     *) die "$label: unexpected HTTP $code" ;;
   esac
+}
+
+# True when $1 appears in the array whose name is $2. Written with `eval` and a
+# positional copy rather than a nameref, because bash 3.2 — the version macOS
+# ships, and the one the check below insists on — has neither namerefs nor
+# associative arrays.
+contains() {
+  local needle="$1" array_name="$2" item
+  eval "local items=(\"\${${array_name}[@]}\")"
+  for item in "${items[@]}"; do
+    [[ "$item" == "$needle" ]] && return 0
+  done
+  return 1
+}
+
+# Give a client's service account the realm-management roles it needs to manage
+# users. The service account is an ordinary (hidden) user, so this is the same
+# role-mapping call as for a real user — only against the realm-management
+# client's roles instead of the realm's own.
+grant_realm_management_roles() {
+  local svc="$1" internal_id="$2" sa_user_id rm_id role role_json
+
+  sa_user_id=$(curl -s \
+    "$KC_URL/admin/realms/$REALM_NAME/clients/$internal_id/service-account-user" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id // empty')
+  [[ -n "$sa_user_id" ]] ||
+    die "could not resolve the service account user for '$svc' — is serviceAccountsEnabled set?"
+
+  rm_id=$(curl -s --get "$KC_URL/admin/realms/$REALM_NAME/clients" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    --data-urlencode 'clientId=realm-management' | jq -r '.[0].id // empty')
+  [[ -n "$rm_id" ]] ||
+    die "could not resolve the 'realm-management' client in realm '$REALM_NAME'"
+
+  for role in "${ACCOUNT_MANAGER_ROLES[@]}"; do
+    role_json=$(curl -s "$KC_URL/admin/realms/$REALM_NAME/clients/$rm_id/roles/$role" \
+      -H "Authorization: Bearer $ADMIN_TOKEN")
+    [[ "$(jq -r '.id // empty' <<<"$role_json")" ]] ||
+      die "client role 'realm-management:$role' not found in realm '$REALM_NAME'"
+
+    # Re-assigning an existing mapping is a no-op on the Keycloak side.
+    post_json "realm-management role '$role' -> service account of '$svc'" \
+      "$KC_URL/admin/realms/$REALM_NAME/users/$sa_user_id/role-mappings/clients/$rm_id" \
+      "[$role_json]"
+  done
 }
 
 # --- preflight ---------------------------------------------------------------
@@ -392,6 +478,32 @@ for i in "${!RESOURCE_SERVER_CLIENTS[@]}"; do
           }
         }')"
 
+  # The mapper above covers tokens minted *for* this client. A user's token is
+  # minted for the public client instead, so services the browser app calls
+  # directly need their audience added there too, or audience validation on the
+  # receiving side rejects every user token.
+  if contains "$svc" APP_AUDIENCES; then
+    post_json "audience mapper for '$svc' on '$CLIENT_NAME'" \
+      "$KC_URL/admin/realms/$REALM_NAME/clients/$app_internal_id/protocol-mappers/models" \
+      "$(jq -nc --arg id "$svc" '{
+            name: ("audience-" + $id),
+            protocol: "openid-connect",
+            protocolMapper: "oidc-audience-mapper",
+            consentRequired: false,
+            config: {
+              "included.client.audience": $id,
+              "id.token.claim": "false",
+              "access.token.claim": "true"
+            }
+          }')"
+  fi
+
+  # Let this service's own service account manage user records, if it is one of
+  # the services that needs to.
+  if contains "$svc" ACCOUNT_MANAGER_CLIENTS; then
+    grant_realm_management_roles "$svc" "$internal_id"
+  fi
+
   # Read back the generated secret so it can be printed in the summary below —
   # saves a trip to the admin console for each service.
   secret=$(curl -s "$KC_URL/admin/realms/$REALM_NAME/clients/$internal_id/client-secret" \
@@ -484,6 +596,9 @@ cat <<EOF
  Password policy:  $PASSWORD_POLICY
  Brute force:      on, lockout after $BRUTE_FORCE_FAILURE_FACTOR failures
                    (${BRUTE_FORCE_WAIT_INCREMENT}s, doubling up to ${BRUTE_FORCE_MAX_WAIT}s)
+ User management:  service account of ${ACCOUNT_MANAGER_CLIENTS[*]} holds
+                   realm-management ${ACCOUNT_MANAGER_ROLES[*]}
+ App audiences:    tokens from '$CLIENT_NAME' carry aud ${APP_AUDIENCES[*]}
 
  Admin console: $KC_URL/admin  ($ADMIN_USER / $ADMIN_PASS)
 
@@ -511,5 +626,12 @@ $resource_clients_summary
    quarkus.oidc.credentials.secret=<SECRET>
    quarkus.oidc.application-type=service
    quarkus.oidc.token.audience=<CLIENT_ID>
+
+ auth-service additionally calls the Admin REST API with its own
+ service account, so it needs the same secret a second time under
+ services/auth-service/.env:
+
+   KEYCLOAK_ADMIN_API_CLIENT_ID=auth-service
+   KEYCLOAK_ADMIN_API_CLIENT_SECRET=<SECRET for auth-service above>
 ============================================================
 EOF

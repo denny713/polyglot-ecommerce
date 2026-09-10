@@ -37,7 +37,12 @@ public record ErrorResponse(
                         "INVALID_REFRESH_TOKEN",
                         "ACCOUNT_LOCKED",
                         "ACCOUNT_DISABLED",
-                        "IDENTITY_PROVIDER_UNAVAILABLE"
+                        "ACCOUNT_ALREADY_EXISTS",
+                        "ACCOUNT_NOT_FOUND",
+                        "ACCOUNT_ACCESS_DENIED",
+                        "INVALID_ACCOUNT_DATA",
+                        "IDENTITY_PROVIDER_UNAVAILABLE",
+                        "NOTIFICATION_UNAVAILABLE"
                 })
         String error,
 

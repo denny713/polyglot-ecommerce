@@ -40,11 +40,26 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                 title = "auth-service API",
                 version = "1.0.0",
                 description = """
-                        Authentication for the polygot-ecommerce platform.
+                        Authentication and account management for the polygot-ecommerce platform.
 
-                        The service is a thin, well-defined front for Keycloak: it exchanges a \
-                        username and password for a token pair, and ends the session a refresh \
-                        token belongs to. It never stores credentials or sessions itself.
+                        The service is a thin, well-defined front for Keycloak. Under \
+                        **Authentication** it exchanges a username and password for a token \
+                        pair and ends the session a refresh token belongs to; under **Account** \
+                        it creates, changes and removes the accounts those tokens belong to. It \
+                        never stores credentials, sessions or profiles itself — Keycloak is the \
+                        single source of truth for all three.
+
+                        Registration does not take a password. One is generated and emailed to \
+                        the address on the request, so the usual first run is \
+                        `POST /api/account/register` → read the email → `POST /api/auth/login` \
+                        → `PUT /api/account/password`.
+
+                        Only `POST /api/auth/*` and `POST /api/account/register` are open. The \
+                        Everything else lives under `/api/account` and acts on whichever \
+                        account the bearer token names — the id comes from the `sub` claim, never \
+                        from the URL, so there is no way to address somebody else's account and \
+                        no administrative override. Changing a password needs the old one on top \
+                        of that.
 
                         Every failure answers with the same error body — `status`, `error`, \
                         `message`, an optional per-field `details` list, and a `timestamp` — so \
@@ -62,9 +77,14 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                 @Server(url = "http://localhost:7110", description = "Local development"),
                 @Server(url = "http://auth-service:7110", description = "Inside the compose network")
         },
-        tags = @Tag(
-                name = "Authentication",
-                description = "Obtaining and discarding tokens"))
+        tags = {
+                @Tag(
+                        name = "Authentication",
+                        description = "Obtaining and discarding tokens"),
+                @Tag(
+                        name = "Account",
+                        description = "Account management")
+        })
 @SecurityScheme(
         securitySchemeName = "bearerAuth",
         type = SecuritySchemeType.HTTP,
@@ -74,9 +94,14 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                 The access token returned by `POST /api/auth/login`, sent as \
                 `Authorization: Bearer <accessToken>`.
 
-                Neither endpoint on this service requires it — logging in and logging out are \
-                both open by design — but the other services on the platform do, and pasting \
-                the token into Swagger UI's *Authorize* dialog makes it easy to carry across.
+                Required by everything under `/api/account`, which is also where the \
+                account id comes from. The other three endpoints are open by design: logging \
+                in and logging out have no token to present yet or any more, and registering \
+                is how a customer gets one in the first place.
+
+                Paste a token into Swagger UI's *Authorize* dialog once and it is carried on \
+                every call from there — including to the other services on the platform, which \
+                all validate the same tokens.
                 """)
 public class OpenApiConfiguration extends Application {
 }

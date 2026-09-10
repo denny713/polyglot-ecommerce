@@ -19,6 +19,7 @@ public record UserCredentials(String username, String password) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("username must not be blank");
         }
+
         if (password == null || password.isEmpty()) {
             throw new IllegalArgumentException("password must not be empty");
         }

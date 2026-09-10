@@ -35,8 +35,9 @@ The document is assembled from three places:
 
 - `com.ecommerce.auth.configuration.OpenApiConfiguration` — title, version,
   description, servers and the `bearerAuth` security scheme;
-- the `@Operation` and `@APIResponse` annotations on `AuthController` — one entry
-  per status code the exception mappers can produce;
+- the `@Operation` and `@APIResponse` annotations on `AuthController` and
+  `AccountController` — one entry per status code the exception mappers can
+  produce;
 - the `@Schema` annotations on the request and response DTOs, plus the Bean
   Validation constraints already on them, which SmallRye turns into `required`,
   `maxLength` and friends on its own.
@@ -48,6 +49,132 @@ deployment where the schema should not be browsable. Note that this, like the
 other properties in that file, is fixed while the application is being built:
 `Dockerfile.multistage` copies only `pom.xml` and `src/` into the build stage, so
 the `.env` file cannot override it.
+
+## Endpoints
+
+| Method | Path | Token | What it does |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/login` | — | Exchange username and password for a token pair |
+| `POST` | `/api/auth/logout` | — | End the session a refresh token belongs to |
+| `POST` | `/api/account/register` | — | Create an account; its password is generated and emailed |
+| `GET` | `/api/account` | required | Read the account the token belongs to |
+| `PUT` | `/api/account` | required | Change its profile fields |
+| `PUT` | `/api/account/password` | required | Replace its password, given the old one |
+| `DELETE` | `/api/account` | required | Delete it |
+
+The usual first run for a new customer:
+
+```
+POST /api/account/register     -> 201, password sent by email
+(read the email)
+POST /api/auth/login           -> token pair
+PUT  /api/account/password  -> 204, replace the emailed password
+```
+
+### There is no account id in any URL
+
+Every authenticated endpoint acts on ``, and resolves that to the `sub`
+claim of the bearer token. No path parameter, no id in a body.
+
+This started out as `/api/account/{accountId}` with a check that the id matched
+the token. That works, but it is the weaker shape: a URL that *can* name
+somebody else's account needs a comparison to reject it, and a comparison is
+something the next endpoint can forget. Taking the id from the token instead
+makes the wrong request impossible to phrase, so there is nothing left to
+enforce — and a client never has to be told its own id before it can call the
+API.
+
+### Registration does not take a password
+
+The caller does not choose one and never sees it. The service generates eight
+characters from `SecureRandom` — guaranteed to contain an upper-case letter, a
+lower-case letter, a digit and a special character, so the realm policy
+(`length(8) and upperCase(1) and lowerCase(1) and specialChars(1)`, which
+Keycloak applies to admin-set passwords too) can never reject it — and mails
+them to the address on the request.
+
+Two consequences worth knowing:
+
+- **The email address is load-bearing.** A typo does not merely inconvenience
+  the new customer, it makes the account unusable, because the mailbox is the
+  only place the password ever appears.
+- **Registration is all-or-nothing.** If the mail cannot be sent, the account is
+  deleted again and the call answers `503 NOTIFICATION_UNAVAILABLE`. Otherwise
+  it would sit there with a password nobody knows, holding the username and
+  address against the retry.
+
+Characters that are hard to tell apart in an email — `O`/`0`, `l`/`1`/`I` — are
+excluded, since the value is transcribed by hand.
+
+### Changing a password needs the old one
+
+`PUT /api/account/password` requires a bearer token **and** `oldPassword`.
+The token says which account is being changed; the old password says you are
+the person who owns it. Without the second, a stolen token would be a
+permanently stolen account.
+
+The check is a real login attempt against Keycloak, so it goes through the
+realm's brute force detection: the endpoint cannot be used as an offline
+password oracle, and enough wrong guesses answer `429 ACCOUNT_LOCKED`. The
+session that attempt opens is ended immediately and never reaches the caller.
+
+Tokens already issued keep working until they expire — a JWT cannot be recalled
+— so a password change does not by itself end sessions elsewhere. Call
+`POST /api/auth/logout` with each refresh token for that.
+
+### Who may change which account
+
+Everything except register needs a bearer token, stated twice on purpose:
+
+| Where | What it does | Answers |
+| --- | --- | --- |
+| `quarkus.http.auth.permission.authenticated` on `/*` | Stops an anonymous request before it reaches the controller | `401` |
+| `@Authenticated` on each method | Says the same in code, so the rule survives a configuration file being edited or missing | `401` |
+
+There is no third check any more, and that is the point: with the id coming
+from the token there is no such thing as a request for somebody else's account.
+
+**No administrative override exists.** Holding the `admin` realm role changes
+nothing here — `` is ``. Support and operations work goes through the
+Keycloak admin console instead, where it lands in Keycloak's own audit log
+rather than disappearing into this service's.
+
+Register is the one write that is open, because a new customer has no token
+yet. It is listed explicitly in `quarkus.http.auth.permission.public.paths`.
+
+Those permissions live in `src/main/resources/application.properties`, not in
+`.env`: they are the security posture of the service rather than a credential,
+so they belong in version control next to the endpoints they protect.
+
+### Keycloak setup the account endpoints need
+
+They are a front for the Keycloak Admin REST API, which this service calls with
+the **service account of the confidential `auth-service` client** — not with the
+public `ecommerce-app` client used for logins. Two things have to be in place,
+and `app/init/keycloak-init.sh` sets up both:
+
+1. the service account holds the `realm-management` roles `manage-users` and
+   `view-users`, or every account call answers `503`;
+2. the public client has an audience mapper for `auth-service`, or a customer's
+   own token is refused with `401` by this service's audience validation.
+
+The client secret goes into `.env` twice — once as
+`QUARKUS_OIDC_CREDENTIALS_SECRET` for validating incoming tokens, and once as
+`KEYCLOAK_ADMIN_API_CLIENT_SECRET` for making outgoing admin calls. The init
+script prints it at the end of its run.
+
+### Where the registration email goes
+
+| Mode | Setting | Result |
+| --- | --- | --- |
+| dev / test | `QUARKUS_MAILER_MOCK=true` (the extension's default) | The message is written to the application log; nothing is sent |
+| compose | `MOCK=false`, `HOST=mailpit` | Caught by Mailpit — read it at <http://localhost:8025> |
+| anywhere else | `QUARKUS_MAILER_HOST` / `_PORT` / `_FROM` | Sent over SMTP |
+
+Mailpit is in `app/docker-compose.yml` and keeps nothing across restarts, which
+is the right lifetime for throwaway credentials. Mock delivery is deliberately
+*off* in compose: a container that only logged the password would hand out
+accounts nobody can log in to.
 
 ## Packaging and running the application
 

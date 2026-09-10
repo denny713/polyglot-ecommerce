@@ -45,14 +45,13 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Authentication", description = "Obtaining and discarding tokens")
 public class AuthController {
 
-    private final AuthenticationService authenticationService;
-    private final LoginResponseMapper loginResponseMapper;
+    private final AuthenticationService service;
+    private final LoginResponseMapper mapper;
 
     @Inject
-    public AuthController(AuthenticationService authenticationService,
-                          LoginResponseMapper loginResponseMapper) {
-        this.authenticationService = authenticationService;
-        this.loginResponseMapper = loginResponseMapper;
+    public AuthController(AuthenticationService service, LoginResponseMapper mapper) {
+        this.service = service;
+        this.mapper = mapper;
     }
 
     /**
@@ -117,7 +116,7 @@ public class AuthController {
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response login(@Valid LoginRequest request) {
-        return Response.ok(loginResponseMapper.toResponse(authenticationService.doLogin(
+        return Response.ok(mapper.toResponse(service.doLogin(
                 new UserCredentials(request.username(), request.password())))).build();
     }
 
@@ -173,7 +172,7 @@ public class AuthController {
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response logout(@Valid LogoutRequest request) {
-        authenticationService.doLogout(new RefreshToken(request.refreshToken()));
+        service.doLogout(new RefreshToken(request.refreshToken()));
         return Response.noContent().build();
     }
 }
