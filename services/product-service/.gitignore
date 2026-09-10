@@ -1,0 +1,9 @@
+.idea
+.env
+coverage.*
+.scannerwork/*
+sonarqube-report/*
+gometalinter-report.out
+.DS_STORE
+vendor/
+private/

@@ -9,6 +9,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       PGDATA: /var/lib/postgresql/data/pgdata
       KEYCLOAK_DB: ${KEYCLOAK_DB:-keycloak}
+      ECOMMERCE_DB: ${ECOMMERCE_DB:-ecommerce}
     ports:
       - "5432:5432"
     volumes:
@@ -25,7 +26,7 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - polygot
+      - ecommerce
 
   minio:
     image: minio/minio:latest
@@ -47,7 +48,26 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - polygot
+      - ecommerce
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    restart: "no"
+    environment:
+      MINIO_URL: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
+      MINIO_BUCKETS: ${PRODUCT_BUCKET:-ecommerce}
+      MINIO_BUCKET_POLICY: ${MINIO_BUCKET_POLICY:-download}
+    entrypoint: ["/bin/sh", "/init/create-bucket.sh"]
+    volumes:
+      - ./init/create-bucket.sh:/init/create-bucket.sh:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - ecommerce
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7
@@ -80,82 +100,93 @@ services:
       retries: 10
       start_period: 300s
     networks:
-      - polygot
+      - ecommerce
 
-  # Catches the registration emails auth-service sends, so a developer can read
-  # the generated password without a real mail provider. Nothing it holds
-  # survives a restart, which is what we want for throwaway credentials — hence
-  # no volume.
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: mailpit
-    restart: unless-stopped
-    environment:
-      MP_SMTP_AUTH_ACCEPT_ANY: "true"
-      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
-    ports:
-      - "${MAILPIT_SMTP_PORT:-1025}:1025"
-      - "${MAILPIT_UI_PORT:-8025}:8025"
-    networks:
-      - polygot
+  # gateway-service:
+  #   build:
+  #     context: ../services/gateway-service
+  #     dockerfile: Dockerfile
+  #   container_name: gateway
+  #   restart: unless-stopped
+  #   environment:
+  #     AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-http://host.docker.internal:8081}
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   ports:
+  #     - "${GATEWAY_PORT:-7100}:7100"
+  #   networks:
+  #     - ecommerce
 
-  auth-service:
-    build:
-      context: ../services/auth-service
-      dockerfile: src/main/docker/Dockerfile.multistage
-    container_name: auth-service
-    restart: unless-stopped
-    environment:
-      QUARKUS_HTTP_PORT: ${AUTH_SERVICE_PORT:-7110}
-      QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_URL: http://keycloak:8080
-      KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
-      KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
-      KEYCLOAK_AUTH_GRANT_TYPE: password
-      # Bearer token validation. /api/account/{accountId} is behind it, so
-      # leaving this out would publish an unauthenticated delete-any-account
-      # endpoint on the compose network.
-      QUARKUS_OIDC_AUTH_SERVER_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
-      QUARKUS_OIDC_CLIENT_ID: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
-      QUARKUS_OIDC_CREDENTIALS_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-}
-      QUARKUS_OIDC_APPLICATION_TYPE: service
-      QUARKUS_OIDC_TOKEN_AUDIENCE: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
-      # Service account for the Keycloak Admin REST API. keycloak-init.sh
-      # generates this secret and prints it — put it in app/.env as
-      # AUTH_SERVICE_CLIENT_SECRET, or /api/account answers 503.
-      KEYCLOAK_ADMIN_API_CLIENT_ID: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
-      KEYCLOAK_ADMIN_API_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-}
-      # Where the password generated at registration is sent. Mock delivery is
-      # off here — unlike dev and test mode, a container that only logged the
-      # password would hand out accounts nobody can log in to.
-      QUARKUS_MAILER_FROM: ${MAILER_FROM:-no-reply@polygot-ecommerce.local}
-      QUARKUS_MAILER_MOCK: "false"
-      QUARKUS_MAILER_HOST: ${MAILER_HOST:-mailpit}
-      QUARKUS_MAILER_PORT: ${MAILER_PORT:-1025}
-      # Path permissions are not set here on purpose: they ship with the image,
-      # in application.properties, so this file cannot silently disagree with
-      # what the code was tested against.
-    ports:
-      - "${AUTH_SERVICE_PORT:-7110}:${AUTH_SERVICE_PORT:-7110}"
-    depends_on:
-      keycloak:
-        condition: service_healthy
-      mailpit:
-        condition: service_started
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - exec 3<>/dev/tcp/127.0.0.1/${AUTH_SERVICE_PORT:-7110}
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-    networks:
-      - polygot
+  # auth-service:
+  #   build:
+  #     context: ../services/auth-service
+  #     dockerfile: src/main/docker/Dockerfile.multistage
+  #   container_name: auth-service
+  #   restart: unless-stopped
+  #   environment:
+  #     QUARKUS_HTTP_PORT: ${AUTH_SERVICE_PORT:-7110}
+  #     QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_URL: http://keycloak:8080
+  #     KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
+  #     KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
+  #     KEYCLOAK_AUTH_GRANT_TYPE: password
+  #   ports:
+  #     - "${AUTH_SERVICE_PORT:-7110}:${AUTH_SERVICE_PORT:-7110}"
+  #   depends_on:
+  #     keycloak:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test:
+  #       - CMD-SHELL
+  #       - exec 3<>/dev/tcp/127.0.0.1/${AUTH_SERVICE_PORT:-7110}
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 60s
+  #   networks:
+  #     - ecommerce
+
+  # product-service:
+  #   build:
+  #     context: ../services/product-service
+  #     dockerfile: Dockerfile
+  #   container_name: product-service
+  #   restart: unless-stopped
+  #   environment:
+  #     PORT: ${PRODUCT_SERVICE_PORT:-7130}
+  #     DB_HOST: postgres
+  #     DB_PORT: 5432
+  #     DB_USER: ${POSTGRES_USER:-postgres}
+  #     DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+  #     DB_NAME: ${ECOMMERCE_DB:-ecommerce}
+  #     MINIO_ENDPOINT: minio:9000
+  #     MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
+  #     MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password}
+  #     MINIO_USE_SSL: "false"
+  #     MINIO_BUCKET: ${PRODUCT_BUCKET:-ecommerce}
+  #   ports:
+  #     - "${PRODUCT_SERVICE_PORT:-7130}:${PRODUCT_SERVICE_PORT:-7130}"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     minio:
+  #       condition: service_healthy
+  #     minio-init:
+  #       condition: service_completed_successfully
+  #   healthcheck:
+  #     test:
+  #       - CMD-SHELL
+  #       - wget -q -O /dev/null http://127.0.0.1:${PRODUCT_SERVICE_PORT:-7130}/health
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   networks:
+  #     - ecommerce
 
 volumes:
   postgres-data:
   minio-data:
 
 networks:
-  polygot:
+  ecommerce:
     driver: bridge

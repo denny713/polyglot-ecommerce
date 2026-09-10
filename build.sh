@@ -7,10 +7,15 @@
 # an empty database before it reports healthy. Once it answers, this script
 # provisions the realm by running ./app/init/keycloak-init.sh for you.
 #
+# It also migrates the `ecommerce` database by running ./app/init/migrate.sh
+# (Liquibase, changelogs in ./migrations). Keycloak's own database is left
+# alone — it migrates itself with its bundled changelogs.
+#
 # Usage:
-#   ./build.sh                 # docker compose up -d, then provision Keycloak
+#   ./build.sh                 # up -d, migrate ecommerce, provision Keycloak
 #   ./build.sh --wait          # also block until healthchecks pass
 #   ./build.sh --no-init       # skip the Keycloak provisioning step
+#   ./build.sh --no-migrate    # skip the database migration step
 #   ./build.sh postgres        # only bring up selected service(s)
 #
 # Any other argument is forwarded to `docker compose up -d`.
@@ -31,7 +36,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/app/docker-compose.yml"
 KEYCLOAK_INIT="$SCRIPT_DIR/app/init/keycloak-init.sh"
-PROJECT_NAME="polygot-ecommerce"
+DB_MIGRATE="$SCRIPT_DIR/app/init/migrate.sh"
+PROJECT_NAME="app"
 
 die() {
   printf '\033[31merror:\033[0m %s\n' "$1" >&2
@@ -48,16 +54,19 @@ warn() {
 
 # --- arguments ---------------------------------------------------------------
 
-# --no-init is ours, everything else belongs to `docker compose up -d`. Track
-# the bare (non-flag) arguments too: those are service names, and provisioning
-# only makes sense when keycloak is actually part of what is being started.
+# --no-init and --no-migrate are ours, everything else belongs to
+# `docker compose up -d`. Track the bare (non-flag) arguments too: those are
+# service names, and each provisioning step only makes sense when the service
+# it targets is actually part of what is being started.
 no_init=false
+no_migrate=false
 compose_args=()
 services=()
 
 for arg in "$@"; do
   case "$arg" in
     --no-init) no_init=true ;;
+    --no-migrate) no_migrate=true ;;
     -*) compose_args+=("$arg") ;;
     *)
       compose_args+=("$arg")
@@ -66,21 +75,29 @@ for arg in "$@"; do
   esac
 done
 
-# With no service list every service starts, keycloak included.
+# With no service list every service starts — keycloak and postgres included.
 run_init=true
+run_migrate=true
 if ((${#services[@]})); then
   # An explicit list that leaves keycloak out means there is nothing to
-  # provision — `docker compose up keycloak` is what pulls and starts it.
+  # provision — `docker compose up keycloak` is what pulls and starts it. Same
+  # for postgres and the migration: no database container, nothing to migrate.
   run_init=false
+  run_migrate=false
   for svc in "${services[@]}"; do
-    if [[ "$svc" == keycloak ]]; then
-      run_init=true
-    fi
+    case "$svc" in
+      keycloak) run_init=true ;;
+      postgres) run_migrate=true ;;
+    esac
   done
 fi
 
 if [[ "$no_init" == true ]]; then
   run_init=false
+fi
+
+if [[ "$no_migrate" == true ]]; then
+  run_migrate=false
 fi
 
 # --- preflight ---------------------------------------------------------------
@@ -119,6 +136,49 @@ info "starting stack from app/docker-compose.yml"
 
 info "current state"
 "${COMPOSE[@]}" ps
+
+# --- migrate the ecommerce database ------------------------------------------
+
+# Runs before the Keycloak step so the schema the business services need exists
+# as early as possible: on a cold boot keycloak-init.sh sits and waits several
+# minutes for Keycloak, and there is no reason for the migration to queue
+# behind it. migrate.sh waits for Postgres itself (READY_TIMEOUT).
+if [[ "$run_migrate" == true ]]; then
+  if [[ ! -x "$DB_MIGRATE" ]]; then
+    warn "skipping database migration: $DB_MIGRATE is missing or not executable"
+  else
+    info "migrating the ecommerce database (app/init/migrate.sh)"
+    # Same env resolution as compose, so Liquibase connects with the
+    # credentials the Postgres container was actually started with.
+    migrate_status=0
+    (
+      if [[ -f "$SCRIPT_DIR/.env" ]]; then
+        set -a
+        # shellcheck disable=SC1091
+        source "$SCRIPT_DIR/.env"
+        set +a
+      fi
+      # Keep the migration on the same compose project as the stack above, so
+      # it attaches the Liquibase container to the network that was created
+      # here instead of guessing one from the directory name.
+      export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
+      exec "$DB_MIGRATE"
+    ) || migrate_status=$?
+
+    # Stop here on failure instead of continuing: every business service starts
+    # against a schema that is now in an unknown state, and a half-migrated
+    # database is far easier to diagnose now than through the errors the
+    # services would throw later.
+    if ((migrate_status != 0)); then
+      warn "database migration FAILED (exit $migrate_status) — the schema was not applied"
+      warn "the containers are still running; fix the error above, then re-run:"
+      warn "  ./app/init/migrate.sh"
+      exit "$migrate_status"
+    fi
+  fi
+else
+  info "skipping database migration (run ./app/init/migrate.sh manually)"
+fi
 
 # --- provision keycloak -------------------------------------------------------
 

@@ -1,0 +1,31 @@
+{{/*
+  Root of the KrakenD flexible configuration.
+
+  This file is a Go template, not the config KrakenD reads: at startup the
+  binary renders it against every JSON file in FC_SETTINGS (each file becomes a
+  top-level key named after the file, so settings/service.json is `.service`)
+  and only then parses the result. Set FC_OUT to dump the rendered JSON if a
+  change here does not behave the way it reads.
+
+  Endpoint definitions do not live here. One template per backend service under
+  templates/ keeps this file a table of contents: registering the next service
+  is a new settings file, a new template, and one more line in "endpoints".
+*/}}
+{
+  "$schema": "https://www.krakend.io/schema/krakend.json",
+  "version": 3,
+  "name": "{{ .service.name }}",
+  "port": {{ .service.port }},
+  "timeout": "{{ .service.timeout }}",
+  "cache_ttl": "{{ .service.cache_ttl }}",
+  "read_timeout": "{{ .service.read_timeout }}",
+  "write_timeout": "{{ .service.write_timeout }}",
+  "idle_timeout": "{{ .service.idle_timeout }}",
+  "read_header_timeout": "{{ .service.read_header_timeout }}",
+  "extra_config": {
+    "security/cors": {{ marshal .service.cors }}
+  },
+  "endpoints": [
+    {{ template "auth_service.tmpl" . }}
+  ]
+}

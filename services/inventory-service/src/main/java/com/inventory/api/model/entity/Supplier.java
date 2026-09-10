@@ -1,0 +1,63 @@
+package com.inventory.api.model.entity;
+
+import com.inventory.api.model.entity.base.Base;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.util.List;
+
+/**
+ * Who goods are ordered from and returned to. Owned by another service in the
+ * stack; inventory reads it and never writes it.
+ * <p>
+ * The {@code products} association is not just for display — it is what the
+ * services validate against, so a document can only contain products that
+ * supplier actually offers.
+ */
+@EqualsAndHashCode(callSuper = false)
+@Getter
+@Setter
+@Entity
+@Table(name = "supplier")
+@AllArgsConstructor
+@NoArgsConstructor
+public class Supplier extends Base {
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "contact_person")
+    private String contactPerson;
+
+    @Column(name = "address")
+    private String address;
+
+    @Column(name = "province")
+    private String province;
+
+    @Column(name = "city")
+    private String city;
+
+    @Column(name = "district")
+    private String district;
+
+    @Column(name = "subdistrict")
+    private String subdistrict;
+
+    @Column(name = "postal_code")
+    private String postalCode;
+
+    @Column(name = "note")
+    private String note;
+
+    @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
+    @SQLRestriction("is_deleted = false")
+    private List<Product> products;
+}
