@@ -1,6 +1,7 @@
 .idea
 .env
 coverage.*
+cover.out
 .scannerwork/*
 sonarqube-report/*
 gometalinter-report.out

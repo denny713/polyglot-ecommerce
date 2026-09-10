@@ -21,7 +21,10 @@ import (
 // @Param request body category.CategoryCreateReq true "Category payload"
 // @Success 201 {object} dto.Response{data=category.CategoryCreateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/category [post]
 func (ctrl Controller) Create(c *echo.Context) error {
 	var request category.CategoryCreateReq

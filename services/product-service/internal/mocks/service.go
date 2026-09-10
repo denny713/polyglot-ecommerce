@@ -177,6 +177,7 @@ type ProductService struct {
 	CreateFn     func(ctx context.Context, request productDto.ProductCreateReq) (productDto.ProductCreateRes, error)
 	SearchFn     func(ctx context.Context, request productDto.ProductSearchReq) (productDto.ProductSearchRes, error)
 	DetailFn     func(ctx context.Context, request productDto.ProductDetailReq) (productDto.ProductDetailRes, error)
+	HistoryFn    func(ctx context.Context, request productDto.ProductHistoryReq) (productDto.ProductHistoryRes, error)
 	UpdateFn     func(ctx context.Context, request productDto.ProductUpdateReq) (productDto.ProductUpdateRes, error)
 	ActivateFn   func(ctx context.Context, request productDto.ProductActivateReq) (productDto.ProductActivateRes, error)
 	DeactivateFn func(ctx context.Context, request productDto.ProductDeactivateReq) (productDto.ProductDeactivateRes, error)
@@ -185,6 +186,7 @@ type ProductService struct {
 	CreateCalls     []productDto.ProductCreateReq
 	SearchCalls     []productDto.ProductSearchReq
 	DetailCalls     []productDto.ProductDetailReq
+	HistoryCalls    []productDto.ProductHistoryReq
 	UpdateCalls     []productDto.ProductUpdateReq
 	ActivateCalls   []productDto.ProductActivateReq
 	DeactivateCalls []productDto.ProductDeactivateReq
@@ -216,6 +218,15 @@ func (m *ProductService) Detail(ctx context.Context, request productDto.ProductD
 	}
 
 	return m.DetailFn(ctx, request)
+}
+
+func (m *ProductService) History(ctx context.Context, request productDto.ProductHistoryReq) (productDto.ProductHistoryRes, error) {
+	m.HistoryCalls = append(m.HistoryCalls, request)
+	if m.HistoryFn == nil {
+		return productDto.ProductHistoryRes{}, nil
+	}
+
+	return m.HistoryFn(ctx, request)
 }
 
 func (m *ProductService) Update(ctx context.Context, request productDto.ProductUpdateReq) (productDto.ProductUpdateRes, error) {

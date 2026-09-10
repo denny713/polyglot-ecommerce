@@ -31,7 +31,10 @@ import (
 // @Param page_size query integer false "Rows per page, max 100"
 // @Success 200 {object} dto.Response{data=product.ProductSearchRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/product [get]
 func (ctrl Controller) Search(c *echo.Context) error {
 	request, err := bindProductSearchReq(c)

@@ -9,6 +9,7 @@ import (
 	"product-service/internal/model"
 	"product-service/internal/testutil"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
@@ -104,7 +105,7 @@ func TestUpdate(t *testing.T) {
 	got, err := NewRepository().Update(orm, model.Category{
 		Id:   3,
 		Name: "Elektronik Baru",
-		Base: model.Base{IsActive: true, UpdatedBy: 1},
+		Base: model.Base{IsActive: true, UpdatedBy: uuid.New()},
 	})
 
 	require.NoError(t, err)

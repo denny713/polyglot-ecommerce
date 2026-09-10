@@ -22,8 +22,11 @@ import (
 // @Param request body supplier.SupplierUpdateReq true "Supplier payload"
 // @Success 200 {object} dto.Response{data=supplier.SupplierUpdateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 404 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/supplier/{id} [put]
 func (ctrl Controller) Update(c *echo.Context) error {
 	var request supplier.SupplierUpdateReq

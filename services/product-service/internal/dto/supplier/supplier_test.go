@@ -9,6 +9,7 @@ import (
 	"product-service/internal/dto/base"
 	"product-service/internal/model"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -197,8 +198,9 @@ func TestStatusMappers(t *testing.T) {
 
 func TestUpdateReqToObjectModel(t *testing.T) {
 	existing := sampleSupplier()
-	existing.CreatedBy = 42
-	existing.UpdatedBy = 42
+	actor := uuid.MustParse("2b1f8f4a-0000-4000-8000-00000000002a")
+	existing.CreatedBy = actor
+	existing.UpdatedBy = actor
 
 	before := time.Now()
 	got := SupplierUpdateReq{
@@ -223,9 +225,9 @@ func TestUpdateReqToObjectModel(t *testing.T) {
 
 	// The status flags and the creation trail of the existing row survive.
 	require.True(t, got.IsActive)
-	require.Equal(t, int64(42), got.CreatedBy)
+	require.Equal(t, actor, got.CreatedBy)
 	require.Equal(t, existing.CreatedAt, got.CreatedAt)
-	require.Equal(t, int64(1), got.UpdatedBy)
+	require.NotEqual(t, uuid.Nil, got.UpdatedBy)
 	require.False(t, got.UpdatedAt.Before(before))
 }
 

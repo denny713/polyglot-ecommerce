@@ -21,8 +21,11 @@ import (
 // @Param id path string true "Product ID"
 // @Success 200 {object} dto.Response{data=product.ProductDeactivateRes}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
 // @Failure 404 {object} dto.Response
 // @Failure 500 {object} dto.Response
+// @Security BearerAuth
 // @Router /api/product/deactivate/{id} [put]
 func (ctrl Controller) Deactivate(c *echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)

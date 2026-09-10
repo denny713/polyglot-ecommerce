@@ -56,9 +56,23 @@ func (s service) Create(ctx context.Context, request dto.ProductCreateReq) (dto.
 		newProduct.ImageURL = s.storage.ObjectURL(objectName)
 	}
 
-	// Submit new product
+	// Submit new product together with the stock position it starts at, so a
+	// product can never be left without the row its quantity moves on. Both
+	// writes share the one transaction, and err is local to the closure so a
+	// failure below cannot overwrite the one reported above.
 	err = s.db.Transaction(ctx, func(tx *gorm.DB) error {
-		product, err = s.products.Create(tx, newProduct)
+		created, err := s.products.Create(tx, newProduct)
+		if err != nil {
+			return err
+		}
+
+		product = created
+
+		_, err = s.stockPosition.Create(tx, model.StockPosition{
+			ProductId: created.Id,
+			Quantity:  0,
+			Base:      model.PrePersist(),
+		})
 
 		return err
 	})
