@@ -1,7 +1,7 @@
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- create function generate doc no
---changeset denny.afrizal:20260901142604-create-function-generate-doc_no splitStatements:false
+-- changeset denny.afrizal:20260901142604-create-function-generate-doc_no splitStatements:false
 
 CREATE OR REPLACE FUNCTION generate_doc_no(p_type TEXT, p_date DATE)
     RETURNS VARCHAR

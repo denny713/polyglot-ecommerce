@@ -1,7 +1,7 @@
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- create table category
---changeset denny.afrizal:20260821133150-create-table-category
+-- changeset denny.afrizal:20260821133150-create-table-category
 
 CREATE TABLE IF NOT EXISTS category
 (

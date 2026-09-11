@@ -1,7 +1,7 @@
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- create table purchase order detail
---changeset denny.afrizal:20260827164845-create-table-purchase-order-detail
+-- changeset denny.afrizal:20260827164845-create-table-purchase-order-detail
 
 CREATE TABLE IF NOT EXISTS purchase_order_detail
 (

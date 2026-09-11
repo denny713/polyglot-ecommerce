@@ -101,7 +101,7 @@ public class AccountController {
      * @throws com.ecommerce.auth.exception.IdentityProviderUnavailableException if Keycloak is unavailable
      */
     @POST
-    @Path("/register")
+    @Path("")
     @Operation(
             operationId = "register",
             summary = "Create an account",

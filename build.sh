@@ -132,10 +132,29 @@ fi
 # --- build ------------------------------------------------------------------
 
 info "starting stack from app/docker-compose.yml"
-"${COMPOSE[@]}" up -d ${compose_args[@]+"${compose_args[@]}"}
+
+# Capture the status instead of letting `set -e` end the script here. A bare
+# failure exits silently, with the migration and the Keycloak provisioning below
+# simply never happening - which reads as "build.sh does not migrate" rather
+# than as the `up -d` failure it actually is. The usual cause is a healthcheck
+# whose start_period is shorter than a cold boot: compose then gives up on a
+# service another one waits for and aborts the whole `up`, even though the
+# container goes healthy moments later.
+up_status=0
+"${COMPOSE[@]}" up -d ${compose_args[@]+"${compose_args[@]}"} || up_status=$?
 
 info "current state"
 "${COMPOSE[@]}" ps
+
+if ((up_status != 0)); then
+  warn "docker compose up FAILED (exit $up_status) - the stack did not start cleanly"
+  warn "nothing below ran: the database was NOT migrated and Keycloak was NOT provisioned"
+  warn "check the state above, then re-run ./build.sh - or, if the containers are"
+  warn "actually healthy now, run the remaining steps directly:"
+  warn "  ./app/init/migrate.sh"
+  warn "  ./app/init/keycloak-init.sh"
+  exit "$up_status"
+fi
 
 # --- migrate the ecommerce database ------------------------------------------
 

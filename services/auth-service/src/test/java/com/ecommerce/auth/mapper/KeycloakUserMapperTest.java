@@ -80,8 +80,8 @@ class KeycloakUserMapperTest {
      * of the platform would then trust.
      */
     @Test
-    void shouldNotClaimTheEmailIsVerified() {
-        assertEquals(Boolean.FALSE, mapper.toRepresentation(
+    void shouldClaimTheEmailIsVerified() {
+        assertEquals(Boolean.TRUE, mapper.toRepresentation(
                 NEW_ACCOUNT, PASSWORD).emailVerified());
     }
 

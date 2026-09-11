@@ -1,7 +1,7 @@
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- create table product
---changeset denny.afrizal:20260821133208-create-table-product
+-- changeset denny.afrizal:20260821133208-create-table-product
 
 CREATE TABLE IF NOT EXISTS product
 (

@@ -1,7 +1,7 @@
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- create table stock
---changeset denny.afrizal:20260821133251-create-table-stock
+-- changeset denny.afrizal:20260821133251-create-table-stock
 
 CREATE TABLE IF NOT EXISTS stock
 (

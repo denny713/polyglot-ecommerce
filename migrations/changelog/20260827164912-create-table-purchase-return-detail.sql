@@ -1,7 +1,7 @@
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- create table purchase return detail
---changeset denny.afrizal:20260827164912-create-table-purchase-return-detail
+-- changeset denny.afrizal:20260827164912-create-table-purchase-return-detail
 
 CREATE TABLE IF NOT EXISTS purchase_return_detail
 (

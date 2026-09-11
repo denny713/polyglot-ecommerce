@@ -21,10 +21,17 @@ services:
           "CMD-SHELL",
           "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}",
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      # A cold first boot has to run initdb and then create-db.sh before the
+      # server listens on TCP at all, which on a slow disk - or while the other
+      # images are still being pulled - takes minutes, not seconds. Failures
+      # inside start_period leave the container `starting` instead of counting
+      # towards `retries`, so this is the window that decides whether keycloak's
+      # `condition: service_healthy` can wait it out: too short and compose
+      # aborts the whole `up` with "container postgres is unhealthy".
+      start_period: 300s
     networks:
       - ecommerce
 
@@ -102,6 +109,87 @@ services:
     networks:
       - ecommerce
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-p@ssw0rd}
+      - --user
+      - ${REDIS_USER:-admin}
+      - "on"
+      - ">${REDIS_PASSWORD:-p@ssw0rd}"
+      - "~*"
+      - "&*"
+      - +@all
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli --user ${REDIS_USER:-admin} --pass ${REDIS_PASSWORD:-p@ssw0rd} --no-auth-warning ping | grep -q PONG",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ecommerce
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-p@ssw0rd}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ecommerce
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    environment:
+      MP_SMTP_BIND_ADDR: 0.0.0.0:1025
+      MP_UI_BIND_ADDR: 0.0.0.0:8025
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-5000}
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      - "${MAILER_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    volumes:
+      - mailpit-data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ecommerce
+
   # gateway-service:
   #   build:
   #     context: ../services/gateway-service
@@ -129,11 +217,24 @@ services:
   #     KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
   #     KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
   #     KEYCLOAK_AUTH_GRANT_TYPE: password
+  #     QUARKUS_OIDC_AUTH_SERVER_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+  #     QUARKUS_OIDC_CLIENT_ID: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
+  #     QUARKUS_OIDC_CREDENTIALS_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-}
+  #     QUARKUS_OIDC_APPLICATION_TYPE: service
+  #     QUARKUS_OIDC_TOKEN_AUDIENCE: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
+  #     KEYCLOAK_ADMIN_API_CLIENT_ID: ${AUTH_SERVICE_CLIENT_ID:-auth-service}
+  #     KEYCLOAK_ADMIN_API_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-}
+  #     QUARKUS_MAILER_FROM: ${MAILER_FROM:-no-reply@ecommerce.local}
+  #     QUARKUS_MAILER_MOCK: "false"
+  #     QUARKUS_MAILER_HOST: ${MAILER_HOST:-mailpit}
+  #     QUARKUS_MAILER_PORT: ${MAILER_PORT:-1025}
   #   ports:
   #     - "${AUTH_SERVICE_PORT:-7110}:${AUTH_SERVICE_PORT:-7110}"
   #   depends_on:
   #     keycloak:
   #       condition: service_healthy
+  #     mailpit:
+  #       condition: service_started
   #   healthcheck:
   #     test:
   #       - CMD-SHELL
@@ -186,6 +287,9 @@ services:
 volumes:
   postgres-data:
   minio-data:
+  rabbitmq-data:
+  redis-data:
+  mailpit-data:
 
 networks:
   ecommerce:

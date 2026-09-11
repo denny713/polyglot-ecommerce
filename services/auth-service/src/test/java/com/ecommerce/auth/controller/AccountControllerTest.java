@@ -84,7 +84,7 @@ class AccountControllerTest {
     SessionTerminationDao sessionTerminationDao;
 
     // ------------------------------------------------------------------
-    // POST /api/account/register
+    // POST /api/account
     // ------------------------------------------------------------------
 
     @Test
@@ -98,7 +98,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(201)
                 .body("id", equalTo(OWN_ID))
@@ -125,7 +125,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(201);
     }
@@ -146,7 +146,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(201);
 
@@ -177,7 +177,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(503)
                 .body("error", equalTo("NOTIFICATION_UNAVAILABLE"));
@@ -196,7 +196,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then().statusCode(201)
                 .extract().asString();
 
@@ -218,7 +218,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(409)
                 .body("error", equalTo("ACCOUNT_ALREADY_EXISTS"))
@@ -236,7 +236,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(503)
                 .body("error", equalTo("IDENTITY_PROVIDER_UNAVAILABLE"));
@@ -249,7 +249,7 @@ class AccountControllerTest {
                 .body("""
                         {"username":"","email":"","firstName":"","lastName":""}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(400)
                 .body("error", equalTo("VALIDATION_ERROR"))
@@ -271,7 +271,7 @@ class AccountControllerTest {
                         {"username":"denny.afrizal","email":"not-an-address",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(400)
                 .body("error", equalTo("VALIDATION_ERROR"))
@@ -287,7 +287,7 @@ class AccountControllerTest {
                         {"username":"denny afrizal!","email":"denny@mail.com",\
                         "firstName":"Denny","lastName":"Afrizal"}
                         """)
-                .when().post("/api/account/register")
+                .when().post("/api/account")
                 .then()
                 .statusCode(400)
                 .body("error", equalTo("VALIDATION_ERROR"))

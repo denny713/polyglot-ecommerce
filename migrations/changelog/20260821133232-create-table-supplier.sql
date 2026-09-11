@@ -1,7 +1,7 @@
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- create table supplier
---changeset denny.afrizal:20260821133232-create-table-supplier
+-- changeset denny.afrizal:20260821133232-create-table-supplier
 
 CREATE TABLE IF NOT EXISTS supplier
 (

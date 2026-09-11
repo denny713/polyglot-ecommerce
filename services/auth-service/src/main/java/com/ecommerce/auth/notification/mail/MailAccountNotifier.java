@@ -77,6 +77,9 @@ public class MailAccountNotifier implements AccountNotifier {
 
                 If you did not expect this email, you can ignore it: the account cannot \
                 be used until someone signs in with the password above.
+                
+                Regards,
+                Ecommerce Team
                 """.formatted(account.firstName(), account.username(), password.value());
     }
 }

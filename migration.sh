@@ -125,10 +125,10 @@ changeset_id="${timestamp}-${slug}"
 # changed checksum. The placeholder below makes that state fail immediately
 # instead, with an error naming the scaffold.
 cat > "$file_path" <<TEMPLATE
---liquibase formatted sql
+-- liquibase formatted sql
 --
 -- ${slug//-/ }
---changeset ${AUTHOR}:${changeset_id}
+-- changeset ${AUTHOR}:${changeset_id}
 
 CREATE TABLE IF NOT EXISTS table_name (
     id          BIGSERIAL       PRIMARY KEY,
