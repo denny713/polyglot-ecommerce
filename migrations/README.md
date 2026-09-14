@@ -19,10 +19,17 @@ migrations/
 ├── db.changelog-master.xml          index — the include order IS the run order
 └── changelog/
     ├── 20260821133150-create-table-category.sql
-    ├── 20260821133208-create-table-product.sql
     ├── 20260821133232-create-table-supplier.sql
-    ├── 20260821133251-create-table-stock.sql
-    └── 20260821143951-create-table-stock-position.sql
+    ├── 20260821133244-create-table-product.sql
+    ├── 20260827164811-create-table-purchase-order.sql
+    ├── 20260827164845-create-table-purchase-order-detail.sql
+    ├── 20260827164856-create-table-purchase-return.sql
+    ├── 20260827164912-create-table-purchase-return-detail.sql
+    ├── 20260911170928-create-table-sales-order.sql
+    ├── 20260911170937-create-table-sales-order-detail.sql
+    ├── 20260911171527-create-table-stock.sql
+    ├── 20260911171536-create-table-stock-position.sql
+    └── 20260911171550-create-function-generate-doc-no.sql
 ```
 
 The changesets are plain `.sql` files — Liquibase "formatted SQL", where the

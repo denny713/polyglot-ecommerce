@@ -30,8 +30,10 @@
     <include file="changelog/20260827164845-create-table-purchase-order-detail.sql" relativeToChangelogFile="true"/>
     <include file="changelog/20260827164856-create-table-purchase-return.sql" relativeToChangelogFile="true"/>
     <include file="changelog/20260827164912-create-table-purchase-return-detail.sql" relativeToChangelogFile="true"/>
-    <include file="changelog/20260821133251-create-table-stock.sql" relativeToChangelogFile="true"/>
-    <include file="changelog/20260821143951-create-table-stock-position.sql" relativeToChangelogFile="true"/>
-    <include file="changelog/20260901142604-create-function-generate-doc-no.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911170928-create-table-sales-order.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911170937-create-table-sales-order-detail.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911171527-create-table-stock.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911171536-create-table-stock-position.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911171550-create-function-generate-doc-no.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
