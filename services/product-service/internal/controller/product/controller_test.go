@@ -57,7 +57,8 @@ func formFields() map[string]string {
 	return map[string]string{
 		"name":        "  Kipas Angin  ",
 		"description": "  Kipas angin berdiri  ",
-		"price":       "  199.99  ",
+		"buy_price":   "  150.00  ",
+		"sell_price":  "  199.99  ",
 		"category_id": "  3  ",
 		"supplier_id": "  4  ",
 	}
@@ -84,7 +85,12 @@ func brokenMultipart(method, target string) *http.Request {
 func TestCreate(t *testing.T) {
 	controller, service := newController()
 	service.CreateFn = func(_ context.Context, request productDto.ProductCreateReq) (productDto.ProductCreateRes, error) {
-		return productDto.ProductCreateRes{Id: 11, Name: request.Name, Price: request.Price}, nil
+		return productDto.ProductCreateRes{
+			Id:        11,
+			Name:      request.Name,
+			BuyPrice:  request.BuyPrice,
+			SellPrice: request.SellPrice,
+		}, nil
 	}
 
 	c, recorder := testutil.NewContext(
@@ -104,7 +110,8 @@ func TestCreate(t *testing.T) {
 	request := service.CreateCalls[0]
 	require.Equal(t, "Kipas Angin", request.Name)
 	require.Equal(t, "Kipas angin berdiri", request.Description)
-	require.True(t, decimal.RequireFromString("199.99").Equal(request.Price))
+	require.True(t, decimal.RequireFromString("150.00").Equal(request.BuyPrice))
+	require.True(t, decimal.RequireFromString("199.99").Equal(request.SellPrice))
 	require.Equal(t, int64(3), *request.CategoryId)
 	require.Equal(t, int64(4), *request.SupplierId)
 	require.NotNil(t, request.Image)
@@ -144,7 +151,8 @@ func TestCreateWithFieldsThatAreNotNumbers(t *testing.T) {
 	}{
 		{field: "category_id", value: "abc", wantErr: "category_id must be a valid number"},
 		{field: "supplier_id", value: "abc", wantErr: "supplier_id must be a valid number"},
-		{field: "price", value: "abc", wantErr: "price must be a valid number"},
+		{field: "buy_price", value: "abc", wantErr: "buy_price must be a valid number"},
+		{field: "sell_price", value: "abc", wantErr: "sell_price must be a valid number"},
 	}
 
 	for _, test := range tests {
@@ -187,7 +195,14 @@ func TestCreateWithAnIncompletePayload(t *testing.T) {
 	}{
 		{name: "without a name", field: "name", value: "  ", wantErr: "name is required"},
 		{name: "without a supplier", field: "supplier_id", value: "", wantErr: "supplier is required"},
-		{name: "without a price", field: "price", value: "0", wantErr: "price is required"},
+		{name: "without a buy price", field: "buy_price", value: "0", wantErr: "buy price is required"},
+		{name: "without a sell price", field: "sell_price", value: "0", wantErr: "sell price is required"},
+		{
+			name:    "with a buy price that leaves no margin",
+			field:   "buy_price",
+			value:   "199.99",
+			wantErr: "buy price must be less than sell price",
+		},
 	}
 
 	for _, test := range tests {
@@ -236,8 +251,9 @@ func TestSearch(t *testing.T) {
 	}
 
 	c, recorder := testutil.NewContext(httptest.NewRequest(http.MethodGet,
-		"/api/product?name=%20kipas%20&description=%20angin%20&min_price=10&max_price=500"+
-			"&min_stock=1&max_stock=99&sort_by=price&sort_order=asc&page=2&page_size=5", nil), nil)
+		"/api/product?name=%20kipas%20&description=%20angin%20&min_buy_price=10&max_buy_price=500"+
+			"&min_sell_price=20&max_sell_price=900&min_stock=1&max_stock=99"+
+			"&sort_by=buy_price&sort_order=asc&page=2&page_size=5", nil), nil)
 
 	require.NoError(t, controller.Search(c))
 	require.Equal(t, http.StatusOK, recorder.Code)
@@ -247,11 +263,13 @@ func TestSearch(t *testing.T) {
 	request := service.SearchCalls[0]
 	require.Equal(t, "kipas", request.Name)
 	require.Equal(t, "angin", request.Description)
-	require.True(t, decimal.NewFromInt(10).Equal(request.MinPrice))
-	require.True(t, decimal.NewFromInt(500).Equal(request.MaxPrice))
+	require.True(t, decimal.NewFromInt(10).Equal(request.MinBuyPrice))
+	require.True(t, decimal.NewFromInt(500).Equal(request.MaxBuyPrice))
+	require.True(t, decimal.NewFromInt(20).Equal(request.MinSellPrice))
+	require.True(t, decimal.NewFromInt(900).Equal(request.MaxSellPrice))
 	require.Equal(t, 1, request.MinStock)
 	require.Equal(t, 99, request.MaxStock)
-	require.Equal(t, base.Paging{SortBy: "price", SortOrder: "asc", Page: 2, PageSize: 5}, request.Paging)
+	require.Equal(t, base.Paging{SortBy: "buy_price", SortOrder: "asc", Page: 2, PageSize: 5}, request.Paging)
 }
 
 func TestSearchWithoutFilters(t *testing.T) {
@@ -262,7 +280,8 @@ func TestSearchWithoutFilters(t *testing.T) {
 	require.NoError(t, controller.Search(c))
 	require.Equal(t, http.StatusOK, recorder.Code)
 	require.Len(t, service.SearchCalls, 1)
-	require.True(t, service.SearchCalls[0].MinPrice.IsZero())
+	require.True(t, service.SearchCalls[0].MinBuyPrice.IsZero())
+	require.True(t, service.SearchCalls[0].MinSellPrice.IsZero())
 	require.Zero(t, service.SearchCalls[0].MinStock)
 }
 
@@ -271,8 +290,10 @@ func TestSearchWithParametersThatAreNotNumbers(t *testing.T) {
 		param   string
 		wantErr string
 	}{
-		{param: "min_price", wantErr: "min_price must be a valid number"},
-		{param: "max_price", wantErr: "max_price must be a valid number"},
+		{param: "min_buy_price", wantErr: "min_buy_price must be a valid number"},
+		{param: "max_buy_price", wantErr: "max_buy_price must be a valid number"},
+		{param: "min_sell_price", wantErr: "min_sell_price must be a valid number"},
+		{param: "max_sell_price", wantErr: "max_sell_price must be a valid number"},
 		{param: "min_stock", wantErr: "min_stock must be a valid number"},
 		{param: "max_stock", wantErr: "max_stock must be a valid number"},
 		{param: "page", wantErr: "page must be a valid number"},
@@ -296,9 +317,10 @@ func TestSearchWithAnInvalidFilter(t *testing.T) {
 	controller, service := newController()
 
 	c, _ := testutil.NewContext(httptest.NewRequest(http.MethodGet,
-		"/api/product?min_price=500&max_price=10", nil), nil)
+		"/api/product?min_buy_price=500&max_buy_price=10", nil), nil)
 
-	httpError(t, controller.Search(c), http.StatusBadRequest, "min_price must not be greater than max_price")
+	httpError(t, controller.Search(c), http.StatusBadRequest,
+		"min_buy_price must not be greater than max_buy_price")
 	require.Empty(t, service.SearchCalls)
 }
 
@@ -308,7 +330,7 @@ func TestSearchWithAnUnknownSortBy(t *testing.T) {
 	c, _ := testutil.NewContext(httptest.NewRequest(http.MethodGet, "/api/product?sort_by=password", nil), nil)
 
 	httpError(t, controller.Search(c), http.StatusBadRequest,
-		"sort_by must be one of id, name, price, stock, created_at, or updated_at")
+		"sort_by must be one of id, name, buy_price, sell_price, stock, created_at, or updated_at")
 	require.Empty(t, service.SearchCalls)
 }
 
@@ -343,7 +365,8 @@ func TestUpdate(t *testing.T) {
 	request := service.UpdateCalls[0]
 	require.Equal(t, int64(7), request.Id)
 	require.Equal(t, "Kipas Angin", request.Name)
-	require.True(t, decimal.RequireFromString("199.99").Equal(request.Price))
+	require.True(t, decimal.RequireFromString("150.00").Equal(request.BuyPrice))
+	require.True(t, decimal.RequireFromString("199.99").Equal(request.SellPrice))
 	require.Equal(t, int64(3), *request.CategoryId)
 	require.Equal(t, int64(4), *request.SupplierId)
 	require.NotNil(t, request.Image)
@@ -395,7 +418,8 @@ func TestUpdateWithFieldsThatAreNotNumbers(t *testing.T) {
 	}{
 		{field: "category_id", wantErr: "category_id must be a valid number"},
 		{field: "supplier_id", wantErr: "supplier_id must be a valid number"},
-		{field: "price", wantErr: "price must be a valid number"},
+		{field: "buy_price", wantErr: "buy_price must be a valid number"},
+		{field: "sell_price", wantErr: "sell_price must be a valid number"},
 	}
 
 	for _, test := range tests {
@@ -423,7 +447,16 @@ func TestUpdateWithAnIncompletePayload(t *testing.T) {
 		wantErr string
 	}{
 		{name: "without a name", field: "name", value: "  ", wantErr: "name is required"},
-		{name: "without a price", field: "price", value: "0", wantErr: "price is required"},
+		{name: "without a category", field: "category_id", value: "", wantErr: "category is required"},
+		{name: "without a supplier", field: "supplier_id", value: "  ", wantErr: "supplier is required"},
+		{name: "without a buy price", field: "buy_price", value: "0", wantErr: "buying price is required"},
+		{name: "without a sell price", field: "sell_price", value: "0", wantErr: "selling price is required"},
+		{
+			name:    "with a buy price that leaves no margin",
+			field:   "buy_price",
+			value:   "199.99",
+			wantErr: "buy price must be less than sell price",
+		},
 	}
 
 	for _, test := range tests {

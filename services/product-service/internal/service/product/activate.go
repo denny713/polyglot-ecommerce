@@ -31,7 +31,7 @@ func (s service) Activate(ctx context.Context, request dto.ProductActivateReq) (
 
 	// Update product status to active
 	product.IsActive = true
-	product.Base = product.Base.Touch()
+	product.Base = product.Base.Touch(ctx)
 	_, err = s.products.Update(orm, product)
 	if err != nil {
 		return dto.ProductActivateRes{}, err

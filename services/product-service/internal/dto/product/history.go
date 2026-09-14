@@ -16,7 +16,8 @@ type (
 		Id            int64           `json:"id"`
 		Name          string          `json:"name"`
 		Description   string          `json:"description"`
-		Price         decimal.Decimal `json:"price"`
+		BuyPrice      decimal.Decimal `json:"buy_price"`
+		SellPrice     decimal.Decimal `json:"sell_price"`
 		StockQuantity int             `jsin:"stock_quantity"`
 		ImageUrl      string          `json:"image_url"`
 		Category      string          `json:"category"`
@@ -89,7 +90,8 @@ func ToProductHistoryRes(product model.Product) ProductHistoryRes {
 		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
-		Price:       product.Price,
+		BuyPrice:    product.BuyPrice,
+		SellPrice:   product.SellPrice,
 		ImageUrl:    product.ImageURL,
 		IsActive:    product.IsActive,
 		IsDeleted:   product.IsDeleted,

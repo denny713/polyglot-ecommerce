@@ -52,7 +52,7 @@ func (s service) Update(ctx context.Context, request dto.ProductUpdateReq) (dto.
 		return dto.ProductUpdateRes{}, err
 	}
 
-	newProduct := request.ToProductModel(existing)
+	newProduct := request.ToProductModel(ctx, existing)
 	newProduct.CategoryId = category.Id
 	newProduct.SupplierId = supplier.Id
 

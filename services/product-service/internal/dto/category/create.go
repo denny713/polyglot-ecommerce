@@ -1,6 +1,7 @@
 package category
 
 import (
+	"context"
 	"errors"
 	"product-service/internal/model"
 	"time"
@@ -23,11 +24,11 @@ type (
 )
 
 // ToObjectModel mapping the request object to table model.Category.
-func (c CategoryCreateReq) ToObjectModel() model.Category {
+func (c CategoryCreateReq) ToObjectModel(ctx context.Context) model.Category {
 	return model.Category{
 		Name:        c.Name,
 		Description: c.Description,
-		Base:        model.PrePersist(),
+		Base:        model.PrePersist(ctx),
 	}
 }
 

@@ -1,7 +1,10 @@
 package model
 
 import (
+	"context"
 	"time"
+
+	"product-service/internal/account"
 
 	"github.com/google/uuid"
 )
@@ -15,20 +18,25 @@ type Base struct {
 	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
-func PrePersist() Base {
+// PrePersist stamps a row that is about to be written for the first time. The
+// audit fields name the account the request was made by, which the token
+// middleware put on the context as the subject of the verified access token.
+func PrePersist(ctx context.Context) Base {
+	caller := account.UserLogin(ctx)
+
 	return Base{
 		IsActive:  true,
 		IsDeleted: false,
-		CreatedBy: uuid.New(),
-		UpdatedBy: uuid.New(),
+		CreatedBy: caller,
+		UpdatedBy: caller,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 }
 
-func PreUpdate() Base {
+func PreUpdate(ctx context.Context) Base {
 	return Base{
-		UpdatedBy: uuid.New(),
+		UpdatedBy: account.UserLogin(ctx),
 		UpdatedAt: time.Now(),
 	}
 }
@@ -37,8 +45,8 @@ func PreUpdate() Base {
 // and is about to be written back. Unlike PreUpdate it keeps the status flags
 // and the creation trail already held by the record, so it is the one to use
 // when only a flag such as IsActive or IsDeleted changes.
-func (b Base) Touch() Base {
-	b.UpdatedBy = uuid.New()
+func (b Base) Touch(ctx context.Context) Base {
+	b.UpdatedBy = account.UserLogin(ctx)
 	b.UpdatedAt = time.Now()
 
 	return b

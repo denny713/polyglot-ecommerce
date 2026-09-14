@@ -1,6 +1,7 @@
 package category
 
 import (
+	"context"
 	"errors"
 	"product-service/internal/model"
 	"time"
@@ -26,11 +27,11 @@ type (
 // ToObjectModel maps the request object onto the category loaded from the
 // database, so the status flags and the creation trail of the existing row are
 // preserved and only the audit fields are stamped again.
-func (c CategoryUpdateReq) ToObjectModel(category model.Category) model.Category {
+func (c CategoryUpdateReq) ToObjectModel(ctx context.Context, category model.Category) model.Category {
 	category.Id = c.Id
 	category.Name = c.Name
 	category.Description = c.Description
-	category.Base = category.Base.Touch()
+	category.Base = category.Base.Touch(ctx)
 
 	return category
 }

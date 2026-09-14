@@ -12,7 +12,6 @@ import (
 	exception "product-service/internal/exception"
 
 	"github.com/labstack/echo/v5"
-	"github.com/shopspring/decimal"
 )
 
 // Update godoc
@@ -24,7 +23,8 @@ import (
 // @Param id path string true "Product ID"
 // @Param name formData string true "Product name"
 // @Param description formData string false "Product description"
-// @Param price formData number true "Product price"
+// @Param buy_price formData number true "Product buying price from the supplier"
+// @Param sell_price formData number true "Product selling price to the customer"
 // @Param category_id formData number true "Product category"
 // @Param supplier_id formData number true "Product supplier"
 // @Param image formData file false "Product image (jpg, jpeg, png, webp, max 5 MB)"
@@ -97,14 +97,18 @@ func bindProductUpdateReq(c *echo.Context) (product.ProductUpdateReq, error) {
 		request.SupplierId = &parsedSupplierId
 	}
 
-	if price := strings.TrimSpace(c.FormValue("price")); price != "" {
-		parsedPrice, err := decimal.NewFromString(price)
-		if err != nil {
-			return request, errors.New("price must be a valid number")
-		}
-
-		request.Price = parsedPrice
+	buyPrice, err := decimalFormValue(c, "buy_price")
+	if err != nil {
+		return request, err
 	}
+
+	sellPrice, err := decimalFormValue(c, "sell_price")
+	if err != nil {
+		return request, err
+	}
+
+	request.BuyPrice = buyPrice
+	request.SellPrice = sellPrice
 
 	image, err := c.FormFile("image")
 	if err != nil && !errors.Is(err, http.ErrMissingFile) {

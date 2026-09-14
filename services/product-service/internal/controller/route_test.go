@@ -167,7 +167,8 @@ func TestTheSupplierRoutes(t *testing.T) {
 func TestTheProductRoutes(t *testing.T) {
 	fields := map[string]string{
 		"name":        "Kipas Angin",
-		"price":       "199.99",
+		"buy_price":   "150.00",
+		"sell_price":  "199.99",
 		"category_id": "3",
 		"supplier_id": "4",
 	}

@@ -26,7 +26,7 @@ func (s service) Delete(ctx context.Context, request dto.CategoryDeleteReq) (dto
 
 	// Delete category
 	category.IsDeleted = true
-	category.Base = category.Base.Touch()
+	category.Base = category.Base.Touch(ctx)
 	_, err = s.categories.Update(orm, category)
 	if err != nil {
 		return dto.CategoryDeleteRes{}, err

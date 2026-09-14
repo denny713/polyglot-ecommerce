@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"product-service/internal/account"
 	"product-service/internal/constant"
 	"product-service/internal/dto/base"
 	dto "product-service/internal/dto/category"
@@ -23,6 +24,17 @@ var errDatabase = errors.New("connection reset by peer")
 // existingActor is the audit trail a row loaded from the database already
 // carries, the writes under test have to leave it on CreatedBy.
 var existingActor = uuid.MustParse("2b1f8f4a-0000-4000-8000-00000000002a")
+
+// caller is the account the token middleware puts on the request context, the
+// subject of the verified access token. The writes under test have to stamp it
+// on the rows they audit.
+var caller = uuid.MustParse("9a7c1d2e-0000-4000-8000-00000000009a")
+
+// callerContext is the context a request that went through the authorization
+// middleware arrives with.
+func callerContext() context.Context {
+	return account.WithUserLogin(context.Background(), caller)
+}
 
 func newService(t *testing.T) (Service, *mocks.CategoryRepository, *mocks.Database) {
 	t.Helper()
@@ -58,7 +70,7 @@ func TestCreate(t *testing.T) {
 		return category, nil
 	}
 
-	got, err := service.Create(context.Background(), dto.CategoryCreateReq{
+	got, err := service.Create(callerContext(), dto.CategoryCreateReq{
 		Name:        "Elektronik",
 		Description: "Perangkat",
 	})
@@ -80,7 +92,7 @@ func TestCreateFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	got, err := service.Create(context.Background(), dto.CategoryCreateReq{Name: "Elektronik"})
+	got, err := service.Create(callerContext(), dto.CategoryCreateReq{Name: "Elektronik"})
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, dto.CategoryCreateRes{}, got)
@@ -92,7 +104,7 @@ func TestDetail(t *testing.T) {
 		return existingCategory(), nil
 	}
 
-	got, err := service.Detail(context.Background(), dto.CategoryDetailReq{Id: 7})
+	got, err := service.Detail(callerContext(), dto.CategoryDetailReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, int64(7), got.Id)
@@ -108,7 +120,7 @@ func TestDetailNotFound(t *testing.T) {
 		return model.Category{}, gorm.ErrRecordNotFound
 	}
 
-	got, err := service.Detail(context.Background(), dto.CategoryDetailReq{Id: 7})
+	got, err := service.Detail(callerContext(), dto.CategoryDetailReq{Id: 7})
 
 	// The gorm error is translated into the exception the controller reports.
 	require.ErrorIs(t, err, exception.ErrNotFound)
@@ -121,7 +133,7 @@ func TestDetailFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err := service.Detail(context.Background(), dto.CategoryDetailReq{Id: 7})
+	_, err := service.Detail(callerContext(), dto.CategoryDetailReq{Id: 7})
 
 	// Anything that is not a missing row is passed through untouched.
 	require.ErrorIs(t, err, errDatabase)
@@ -133,7 +145,7 @@ func TestSearch(t *testing.T) {
 		return []model.Category{existingCategory()}, nil
 	}
 
-	got, err := service.Search(context.Background(), dto.CategorySearchReq{
+	got, err := service.Search(callerContext(), dto.CategorySearchReq{
 		Name:        "  elektronik  ",
 		Description: "  perangkat  ",
 		Paging:      base.Paging{SortBy: "NAME", SortOrder: "ASC", PageSize: 500},
@@ -164,7 +176,7 @@ func TestSearchFails(t *testing.T) {
 		return nil, errDatabase
 	}
 
-	got, err := service.Search(context.Background(), dto.CategorySearchReq{})
+	got, err := service.Search(callerContext(), dto.CategorySearchReq{})
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, dto.CategorySearchRes{}, got)
@@ -176,7 +188,7 @@ func TestUpdate(t *testing.T) {
 		return existingCategory(), nil
 	}
 
-	got, err := service.Update(context.Background(), dto.CategoryUpdateReq{
+	got, err := service.Update(callerContext(), dto.CategoryUpdateReq{
 		Id:          7,
 		Name:        "Elektronik Baru",
 		Description: "Deskripsi baru",
@@ -193,7 +205,7 @@ func TestUpdate(t *testing.T) {
 	require.Equal(t, "Deskripsi baru", written.Description)
 	require.True(t, written.IsActive)
 	require.Equal(t, existingActor, written.CreatedBy)
-	require.NotEqual(t, uuid.Nil, written.UpdatedBy)
+	require.Equal(t, caller, written.UpdatedBy)
 }
 
 func TestUpdateNotFound(t *testing.T) {
@@ -202,7 +214,7 @@ func TestUpdateNotFound(t *testing.T) {
 		return model.Category{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Update(context.Background(), dto.CategoryUpdateReq{Id: 7, Name: "Elektronik"})
+	_, err := service.Update(callerContext(), dto.CategoryUpdateReq{Id: 7, Name: "Elektronik"})
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 	require.Empty(t, repository.UpdateCalls)
@@ -214,7 +226,7 @@ func TestUpdateFailsToRead(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err := service.Update(context.Background(), dto.CategoryUpdateReq{Id: 7, Name: "Elektronik"})
+	_, err := service.Update(callerContext(), dto.CategoryUpdateReq{Id: 7, Name: "Elektronik"})
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Empty(t, repository.UpdateCalls)
@@ -229,7 +241,7 @@ func TestUpdateFailsToWrite(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	got, err := service.Update(context.Background(), dto.CategoryUpdateReq{Id: 7, Name: "Elektronik"})
+	got, err := service.Update(callerContext(), dto.CategoryUpdateReq{Id: 7, Name: "Elektronik"})
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, dto.CategoryUpdateRes{}, got)
@@ -244,7 +256,7 @@ func TestActivate(t *testing.T) {
 		return category, nil
 	}
 
-	got, err := service.Activate(context.Background(), dto.CategoryActivateReq{Id: 7})
+	got, err := service.Activate(callerContext(), dto.CategoryActivateReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, constant.Active, got.Status)
@@ -252,7 +264,7 @@ func TestActivate(t *testing.T) {
 
 	require.Len(t, repository.UpdateCalls, 1)
 	require.True(t, repository.UpdateCalls[0].IsActive)
-	require.NotEqual(t, uuid.Nil, repository.UpdateCalls[0].UpdatedBy)
+	require.Equal(t, caller, repository.UpdateCalls[0].UpdatedBy)
 }
 
 func TestActivateAnAlreadyActiveCategory(t *testing.T) {
@@ -261,7 +273,7 @@ func TestActivateAnAlreadyActiveCategory(t *testing.T) {
 		return existingCategory(), nil
 	}
 
-	_, err := service.Activate(context.Background(), dto.CategoryActivateReq{Id: 7})
+	_, err := service.Activate(callerContext(), dto.CategoryActivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrAlreadyActive)
 	require.Empty(t, repository.UpdateCalls)
@@ -273,7 +285,7 @@ func TestActivateNotFound(t *testing.T) {
 		return model.Category{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Activate(context.Background(), dto.CategoryActivateReq{Id: 7})
+	_, err := service.Activate(callerContext(), dto.CategoryActivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 }
@@ -284,7 +296,7 @@ func TestActivateFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err := service.Activate(context.Background(), dto.CategoryActivateReq{Id: 7})
+	_, err := service.Activate(callerContext(), dto.CategoryActivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 
 	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Category, error) {
@@ -297,7 +309,7 @@ func TestActivateFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err = service.Activate(context.Background(), dto.CategoryActivateReq{Id: 7})
+	_, err = service.Activate(callerContext(), dto.CategoryActivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 }
 
@@ -307,7 +319,7 @@ func TestDeactivate(t *testing.T) {
 		return existingCategory(), nil
 	}
 
-	got, err := service.Deactivate(context.Background(), dto.CategoryDeactivateReq{Id: 7})
+	got, err := service.Deactivate(callerContext(), dto.CategoryDeactivateReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, constant.Inactive, got.Status)
@@ -325,7 +337,7 @@ func TestDeactivateAnAlreadyInactiveCategory(t *testing.T) {
 		return category, nil
 	}
 
-	_, err := service.Deactivate(context.Background(), dto.CategoryDeactivateReq{Id: 7})
+	_, err := service.Deactivate(callerContext(), dto.CategoryDeactivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrAlreadyInactive)
 	require.Empty(t, repository.UpdateCalls)
@@ -337,7 +349,7 @@ func TestDeactivateNotFound(t *testing.T) {
 		return model.Category{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Deactivate(context.Background(), dto.CategoryDeactivateReq{Id: 7})
+	_, err := service.Deactivate(callerContext(), dto.CategoryDeactivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 }
@@ -348,7 +360,7 @@ func TestDeactivateFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err := service.Deactivate(context.Background(), dto.CategoryDeactivateReq{Id: 7})
+	_, err := service.Deactivate(callerContext(), dto.CategoryDeactivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 
 	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Category, error) {
@@ -358,7 +370,7 @@ func TestDeactivateFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err = service.Deactivate(context.Background(), dto.CategoryDeactivateReq{Id: 7})
+	_, err = service.Deactivate(callerContext(), dto.CategoryDeactivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 }
 
@@ -368,7 +380,7 @@ func TestDelete(t *testing.T) {
 		return existingCategory(), nil
 	}
 
-	got, err := service.Delete(context.Background(), dto.CategoryDeleteReq{Id: 7})
+	got, err := service.Delete(callerContext(), dto.CategoryDeleteReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, constant.Delete, got.Status)
@@ -385,7 +397,7 @@ func TestDeleteNotFound(t *testing.T) {
 		return model.Category{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Delete(context.Background(), dto.CategoryDeleteReq{Id: 7})
+	_, err := service.Delete(callerContext(), dto.CategoryDeleteReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 	require.Empty(t, repository.UpdateCalls)
@@ -397,7 +409,7 @@ func TestDeleteFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err := service.Delete(context.Background(), dto.CategoryDeleteReq{Id: 7})
+	_, err := service.Delete(callerContext(), dto.CategoryDeleteReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 
 	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Category, error) {
@@ -407,7 +419,7 @@ func TestDeleteFails(t *testing.T) {
 		return model.Category{}, errDatabase
 	}
 
-	_, err = service.Delete(context.Background(), dto.CategoryDeleteReq{Id: 7})
+	_, err = service.Delete(callerContext(), dto.CategoryDeleteReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 }
 
@@ -415,7 +427,7 @@ func TestTheOrmIsTakenFromTheRequestContext(t *testing.T) {
 	service, repository, database := newService(t)
 
 	type key struct{}
-	ctx := context.WithValue(context.Background(), key{}, "request")
+	ctx := context.WithValue(callerContext(), key{}, "request")
 
 	var seen context.Context
 	database.OrmFn = func(ctx context.Context) *gorm.DB {

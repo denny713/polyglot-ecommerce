@@ -31,7 +31,7 @@ func (s service) Deactivate(ctx context.Context, request dto.ProductDeactivateRe
 
 	// Update product status to inactive
 	product.IsActive = false
-	product.Base = product.Base.Touch()
+	product.Base = product.Base.Touch(ctx)
 	_, err = s.products.Update(orm, product)
 	if err != nil {
 		return dto.ProductDeactivateRes{}, err

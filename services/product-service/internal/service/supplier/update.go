@@ -25,7 +25,7 @@ func (s service) Update(ctx context.Context, request dto.SupplierUpdateReq) (dto
 	}
 
 	// Update supplier
-	supplier, err := s.suppliers.Update(orm, request.ToObjectModel(existing))
+	supplier, err := s.suppliers.Update(orm, request.ToObjectModel(ctx, existing))
 	if err != nil {
 		return dto.SupplierUpdateRes{}, err
 	}

@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"errors"
 	"mime/multipart"
 	"path/filepath"
@@ -16,7 +17,8 @@ type (
 	ProductCreateReq struct {
 		Name        string
 		Description string
-		Price       decimal.Decimal
+		BuyPrice    decimal.Decimal
+		SellPrice   decimal.Decimal
 		Image       *multipart.FileHeader
 		CategoryId  *int64
 		SupplierId  *int64
@@ -26,7 +28,8 @@ type (
 		Id          int64           `json:"id"`
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
-		Price       decimal.Decimal `json:"price"`
+		BuyPrice    decimal.Decimal `json:"buy_price"`
+		SellPrice   decimal.Decimal `json:"sell_price"`
 		Category    string          `json:"category"`
 		Supplier    string          `json:"supplier"`
 		ImageUrl    string          `json:"image_url"`
@@ -37,12 +40,13 @@ type (
 )
 
 // ToObjectModel mapping the request object to table model.Product.
-func (p ProductCreateReq) ToObjectModel() model.Product {
+func (p ProductCreateReq) ToObjectModel(ctx context.Context) model.Product {
 	product := model.Product{
 		Name:        p.Name,
 		Description: p.Description,
-		Price:       p.Price,
-		Base:        model.PrePersist(),
+		BuyPrice:    p.BuyPrice,
+		SellPrice:   p.SellPrice,
+		Base:        model.PrePersist(ctx),
 	}
 
 	if p.CategoryId != nil {
@@ -70,8 +74,16 @@ func (p ProductCreateReq) Validate() error {
 		return errors.New("supplier is required")
 	}
 
-	if p.Price.IsZero() || p.Price.LessThanOrEqual(decimal.Zero) {
-		return errors.New("price is required")
+	if p.BuyPrice.IsZero() || p.BuyPrice.LessThanOrEqual(decimal.Zero) {
+		return errors.New("buy price is required")
+	}
+
+	if p.SellPrice.IsZero() || p.SellPrice.LessThanOrEqual(decimal.Zero) {
+		return errors.New("sell price is required")
+	}
+
+	if p.BuyPrice.GreaterThanOrEqual(p.SellPrice) {
+		return errors.New("buy price must be less than sell price")
 	}
 
 	return nil
@@ -111,7 +123,8 @@ func ToProductCreateRes(product model.Product) ProductCreateRes {
 		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
-		Price:       product.Price,
+		BuyPrice:    product.BuyPrice,
+		SellPrice:   product.SellPrice,
 		ImageUrl:    product.ImageURL,
 		IsActive:    product.IsActive,
 		CreatedAt:   product.CreatedAt,

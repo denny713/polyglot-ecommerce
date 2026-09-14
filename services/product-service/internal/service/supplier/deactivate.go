@@ -31,7 +31,7 @@ func (s service) Deactivate(ctx context.Context, request dto.SupplierDeactivateR
 
 	// Update supplier status to inactive
 	supplier.IsActive = false
-	supplier.Base = supplier.Base.Touch()
+	supplier.Base = supplier.Base.Touch(ctx)
 	_, err = s.suppliers.Update(orm, supplier)
 	if err != nil {
 		return dto.SupplierDeactivateRes{}, err

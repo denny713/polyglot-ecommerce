@@ -5,9 +5,9 @@
 #   ecommerce  - product images uploaded by product-service
 #
 # This runs inside the throwaway `minio-init` container of
-# app/docker-compose.yml (image minio/mc), which compose starts once MinIO
-# reports healthy and then lets exit. Services that need the bucket wait for
-# that exit via `depends_on: { minio-init: service_completed_successfully }`.
+# app/docker-compose.yml (image quay.io/minio/mc), which compose starts once
+# MinIO reports healthy and then lets exit. Services that need the bucket wait
+# for that exit via `depends_on: { minio-init: service_completed_successfully }`.
 #
 # Every step is validated first and only applied when missing, so the script is
 # safe to re-run. Unlike the Postgres entrypoint, compose re-runs this on every

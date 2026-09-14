@@ -14,7 +14,7 @@ import (
 
 // Search godoc
 // @Summary Search categories
-// @Description Search categories by name and description (ILIKE), price range and stock range.
+// @Description Search categories by name and description (ILIKE).
 // @Tags Category
 // @Accept  json
 // @Produce  json

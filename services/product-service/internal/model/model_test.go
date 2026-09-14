@@ -1,12 +1,23 @@
 package model
 
 import (
+	"context"
 	"testing"
 	"time"
+
+	"product-service/internal/account"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
+
+// caller is the account the token middleware would have put on the context, the
+// subject of the verified access token.
+var caller = uuid.MustParse("2b1f8f4a-0000-4000-8000-00000000002a")
+
+func callerContext() context.Context {
+	return account.WithUserLogin(context.Background(), caller)
+}
 
 func TestTableName(t *testing.T) {
 	require.Equal(t, "category", Category{}.TableName())
@@ -22,19 +33,32 @@ func TestTableName(t *testing.T) {
 
 func TestPrePersist(t *testing.T) {
 	before := time.Now()
-	base := PrePersist()
+	base := PrePersist(callerContext())
 
 	require.True(t, base.IsActive)
 	require.False(t, base.IsDeleted)
-	require.NotEqual(t, uuid.Nil, base.CreatedBy)
-	require.NotEqual(t, uuid.Nil, base.UpdatedBy)
+
+	// Both audit fields name the caller the request was authorized for rather
+	// than an id invented on the spot.
+	require.Equal(t, caller, base.CreatedBy)
+	require.Equal(t, caller, base.UpdatedBy)
 	require.False(t, base.CreatedAt.Before(before))
 	require.False(t, base.UpdatedAt.Before(before))
 }
 
+func TestPrePersistWithoutACaller(t *testing.T) {
+	// A write made outside a request, from a task or a test, audits nothing
+	// rather than failing on a context that never went through the middleware.
+	base := PrePersist(context.Background())
+
+	require.Equal(t, uuid.Nil, base.CreatedBy)
+	require.Equal(t, uuid.Nil, base.UpdatedBy)
+	require.True(t, base.IsActive)
+}
+
 func TestPreUpdate(t *testing.T) {
 	before := time.Now()
-	base := PreUpdate()
+	base := PreUpdate(callerContext())
 
 	// PreUpdate stamps only the audit trail, the status flags and the creation
 	// trail are left at their zero value on purpose.
@@ -42,13 +66,17 @@ func TestPreUpdate(t *testing.T) {
 	require.False(t, base.IsDeleted)
 	require.Equal(t, uuid.Nil, base.CreatedBy)
 	require.True(t, base.CreatedAt.IsZero())
-	require.NotEqual(t, uuid.Nil, base.UpdatedBy)
+	require.Equal(t, caller, base.UpdatedBy)
 	require.False(t, base.UpdatedAt.Before(before))
+}
+
+func TestPreUpdateWithoutACaller(t *testing.T) {
+	require.Equal(t, uuid.Nil, PreUpdate(context.Background()).UpdatedBy)
 }
 
 func TestTouchKeepsTheExistingTrail(t *testing.T) {
 	created := time.Date(2024, time.March, 2, 10, 0, 0, 0, time.UTC)
-	actor := uuid.MustParse("2b1f8f4a-0000-4000-8000-00000000002a")
+	actor := uuid.MustParse("3c2f8f4a-0000-4000-8000-00000000003b")
 	base := Base{
 		IsActive:  true,
 		IsDeleted: true,
@@ -59,13 +87,13 @@ func TestTouchKeepsTheExistingTrail(t *testing.T) {
 	}
 
 	before := time.Now()
-	touched := base.Touch()
+	touched := base.Touch(callerContext())
 
 	require.True(t, touched.IsActive)
 	require.True(t, touched.IsDeleted)
 	require.Equal(t, actor, touched.CreatedBy)
 	require.Equal(t, created, touched.CreatedAt)
-	require.NotEqual(t, uuid.Nil, touched.UpdatedBy)
+	require.Equal(t, caller, touched.UpdatedBy)
 	require.False(t, touched.UpdatedAt.Before(before))
 
 	// Touch works on a copy, the record it was called on is untouched.

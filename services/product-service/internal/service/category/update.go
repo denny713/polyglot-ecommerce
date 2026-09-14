@@ -25,7 +25,7 @@ func (s service) Update(ctx context.Context, request dto.CategoryUpdateReq) (dto
 	}
 
 	// Update category
-	category, err := s.categories.Update(orm, request.ToObjectModel(existing))
+	category, err := s.categories.Update(orm, request.ToObjectModel(ctx, existing))
 	if err != nil {
 		return dto.CategoryUpdateRes{}, err
 	}

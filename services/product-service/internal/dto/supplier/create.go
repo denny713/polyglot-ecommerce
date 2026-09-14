@@ -1,6 +1,7 @@
 package supplier
 
 import (
+	"context"
 	"errors"
 	"net/mail"
 	"product-service/internal/model"
@@ -42,7 +43,7 @@ type (
 )
 
 // ToObjectModel mapping the request object to table model.Supplier.
-func (s SupplierCreateReq) ToObjectModel() model.Supplier {
+func (s SupplierCreateReq) ToObjectModel(ctx context.Context) model.Supplier {
 	return model.Supplier{
 		Name:          s.Name,
 		Phone:         s.Phone,
@@ -55,7 +56,7 @@ func (s SupplierCreateReq) ToObjectModel() model.Supplier {
 		Subdistrict:   s.Subdistrict,
 		PostalCode:    s.PostalCode,
 		Note:          s.Note,
-		Base:          model.PrePersist(),
+		Base:          model.PrePersist(ctx),
 	}
 }
 
