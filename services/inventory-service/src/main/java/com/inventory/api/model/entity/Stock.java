@@ -53,4 +53,9 @@ public class Stock extends Base {
     @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "purchase_return_id", referencedColumnName = "id")
     private PurchaseReturn purchaseReturn;
+
+    /*@ManyToOne
+    @NotFound(action = NotFoundAction.IGNORE)
+    @JoinColumn(name = "sales_order_id", referencedColumnName = "id")
+    private SalesOrder salesOrder;*/
 }

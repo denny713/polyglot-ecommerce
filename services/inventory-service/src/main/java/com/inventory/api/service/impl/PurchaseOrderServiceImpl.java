@@ -254,7 +254,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         detail.setRealQuantity(reqDetail.getQuantity());
-        detail.setRealSubtotal(detail.getProduct().getPrice().multiply(BigDecimal.valueOf(reqDetail.getQuantity())));
+        detail.setRealSubtotal(detail.getProduct().getBuyPrice().multiply(BigDecimal.valueOf(reqDetail.getQuantity())));
         detail.setNote(StringUtils.isEmpty(reqDetail.getNote()) ? detail.getNote() : reqDetail.getNote());
 
         return detail;
@@ -301,7 +301,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             Set<Long> keptIds) {
         PurchaseOrderDetail detail = resolveDetail(reqDetail, existing, keptIds, po.getId());
         Product product = products.get(reqDetail.getProductId());
-        BigDecimal price = product.getPrice();
+        BigDecimal price = product.getBuyPrice();
 
         detail.setPurchaseOrder(po);
         detail.setProduct(product);

@@ -12,6 +12,7 @@ import lombok.Getter;
 @Getter
 public enum DocType implements Labeled {
 
+    SO("Sales Order"),
     PO("Purchase Order"),
     PR("Purchase Return");
 
