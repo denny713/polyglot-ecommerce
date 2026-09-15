@@ -20,7 +20,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,14 +45,15 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SalesOrderServiceImpl implements SalesOrderService {
 
-    private final SalesOrderRepository salesOrderRepository;
+    private final SalesOrderRepository soRepository;
+    private final SalesOrderDetailRepository soDetailRepository;
     private final StockRepository stockRepository;
     private final StockPositionRepository stockPositionRepository;
 
     @Override
     @Transactional
     public Response doSubmit(SOSubmitReq req) {
-        SalesOrder order = salesOrderRepository.doGet(req.getId());
+        SalesOrder order = soRepository.doGet(req.getId());
         Map<Long, StockPosition> positions = new LinkedHashMap<>();
         List<Stock> stocks = new ArrayList<>(order.getSalesOrderDetails().size());
 
