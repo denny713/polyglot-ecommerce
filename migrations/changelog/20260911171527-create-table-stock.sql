@@ -17,11 +17,12 @@ CREATE TABLE IF NOT EXISTS stock
     document_type      VARCHAR(20) NOT NULL,
     activity           VARCHAR(10) NOT NULL,
     quantity           INT         NOT NULL DEFAULT 0,
+    sales_order_id     BIGINT REFERENCES sales_order (id) ON DELETE CASCADE,
     purchase_order_id  BIGINT REFERENCES purchase_order (id) ON DELETE CASCADE,
     purchase_return_id BIGINT REFERENCES purchase_return (id) ON DELETE CASCADE,
 
     CONSTRAINT chk_stock_activity CHECK (activity IN ('Stock In', 'Stock Out')),
-    CONSTRAINT chk_stock_document_type CHECK (document_type IN ('Purchase Order', 'Purchase Return')),
+    CONSTRAINT chk_stock_document_type CHECK (document_type IN ('Sales Order', 'Purchase Order', 'Purchase Return')),
     CONSTRAINT chk_stock_quantity CHECK (quantity > 0)
 );
 

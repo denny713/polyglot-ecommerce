@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS table_name (
     -- TODO: Describe the purpose of this table and the changes introduced by this changeset.
 )
 
---rollback DROP TABLE IF EXISTS table_name
+--rollback DROP TABLE IF EXISTS table_name;
 TEMPLATE
 
 # --- register in the master changelog ----------------------------------------
