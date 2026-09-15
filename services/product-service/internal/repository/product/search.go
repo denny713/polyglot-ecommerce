@@ -12,13 +12,14 @@ import (
 var sortColumns = map[string]string{
 	"id":         "product.id",
 	"name":       "product.name",
-	"price":      "product.price",
+	"buy_price":  "product.buy_price",
+	"sell_price": "product.sell_price",
 	"stock":      "stock_position.quantity",
 	"created_at": "product.created_at",
 	"updated_at": "product.updated_at",
 }
 
-// Search implement repository for search product by name, description, price range and stock range
+// Search implement repository for search product by name, description, buy and sell price range and stock range
 func (r repository) Search(orm *gorm.DB, filter product.ProductSearchFilter) ([]model.Product, error) {
 	products := make([]model.Product, 0)
 
@@ -39,12 +40,20 @@ func (r repository) Search(orm *gorm.DB, filter product.ProductSearchFilter) ([]
 		query = query.Where("product.description ILIKE ?", "%"+filter.Description+"%")
 	}
 
-	if filter.MinPrice.IsPositive() {
-		query = query.Where("product.price >= ?", filter.MinPrice)
+	if filter.MinBuyPrice.IsPositive() {
+		query = query.Where("product.buy_price >= ?", filter.MinBuyPrice)
 	}
 
-	if filter.MaxPrice.IsPositive() {
-		query = query.Where("product.price <= ?", filter.MaxPrice)
+	if filter.MaxBuyPrice.IsPositive() {
+		query = query.Where("product.buy_price <= ?", filter.MaxBuyPrice)
+	}
+
+	if filter.MinSellPrice.IsPositive() {
+		query = query.Where("product.sell_price >= ?", filter.MinSellPrice)
+	}
+
+	if filter.MaxSellPrice.IsPositive() {
+		query = query.Where("product.sell_price <= ?", filter.MaxSellPrice)
 	}
 
 	if filter.MinStock > 0 || filter.MaxStock > 0 || filter.SortBy == "stock" {

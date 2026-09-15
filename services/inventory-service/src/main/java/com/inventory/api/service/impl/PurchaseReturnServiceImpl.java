@@ -271,7 +271,7 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             Set<Long> keptIds) {
         PurchaseReturnDetail detail = resolveDetail(reqDetail, existing, keptIds, pr.getId());
         Product product = products.get(reqDetail.getProductId());
-        BigDecimal price = product.getPrice();
+        BigDecimal price = product.getBuyPrice();
 
         detail.setPurchaseReturn(pr);
         detail.setProduct(product);

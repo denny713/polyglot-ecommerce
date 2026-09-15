@@ -16,12 +16,14 @@ func (s service) Search(ctx context.Context, request dto.ProductSearchReq) (dto.
 
 	// Search product by the requested filters
 	products, err := s.products.Search(orm, dto.ProductSearchFilter{
-		Name:        request.Name,
-		Description: request.Description,
-		MinPrice:    request.MinPrice,
-		MaxPrice:    request.MaxPrice,
-		MinStock:    request.MinStock,
-		MaxStock:    request.MaxStock,
+		Name:         request.Name,
+		Description:  request.Description,
+		MinBuyPrice:  request.MinBuyPrice,
+		MaxBuyPrice:  request.MaxBuyPrice,
+		MinSellPrice: request.MinSellPrice,
+		MaxSellPrice: request.MaxSellPrice,
+		MinStock:     request.MinStock,
+		MaxStock:     request.MaxStock,
 		Paging: base.Paging{
 			SortBy:    request.SortBy,
 			SortOrder: request.SortOrder,

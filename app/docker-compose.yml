@@ -24,19 +24,12 @@ services:
       interval: 5s
       timeout: 10s
       retries: 10
-      # A cold first boot has to run initdb and then create-db.sh before the
-      # server listens on TCP at all, which on a slow disk - or while the other
-      # images are still being pulled - takes minutes, not seconds. Failures
-      # inside start_period leave the container `starting` instead of counting
-      # towards `retries`, so this is the window that decides whether keycloak's
-      # `condition: service_healthy` can wait it out: too short and compose
-      # aborts the whole `up` with "container postgres is unhealthy".
       start_period: 300s
     networks:
       - ecommerce
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -58,7 +51,7 @@ services:
       - ecommerce
 
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     container_name: minio-init
     restart: "no"
     environment:

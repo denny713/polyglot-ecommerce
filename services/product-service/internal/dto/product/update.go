@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"errors"
 	"mime/multipart"
 	"path/filepath"
@@ -17,7 +18,8 @@ type (
 		Id          int64
 		Name        string
 		Description string
-		Price       decimal.Decimal
+		BuyPrice    decimal.Decimal
+		SellPrice   decimal.Decimal
 		Image       *multipart.FileHeader
 		CategoryId  *int64
 		SupplierId  *int64
@@ -27,7 +29,8 @@ type (
 		Id          int64           `json:"id"`
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
-		Price       decimal.Decimal `json:"price"`
+		BuyPrice    decimal.Decimal `json:"buy_price"`
+		SellPrice   decimal.Decimal `json:"sell_price"`
 		Stock       int             `json:"stock"`
 		ImageUrl    string          `json:"image_url"`
 		Category    string          `json:"category"`
@@ -42,12 +45,13 @@ type (
 // ToProductModel maps the request object onto the product loaded from the
 // database, so the status flags, the image and the creation trail of the
 // existing row are preserved and only the audit fields are stamped again.
-func (p ProductUpdateReq) ToProductModel(product model.Product) model.Product {
+func (p ProductUpdateReq) ToProductModel(ctx context.Context, product model.Product) model.Product {
 	product.Id = p.Id
 	product.Name = p.Name
 	product.Description = p.Description
-	product.Price = p.Price
-	product.Base = product.Base.Touch()
+	product.BuyPrice = p.BuyPrice
+	product.SellPrice = p.SellPrice
+	product.Base = product.Base.Touch(ctx)
 
 	return product
 }
@@ -58,8 +62,26 @@ func (p ProductUpdateReq) Validate() error {
 		return errors.New("name is required")
 	}
 
-	if p.Price.IsZero() || p.Price.LessThanOrEqual(decimal.Zero) {
-		return errors.New("price is required")
+	// Both relations are dereferenced by the service to read the rows they point
+	// at, so a request that omits one is rejected here rather than panicking.
+	if p.CategoryId == nil {
+		return errors.New("category is required")
+	}
+
+	if p.SupplierId == nil {
+		return errors.New("supplier is required")
+	}
+
+	if p.BuyPrice.IsZero() || p.BuyPrice.LessThanOrEqual(decimal.Zero) {
+		return errors.New("buying price is required")
+	}
+
+	if p.SellPrice.IsZero() || p.SellPrice.LessThanOrEqual(decimal.Zero) {
+		return errors.New("selling price is required")
+	}
+
+	if p.BuyPrice.GreaterThanOrEqual(p.SellPrice) {
+		return errors.New("buy price must be less than sell price")
 	}
 
 	return nil
@@ -89,7 +111,8 @@ func ToProductUpdateRes(product model.Product) ProductUpdateRes {
 		Id:          product.Id,
 		Name:        product.Name,
 		Description: product.Description,
-		Price:       product.Price,
+		BuyPrice:    product.BuyPrice,
+		SellPrice:   product.SellPrice,
 		ImageUrl:    product.ImageURL,
 		IsActive:    product.IsActive,
 		CreatedAt:   product.CreatedAt,

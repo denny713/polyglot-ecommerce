@@ -23,7 +23,8 @@ import (
 // @Produce  json
 // @Param name formData string true "Product name"
 // @Param description formData string false "Product description"
-// @Param price formData number true "Product price"
+// @Param buy_price formData number true "Product buying price from the supplier"
+// @Param sell_price formData number true "Product selling price to the customer"
 // @Param category_id formData number true "Product category"
 // @Param supplier_id formData number true "Product supplier"
 // @Param image formData file false "Product image (jpg, jpeg, png, webp, max 5 MB)"
@@ -90,14 +91,18 @@ func bindProductCreateReq(c *echo.Context) (product.ProductCreateReq, error) {
 		request.SupplierId = &parsedSupplierId
 	}
 
-	if price := strings.TrimSpace(c.FormValue("price")); price != "" {
-		parsedPrice, err := decimal.NewFromString(price)
-		if err != nil {
-			return request, errors.New("price must be a valid number")
-		}
-
-		request.Price = parsedPrice
+	buyPrice, err := decimalFormValue(c, "buy_price")
+	if err != nil {
+		return request, err
 	}
+
+	sellPrice, err := decimalFormValue(c, "sell_price")
+	if err != nil {
+		return request, err
+	}
+
+	request.BuyPrice = buyPrice
+	request.SellPrice = sellPrice
 
 	image, err := c.FormFile("image")
 	if err != nil && !errors.Is(err, http.ErrMissingFile) {
@@ -107,4 +112,19 @@ func bindProductCreateReq(c *echo.Context) (product.ProductCreateReq, error) {
 	request.Image = image
 
 	return request, nil
+}
+
+// decimalFormValue parses a decimal multipart form value, an empty one is zero.
+func decimalFormValue(c *echo.Context, name string) (decimal.Decimal, error) {
+	value := strings.TrimSpace(c.FormValue(name))
+	if value == "" {
+		return decimal.Zero, nil
+	}
+
+	parsed, err := decimal.NewFromString(value)
+	if err != nil {
+		return decimal.Zero, errors.New(name + " must be a valid number")
+	}
+
+	return parsed, nil
 }

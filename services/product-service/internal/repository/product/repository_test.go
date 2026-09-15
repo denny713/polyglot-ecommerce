@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"testing"
@@ -23,9 +24,10 @@ func TestCreate(t *testing.T) {
 	fake.Query(`INSERT INTO "product"`, testutil.Rows("id").Add(int64(11)))
 
 	got, err := NewRepository().Create(orm, model.Product{
-		Name:  "Kipas",
-		Price: decimal.RequireFromString("199.99"),
-		Base:  model.PrePersist(),
+		Name:      "Kipas",
+		BuyPrice:  decimal.RequireFromString("150.00"),
+		SellPrice: decimal.RequireFromString("199.99"),
+		Base:      model.PrePersist(context.Background()),
 	})
 
 	require.NoError(t, err)
@@ -49,8 +51,8 @@ func TestCreateFails(t *testing.T) {
 func TestDetail(t *testing.T) {
 	orm, fake := testutil.NewDB(t)
 	fake.Query(`SELECT \* FROM "product"`,
-		testutil.Rows("id", "name", "price", "category_id", "supplier_id", "is_active", "is_deleted").
-			Add(int64(7), "Kipas", "199.99", int64(3), int64(4), true, false))
+		testutil.Rows("id", "name", "buy_price", "sell_price", "category_id", "supplier_id", "is_active", "is_deleted").
+			Add(int64(7), "Kipas", "150.00", "199.99", int64(3), int64(4), true, false))
 	fake.Query(`FROM "category"`, testutil.Rows("id", "name").Add(int64(3), "Elektronik"))
 	fake.Query(`FROM "supplier"`, testutil.Rows("id", "name").Add(int64(4), "PT Maju"))
 
@@ -58,7 +60,8 @@ func TestDetail(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, int64(7), got.Id)
-	require.True(t, decimal.RequireFromString("199.99").Equal(got.Price))
+	require.True(t, decimal.RequireFromString("150.00").Equal(got.BuyPrice))
+	require.True(t, decimal.RequireFromString("199.99").Equal(got.SellPrice))
 
 	require.Contains(t, fake.Statements()[0].SQL, "id = $1 AND is_deleted = FALSE")
 
@@ -77,8 +80,8 @@ func TestDetail(t *testing.T) {
 func TestDetailWithStockHistory(t *testing.T) {
 	orm, fake := testutil.NewDB(t)
 	fake.Query(`SELECT \* FROM "product"`,
-		testutil.Rows("id", "name", "price", "category_id", "supplier_id", "is_active", "is_deleted").
-			Add(int64(7), "Kipas", "199.99", int64(3), int64(4), true, false))
+		testutil.Rows("id", "name", "buy_price", "sell_price", "category_id", "supplier_id", "is_active", "is_deleted").
+			Add(int64(7), "Kipas", "150.00", "199.99", int64(3), int64(4), true, false))
 	fake.Query(`FROM "category"`, testutil.Rows("id", "name").Add(int64(3), "Elektronik"))
 	fake.Query(`FROM "supplier"`, testutil.Rows("id", "name").Add(int64(4), "PT Maju"))
 	fake.Query(`FROM "stock_position"`, testutil.Rows("id", "product_id", "quantity").Add(int64(1), int64(7), 12))
@@ -157,7 +160,8 @@ func TestUpdate(t *testing.T) {
 	got, err := NewRepository().Update(orm, model.Product{
 		Id:         3,
 		Name:       "Kipas Baru",
-		Price:      decimal.NewFromInt(250),
+		BuyPrice:   decimal.NewFromInt(200),
+		SellPrice:  decimal.NewFromInt(250),
 		ImageURL:   "http://storage.test/bucket/product/1.png",
 		CategoryId: 5,
 		SupplierId: 6,
@@ -174,6 +178,8 @@ func TestUpdate(t *testing.T) {
 	statement := fake.Statements()[0]
 	require.Contains(t, statement.SQL, `UPDATE "product" SET`)
 	require.Contains(t, statement.SQL, "is_deleted = FALSE")
+	require.Contains(t, statement.SQL, "buy_price")
+	require.Contains(t, statement.SQL, "sell_price")
 	require.Contains(t, statement.SQL, "image_url")
 	require.Contains(t, statement.SQL, "category_id")
 	require.Contains(t, statement.SQL, "supplier_id")
@@ -200,13 +206,15 @@ func TestSearchAppliesEveryFilter(t *testing.T) {
 	fake.Query(`FROM "product"`, testutil.Rows("id", "name").Add(int64(1), "Kipas"))
 
 	got, err := NewRepository().Search(orm, product.ProductSearchFilter{
-		Name:        "kipas",
-		Description: "angin",
-		MinPrice:    decimal.NewFromInt(10),
-		MaxPrice:    decimal.NewFromInt(500),
-		MinStock:    1,
-		MaxStock:    99,
-		Paging:      base.Paging{SortBy: "price", SortOrder: "asc", Page: 2, PageSize: 20},
+		Name:         "kipas",
+		Description:  "angin",
+		MinBuyPrice:  decimal.NewFromInt(10),
+		MaxBuyPrice:  decimal.NewFromInt(500),
+		MinSellPrice: decimal.NewFromInt(20),
+		MaxSellPrice: decimal.NewFromInt(900),
+		MinStock:     1,
+		MaxStock:     99,
+		Paging:       base.Paging{SortBy: "buy_price", SortOrder: "asc", Page: 2, PageSize: 20},
 	})
 
 	require.NoError(t, err)
@@ -216,12 +224,14 @@ func TestSearchAppliesEveryFilter(t *testing.T) {
 	require.Contains(t, statement.SQL, "product.is_deleted = FALSE")
 	require.Contains(t, statement.SQL, "product.name ILIKE")
 	require.Contains(t, statement.SQL, "product.description ILIKE")
-	require.Contains(t, statement.SQL, "product.price >=")
-	require.Contains(t, statement.SQL, "product.price <=")
+	require.Contains(t, statement.SQL, "product.buy_price >=")
+	require.Contains(t, statement.SQL, "product.buy_price <=")
+	require.Contains(t, statement.SQL, "product.sell_price >=")
+	require.Contains(t, statement.SQL, "product.sell_price <=")
 	require.Contains(t, statement.SQL, "JOIN stock_position ON stock_position.product_id = product.id")
 	require.Contains(t, statement.SQL, "stock_position.quantity >=")
 	require.Contains(t, statement.SQL, "stock_position.quantity <=")
-	require.Contains(t, statement.SQL, "ORDER BY product.price ASC")
+	require.Contains(t, statement.SQL, "ORDER BY product.buy_price ASC")
 	require.Contains(t, statement.SQL, "LIMIT")
 	require.Contains(t, statement.SQL, "OFFSET")
 }
@@ -237,7 +247,8 @@ func TestSearchWithoutFilters(t *testing.T) {
 
 	statement := fake.Statements()[0]
 	require.NotContains(t, statement.SQL, "ILIKE")
-	require.NotContains(t, statement.SQL, "product.price")
+	require.NotContains(t, statement.SQL, "product.buy_price")
+	require.NotContains(t, statement.SQL, "product.sell_price")
 	require.NotContains(t, statement.SQL, "JOIN stock_position")
 	require.Contains(t, statement.SQL, "ORDER BY product.id DESC")
 }
@@ -273,12 +284,15 @@ func TestSearchIgnoresANegativePriceFilter(t *testing.T) {
 	// Only a positive bound narrows the query, a zero or negative one is no
 	// filter at all.
 	_, err := NewRepository().Search(orm, product.ProductSearchFilter{
-		MinPrice: decimal.NewFromInt(-10),
-		MaxPrice: decimal.Zero,
+		MinBuyPrice:  decimal.NewFromInt(-10),
+		MaxBuyPrice:  decimal.Zero,
+		MinSellPrice: decimal.NewFromInt(-10),
+		MaxSellPrice: decimal.Zero,
 	})
 
 	require.NoError(t, err)
-	require.NotContains(t, fake.Statements()[0].SQL, "product.price")
+	require.NotContains(t, fake.Statements()[0].SQL, "product.buy_price")
+	require.NotContains(t, fake.Statements()[0].SQL, "product.sell_price")
 }
 
 func TestSearchFails(t *testing.T) {
@@ -295,7 +309,8 @@ func TestSortColumns(t *testing.T) {
 	require.Equal(t, map[string]string{
 		"id":         "product.id",
 		"name":       "product.name",
-		"price":      "product.price",
+		"buy_price":  "product.buy_price",
+		"sell_price": "product.sell_price",
 		"stock":      "stock_position.quantity",
 		"created_at": "product.created_at",
 		"updated_at": "product.updated_at",

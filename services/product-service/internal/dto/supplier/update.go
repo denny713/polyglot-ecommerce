@@ -1,6 +1,7 @@
 package supplier
 
 import (
+	"context"
 	"errors"
 	"product-service/internal/model"
 	"time"
@@ -44,7 +45,7 @@ type (
 // ToObjectModel maps the request object onto the supplier loaded from the
 // database, so the status flags and the creation trail of the existing row are
 // preserved and only the audit fields are stamped again.
-func (s SupplierUpdateReq) ToObjectModel(supplier model.Supplier) model.Supplier {
+func (s SupplierUpdateReq) ToObjectModel(ctx context.Context, supplier model.Supplier) model.Supplier {
 	supplier.Id = s.Id
 	supplier.Name = s.Name
 	supplier.Phone = s.Phone
@@ -57,7 +58,7 @@ func (s SupplierUpdateReq) ToObjectModel(supplier model.Supplier) model.Supplier
 	supplier.Subdistrict = s.Subdistrict
 	supplier.PostalCode = s.PostalCode
 	supplier.Note = s.Note
-	supplier.Base = supplier.Base.Touch()
+	supplier.Base = supplier.Base.Touch(ctx)
 
 	return supplier
 }

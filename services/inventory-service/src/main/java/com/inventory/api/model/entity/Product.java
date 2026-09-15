@@ -37,8 +37,11 @@ public class Product extends Base {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "price")
-    private BigDecimal price;
+    @Column(name = "buy_price")
+    private BigDecimal buyPrice;
+
+    @Column(name = "sell_price")
+    private BigDecimal sellPrice;
 
     @Column(name = "image_url")
     private String imageUrl;

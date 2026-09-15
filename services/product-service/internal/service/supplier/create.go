@@ -11,7 +11,7 @@ func (s service) Create(ctx context.Context, request dto.SupplierCreateReq) (dto
 	orm := s.db.Orm(ctx)
 
 	// Submit new supplier
-	supplier, err := s.suppliers.Create(orm, request.ToObjectModel())
+	supplier, err := s.suppliers.Create(orm, request.ToObjectModel(ctx))
 	if err != nil {
 		return dto.SupplierCreateRes{}, err
 	}

@@ -11,7 +11,7 @@ func (s service) Create(ctx context.Context, request dto.CategoryCreateReq) (dto
 	orm := s.db.Orm(ctx)
 
 	// Submit new category
-	category, err := s.categories.Create(orm, request.ToObjectModel())
+	category, err := s.categories.Create(orm, request.ToObjectModel(ctx))
 	if err != nil {
 		return dto.CategoryCreateRes{}, err
 	}

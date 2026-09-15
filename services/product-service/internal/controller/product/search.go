@@ -15,17 +15,19 @@ import (
 
 // Search godoc
 // @Summary Search products
-// @Description Search products by name and description (ILIKE), price range and stock range.
+// @Description Search products by name and description (ILIKE), buy price range, sell price range and stock range.
 // @Tags Product
 // @Accept  json
 // @Produce  json
 // @Param name query string false "Product name, matched partially"
 // @Param description query string false "Product description, matched partially"
-// @Param min_price query number false "Minimum product price"
-// @Param max_price query number false "Maximum product price"
+// @Param min_buy_price query number false "Minimum product buying price"
+// @Param max_buy_price query number false "Maximum product buying price"
+// @Param min_sell_price query number false "Minimum product selling price"
+// @Param max_sell_price query number false "Maximum product selling price"
 // @Param min_stock query integer false "Minimum stock quantity"
 // @Param max_stock query integer false "Maximum stock quantity"
-// @Param sort_by query string false "Sort field" Enums(id, name, price, stock, created_at, updated_at)
+// @Param sort_by query string false "Sort field" Enums(id, name, buy_price, sell_price, stock, created_at, updated_at)
 // @Param sort_order query string false "Sort direction" Enums(asc, desc)
 // @Param page query integer false "Page number, starts at 1"
 // @Param page_size query integer false "Rows per page, max 100"
@@ -68,12 +70,22 @@ func bindProductSearchReq(c *echo.Context) (product.ProductSearchReq, error) {
 	request.SortBy = strings.TrimSpace(c.QueryParam("sort_by"))
 	request.SortOrder = strings.TrimSpace(c.QueryParam("sort_order"))
 
-	minPrice, err := util.DecimalQueryParam(c, "min_price")
+	minBuyPrice, err := util.DecimalQueryParam(c, "min_buy_price")
 	if err != nil {
 		return request, err
 	}
 
-	maxPrice, err := util.DecimalQueryParam(c, "max_price")
+	maxBuyPrice, err := util.DecimalQueryParam(c, "max_buy_price")
+	if err != nil {
+		return request, err
+	}
+
+	minSellPrice, err := util.DecimalQueryParam(c, "min_sell_price")
+	if err != nil {
+		return request, err
+	}
+
+	maxSellPrice, err := util.DecimalQueryParam(c, "max_sell_price")
 	if err != nil {
 		return request, err
 	}
@@ -98,8 +110,10 @@ func bindProductSearchReq(c *echo.Context) (product.ProductSearchReq, error) {
 		return request, err
 	}
 
-	request.MinPrice = minPrice
-	request.MaxPrice = maxPrice
+	request.MinBuyPrice = minBuyPrice
+	request.MaxBuyPrice = maxBuyPrice
+	request.MinSellPrice = minSellPrice
+	request.MaxSellPrice = maxSellPrice
 	request.MinStock = minStock
 	request.MaxStock = maxStock
 	request.Page = page

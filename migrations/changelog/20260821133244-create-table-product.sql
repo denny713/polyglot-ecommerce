@@ -14,12 +14,15 @@ CREATE TABLE IF NOT EXISTS product
     updated_at  TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
     name        VARCHAR(100)   NOT NULL,
     description TEXT,
-    price       DECIMAL(10, 2) NOT NULL,
+    buy_price   DECIMAL(10, 2) NOT NULL,
+    sell_price  DECIMAL(10, 2) NOT NULL,
     image_url   TEXT,
     category_id BIGINT         NOT NULL REFERENCES category (id) ON DELETE CASCADE,
     supplier_id BIGINT         NOT NULL REFERENCES supplier (id) ON DELETE CASCADE,
 
-    CONSTRAINT chk_product_price CHECK (price >= 0)
+    CONSTRAINT chk_product_buy_price CHECK (buy_price > 0),
+    CONSTRAINT chk_product_sell_price CHECK (sell_price > 0),
+    CONSTRAINT chk_product_margin CHECK (sell_price > buy_price)
 );
 
 CREATE INDEX IF NOT EXISTS idx_product_name ON product (name);

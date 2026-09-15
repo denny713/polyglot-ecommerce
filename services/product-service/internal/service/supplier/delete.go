@@ -26,7 +26,7 @@ func (s service) Delete(ctx context.Context, request dto.SupplierDeleteReq) (dto
 
 	// Delete supplier
 	supplier.IsDeleted = true
-	supplier.Base = supplier.Base.Touch()
+	supplier.Base = supplier.Base.Touch(ctx)
 	_, err = s.suppliers.Update(orm, supplier)
 	if err != nil {
 		return dto.SupplierDeleteRes{}, err

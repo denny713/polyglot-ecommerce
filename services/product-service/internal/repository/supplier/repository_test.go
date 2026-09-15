@@ -1,6 +1,7 @@
 package supplier
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -20,7 +21,7 @@ func TestCreate(t *testing.T) {
 	orm, fake := testutil.NewDB(t)
 	fake.Query(`INSERT INTO "supplier"`, testutil.Rows("id").Add(int64(11)))
 
-	got, err := NewRepository().Create(orm, model.Supplier{Name: "PT Maju", Base: model.PrePersist()})
+	got, err := NewRepository().Create(orm, model.Supplier{Name: "PT Maju", Base: model.PrePersist(context.Background())})
 
 	require.NoError(t, err)
 	require.Equal(t, int64(11), got.Id)

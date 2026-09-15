@@ -1,10 +1,12 @@
 package supplier
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
+	"product-service/internal/account"
 	"product-service/internal/constant"
 	"product-service/internal/dto/base"
 	"product-service/internal/model"
@@ -12,6 +14,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
+
+// caller is the account the token middleware would have put on the context, the
+// subject of the verified access token the request carried.
+var caller = uuid.MustParse("9a7c1d2e-0000-4000-8000-00000000009a")
+
+func callerContext() context.Context {
+	return account.WithUserLogin(context.Background(), caller)
+}
 
 func sampleSupplier() model.Supplier {
 	created := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
@@ -55,7 +65,7 @@ func validCreateReq() SupplierCreateReq {
 
 func TestCreateReqToObjectModel(t *testing.T) {
 	before := time.Now()
-	got := validCreateReq().ToObjectModel()
+	got := validCreateReq().ToObjectModel(callerContext())
 
 	require.Equal(t, "PT Maju", got.Name)
 	require.Equal(t, "sales@maju.test", got.Email)
@@ -65,6 +75,10 @@ func TestCreateReqToObjectModel(t *testing.T) {
 	require.Equal(t, "Pemasok utama", got.Note)
 	require.True(t, got.IsActive)
 	require.False(t, got.CreatedAt.Before(before))
+
+	// The row is audited to the account the access token was issued for.
+	require.Equal(t, caller, got.CreatedBy)
+	require.Equal(t, caller, got.UpdatedBy)
 }
 
 func TestCreateReqValidate(t *testing.T) {
@@ -216,7 +230,7 @@ func TestUpdateReqToObjectModel(t *testing.T) {
 		Subdistrict:   "Dago",
 		PostalCode:    "40135",
 		Note:          "Alamat baru",
-	}.ToObjectModel(existing)
+	}.ToObjectModel(callerContext(), existing)
 
 	require.Equal(t, "PT Maju Jaya", got.Name)
 	require.Equal(t, "info@maju.test", got.Email)
@@ -227,7 +241,7 @@ func TestUpdateReqToObjectModel(t *testing.T) {
 	require.True(t, got.IsActive)
 	require.Equal(t, actor, got.CreatedBy)
 	require.Equal(t, existing.CreatedAt, got.CreatedAt)
-	require.NotEqual(t, uuid.Nil, got.UpdatedBy)
+	require.Equal(t, caller, got.UpdatedBy)
 	require.False(t, got.UpdatedAt.Before(before))
 }
 

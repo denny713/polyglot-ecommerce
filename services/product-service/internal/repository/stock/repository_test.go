@@ -1,6 +1,7 @@
 package stock
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -24,7 +25,7 @@ func TestCreate(t *testing.T) {
 	got, err := NewRepository().Create(orm, model.StockPosition{
 		ProductId: 7,
 		Quantity:  0,
-		Base:      model.PrePersist(),
+		Base:      model.PrePersist(context.Background()),
 	})
 
 	require.NoError(t, err)

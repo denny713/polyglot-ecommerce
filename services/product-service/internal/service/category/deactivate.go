@@ -31,7 +31,7 @@ func (s service) Deactivate(ctx context.Context, request dto.CategoryDeactivateR
 
 	// Update category status to inactive
 	category.IsActive = false
-	category.Base = category.Base.Touch()
+	category.Base = category.Base.Touch(ctx)
 	_, err = s.categories.Update(orm, category)
 	if err != nil {
 		return dto.CategoryDeactivateRes{}, err

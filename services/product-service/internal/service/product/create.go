@@ -43,7 +43,7 @@ func (s service) Create(ctx context.Context, request dto.ProductCreateReq) (dto.
 		return dto.ProductCreateRes{}, err
 	}
 
-	newProduct := request.ToObjectModel()
+	newProduct := request.ToObjectModel(ctx)
 
 	// The image is uploaded before the row is written, so the image_url stored on
 	// the product is the object that really ended up in the bucket.
@@ -71,7 +71,7 @@ func (s service) Create(ctx context.Context, request dto.ProductCreateReq) (dto.
 		_, err = s.stockPosition.Create(tx, model.StockPosition{
 			ProductId: created.Id,
 			Quantity:  0,
-			Base:      model.PrePersist(),
+			Base:      model.PrePersist(ctx),
 		})
 
 		return err

@@ -31,7 +31,7 @@ func (s service) Activate(ctx context.Context, request dto.CategoryActivateReq) 
 
 	// Update category status to active
 	category.IsActive = true
-	category.Base = category.Base.Touch()
+	category.Base = category.Base.Touch(ctx)
 	_, err = s.categories.Update(orm, category)
 	if err != nil {
 		return dto.CategoryActivateRes{}, err

@@ -1,11 +1,13 @@
 package product
 
 import (
+	"context"
 	"mime/multipart"
 	"net/textproto"
 	"testing"
 	"time"
 
+	"product-service/internal/account"
 	"product-service/internal/constant"
 	"product-service/internal/dto/base"
 	"product-service/internal/model"
@@ -14,6 +16,14 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
+
+// caller is the account the token middleware would have put on the context, the
+// subject of the verified access token the request carried.
+var caller = uuid.MustParse("9a7c1d2e-0000-4000-8000-00000000009a")
+
+func callerContext() context.Context {
+	return account.WithUserLogin(context.Background(), caller)
+}
 
 func id(value int64) *int64 {
 	return &value
@@ -34,7 +44,8 @@ func sampleProduct() model.Product {
 		Id:          7,
 		Name:        "Kipas Angin",
 		Description: "Kipas angin berdiri",
-		Price:       decimal.RequireFromString("199.99"),
+		BuyPrice:    decimal.RequireFromString("150.00"),
+		SellPrice:   decimal.RequireFromString("199.99"),
 		ImageURL:    "http://storage.test/bucket/product/1.png",
 		CategoryId:  3,
 		SupplierId:  4,
@@ -53,20 +64,28 @@ func TestCreateReqToObjectModel(t *testing.T) {
 	got := ProductCreateReq{
 		Name:        "Kipas",
 		Description: "Kipas angin",
-		Price:       decimal.NewFromInt(100),
+		BuyPrice:    decimal.NewFromInt(80),
+		SellPrice:   decimal.NewFromInt(100),
 		CategoryId:  id(3),
 		SupplierId:  id(4),
-	}.ToObjectModel()
+	}.ToObjectModel(callerContext())
 
 	require.Equal(t, "Kipas", got.Name)
+	require.True(t, decimal.NewFromInt(80).Equal(got.BuyPrice))
+	require.True(t, decimal.NewFromInt(100).Equal(got.SellPrice))
 	require.Equal(t, int64(3), got.CategoryId)
 	require.Equal(t, int64(4), got.SupplierId)
 	require.True(t, got.IsActive)
 	require.False(t, got.CreatedAt.Before(before))
 
+	// The row is audited to the account the access token was issued for.
+	require.Equal(t, caller, got.CreatedBy)
+	require.Equal(t, caller, got.UpdatedBy)
+
 	// A request without a relation leaves the foreign key at zero rather than
 	// dereferencing a nil pointer.
-	bare := ProductCreateReq{Name: "Kipas", Price: decimal.NewFromInt(1)}.ToObjectModel()
+	bare := ProductCreateReq{Name: "Kipas", BuyPrice: decimal.NewFromInt(1), SellPrice: decimal.NewFromInt(2)}.
+		ToObjectModel(callerContext())
 	require.Zero(t, bare.CategoryId)
 	require.Zero(t, bare.SupplierId)
 }
@@ -74,7 +93,8 @@ func TestCreateReqToObjectModel(t *testing.T) {
 func TestCreateReqValidate(t *testing.T) {
 	valid := ProductCreateReq{
 		Name:       "Kipas",
-		Price:      decimal.NewFromInt(100),
+		BuyPrice:   decimal.NewFromInt(80),
+		SellPrice:  decimal.NewFromInt(100),
 		CategoryId: id(3),
 		SupplierId: id(4),
 	}
@@ -97,14 +117,36 @@ func TestCreateReqValidate(t *testing.T) {
 			wantErr: "supplier is required",
 		},
 		{
-			name:    "a zero price is rejected",
-			mutate:  func(r *ProductCreateReq) { r.Price = decimal.Zero },
-			wantErr: "price is required",
+			name:    "a zero buy price is rejected",
+			mutate:  func(r *ProductCreateReq) { r.BuyPrice = decimal.Zero },
+			wantErr: "buy price is required",
 		},
 		{
-			name:    "a negative price is rejected",
-			mutate:  func(r *ProductCreateReq) { r.Price = decimal.NewFromInt(-1) },
-			wantErr: "price is required",
+			name:    "a negative buy price is rejected",
+			mutate:  func(r *ProductCreateReq) { r.BuyPrice = decimal.NewFromInt(-1) },
+			wantErr: "buy price is required",
+		},
+		{
+			name:    "a zero sell price is rejected",
+			mutate:  func(r *ProductCreateReq) { r.SellPrice = decimal.Zero },
+			wantErr: "sell price is required",
+		},
+		{
+			name:    "a negative sell price is rejected",
+			mutate:  func(r *ProductCreateReq) { r.SellPrice = decimal.NewFromInt(-1) },
+			wantErr: "sell price is required",
+		},
+		{
+			// The margin the product is sold on is the difference between the two,
+			// so a buy price that reaches the sell price leaves nothing to earn.
+			name:    "a buy price above the sell price is rejected",
+			mutate:  func(r *ProductCreateReq) { r.BuyPrice = decimal.NewFromInt(120) },
+			wantErr: "buy price must be less than sell price",
+		},
+		{
+			name:    "a buy price equal to the sell price is rejected",
+			mutate:  func(r *ProductCreateReq) { r.BuyPrice = r.SellPrice },
+			wantErr: "buy price must be less than sell price",
 		},
 	}
 
@@ -188,7 +230,8 @@ func TestToProductCreateRes(t *testing.T) {
 
 	require.Equal(t, int64(7), got.Id)
 	require.Equal(t, "Kipas Angin", got.Name)
-	require.True(t, product.Price.Equal(got.Price))
+	require.True(t, product.BuyPrice.Equal(got.BuyPrice))
+	require.True(t, product.SellPrice.Equal(got.SellPrice))
 	require.Equal(t, product.ImageURL, got.ImageUrl)
 	require.Equal(t, "Elektronik", got.Category)
 	require.Equal(t, "PT Maju", got.Supplier)
@@ -242,31 +285,63 @@ func TestSearchReqValidate(t *testing.T) {
 		{
 			name: "a complete request is accepted",
 			given: ProductSearchReq{
-				MinPrice: decimal.NewFromInt(10),
-				MaxPrice: decimal.NewFromInt(20),
-				MinStock: 1,
-				MaxStock: 5,
-				Paging:   base.Paging{SortBy: "PRICE", SortOrder: "DESC", Page: 1, PageSize: 10},
+				MinBuyPrice:  decimal.NewFromInt(10),
+				MaxBuyPrice:  decimal.NewFromInt(20),
+				MinSellPrice: decimal.NewFromInt(30),
+				MaxSellPrice: decimal.NewFromInt(40),
+				MinStock:     1,
+				MaxStock:     5,
+				Paging:       base.Paging{SortBy: "BUY_PRICE", SortOrder: "DESC", Page: 1, PageSize: 10},
 			},
 		},
 		{
-			name:    "a negative min price is rejected",
-			given:   ProductSearchReq{MinPrice: decimal.NewFromInt(-1)},
-			wantErr: "price filter must not be negative",
+			name:    "a negative min buy price is rejected",
+			given:   ProductSearchReq{MinBuyPrice: decimal.NewFromInt(-1)},
+			wantErr: "buy price filter must not be negative",
 		},
 		{
-			name:    "a negative max price is rejected",
-			given:   ProductSearchReq{MaxPrice: decimal.NewFromInt(-1)},
-			wantErr: "price filter must not be negative",
+			name:    "a negative max buy price is rejected",
+			given:   ProductSearchReq{MaxBuyPrice: decimal.NewFromInt(-1)},
+			wantErr: "buy price filter must not be negative",
 		},
 		{
-			name:    "an inverted price range is rejected",
-			given:   ProductSearchReq{MinPrice: decimal.NewFromInt(30), MaxPrice: decimal.NewFromInt(20)},
-			wantErr: "min_price must not be greater than max_price",
+			name:    "an inverted buy price range is rejected",
+			given:   ProductSearchReq{MinBuyPrice: decimal.NewFromInt(30), MaxBuyPrice: decimal.NewFromInt(20)},
+			wantErr: "min_buy_price must not be greater than max_buy_price",
 		},
 		{
-			name:  "a min price without a max one is accepted",
-			given: ProductSearchReq{MinPrice: decimal.NewFromInt(30)},
+			name:  "a min buy price without a max one is accepted",
+			given: ProductSearchReq{MinBuyPrice: decimal.NewFromInt(30)},
+		},
+		{
+			name:    "a negative min sell price is rejected",
+			given:   ProductSearchReq{MinSellPrice: decimal.NewFromInt(-1)},
+			wantErr: "sell price filter must not be negative",
+		},
+		{
+			name:    "a negative max sell price is rejected",
+			given:   ProductSearchReq{MaxSellPrice: decimal.NewFromInt(-1)},
+			wantErr: "sell price filter must not be negative",
+		},
+		{
+			name:    "an inverted sell price range is rejected",
+			given:   ProductSearchReq{MinSellPrice: decimal.NewFromInt(30), MaxSellPrice: decimal.NewFromInt(20)},
+			wantErr: "min_sell_price must not be greater than max_sell_price",
+		},
+		{
+			name:  "a min sell price without a max one is accepted",
+			given: ProductSearchReq{MinSellPrice: decimal.NewFromInt(30)},
+		},
+		{
+			// The two ranges are independent filters, a buy range that sits above
+			// the sell range narrows the result rather than failing the request.
+			name: "the buy and the sell range are validated on their own",
+			given: ProductSearchReq{
+				MinBuyPrice:  decimal.NewFromInt(100),
+				MaxBuyPrice:  decimal.NewFromInt(200),
+				MinSellPrice: decimal.NewFromInt(10),
+				MaxSellPrice: decimal.NewFromInt(20),
+			},
 		},
 		{
 			name:    "a negative min stock is rejected",
@@ -290,7 +365,7 @@ func TestSearchReqValidate(t *testing.T) {
 		{
 			name:    "an unknown sortBy is rejected",
 			given:   ProductSearchReq{Paging: base.Paging{SortBy: "password"}},
-			wantErr: "sort_by must be one of id, name, price, stock, created_at, or updated_at",
+			wantErr: "sort_by must be one of id, name, buy_price, sell_price, stock, created_at, or updated_at",
 		},
 		{
 			name:    "an unknown sortOrder is rejected",
@@ -327,12 +402,12 @@ func TestSearchReqNormalize(t *testing.T) {
 	got := ProductSearchReq{
 		Name:        "  kipas  ",
 		Description: "  angin  ",
-		Paging:      base.Paging{SortBy: "PRICE", SortOrder: "ASC", Page: 3, PageSize: 200},
+		Paging:      base.Paging{SortBy: "SELL_PRICE", SortOrder: "ASC", Page: 3, PageSize: 200},
 	}.Normalize()
 
 	require.Equal(t, "kipas", got.Name)
 	require.Equal(t, "angin", got.Description)
-	require.Equal(t, "price", got.SortBy)
+	require.Equal(t, "sell_price", got.SortBy)
 	require.Equal(t, constant.SortOrderAsc, got.SortOrder)
 	require.Equal(t, 3, got.Page)
 	require.Equal(t, constant.MaxPageSize, got.PageSize)
@@ -349,28 +424,74 @@ func TestUpdateReqToProductModel(t *testing.T) {
 		Id:          7,
 		Name:        "Kipas Baru",
 		Description: "Deskripsi baru",
-		Price:       decimal.NewFromInt(250),
-	}.ToProductModel(existing)
+		BuyPrice:    decimal.NewFromInt(200),
+		SellPrice:   decimal.NewFromInt(250),
+	}.ToProductModel(callerContext(), existing)
 
 	require.Equal(t, int64(7), got.Id)
 	require.Equal(t, "Kipas Baru", got.Name)
-	require.True(t, decimal.NewFromInt(250).Equal(got.Price))
+	require.True(t, decimal.NewFromInt(200).Equal(got.BuyPrice))
+	require.True(t, decimal.NewFromInt(250).Equal(got.SellPrice))
 
 	// The image and the status flags the row already carries are preserved, only
 	// the audit trail is stamped again.
 	require.Equal(t, existing.ImageURL, got.ImageURL)
 	require.True(t, got.IsActive)
 	require.Equal(t, actor, got.CreatedBy)
-	require.NotEqual(t, uuid.Nil, got.UpdatedBy)
+	require.Equal(t, caller, got.UpdatedBy)
 	require.False(t, got.UpdatedAt.Before(before))
 }
 
 func TestUpdateReqValidate(t *testing.T) {
-	require.NoError(t, ProductUpdateReq{Name: "Kipas", Price: decimal.NewFromInt(1)}.Validate())
-	require.EqualError(t, ProductUpdateReq{Price: decimal.NewFromInt(1)}.Validate(), "name is required")
-	require.EqualError(t, ProductUpdateReq{Name: "Kipas"}.Validate(), "price is required")
-	require.EqualError(t, ProductUpdateReq{Name: "Kipas", Price: decimal.NewFromInt(-5)}.Validate(),
-		"price is required")
+	valid := ProductUpdateReq{
+		Name:       "Kipas",
+		BuyPrice:   decimal.NewFromInt(1),
+		SellPrice:  decimal.NewFromInt(2),
+		CategoryId: id(3),
+		SupplierId: id(4),
+	}
+
+	require.NoError(t, valid.Validate())
+
+	missingName := valid
+	missingName.Name = ""
+	require.EqualError(t, missingName.Validate(), "name is required")
+
+	// The service reads the rows both relations point at, so a request that omits
+	// one is rejected rather than dereferenced.
+	missingCategory := valid
+	missingCategory.CategoryId = nil
+	require.EqualError(t, missingCategory.Validate(), "category is required")
+
+	missingSupplier := valid
+	missingSupplier.SupplierId = nil
+	require.EqualError(t, missingSupplier.Validate(), "supplier is required")
+
+	missingBuy := valid
+	missingBuy.BuyPrice = decimal.Zero
+	require.EqualError(t, missingBuy.Validate(), "buying price is required")
+
+	negativeBuy := valid
+	negativeBuy.BuyPrice = decimal.NewFromInt(-5)
+	require.EqualError(t, negativeBuy.Validate(), "buying price is required")
+
+	missingSell := valid
+	missingSell.SellPrice = decimal.Zero
+	require.EqualError(t, missingSell.Validate(), "selling price is required")
+
+	negativeSell := valid
+	negativeSell.SellPrice = decimal.NewFromInt(-5)
+	require.EqualError(t, negativeSell.Validate(), "selling price is required")
+
+	// The margin the product is sold on is the difference between the two, so a
+	// buy price that reaches the sell price leaves nothing to earn.
+	noMargin := valid
+	noMargin.BuyPrice = noMargin.SellPrice
+	require.EqualError(t, noMargin.Validate(), "buy price must be less than sell price")
+
+	inverted := valid
+	inverted.BuyPrice = decimal.NewFromInt(3)
+	require.EqualError(t, inverted.Validate(), "buy price must be less than sell price")
 }
 
 func TestToProductUpdateRes(t *testing.T) {
@@ -378,6 +499,8 @@ func TestToProductUpdateRes(t *testing.T) {
 	got := ToProductUpdateRes(product)
 
 	require.Equal(t, int64(7), got.Id)
+	require.True(t, product.BuyPrice.Equal(got.BuyPrice))
+	require.True(t, product.SellPrice.Equal(got.SellPrice))
 	require.Equal(t, "Elektronik", got.Category)
 	require.Equal(t, "PT Maju", got.Supplier)
 	require.Equal(t, product.ImageURL, got.ImageUrl)
@@ -403,11 +526,12 @@ func TestStatusMappers(t *testing.T) {
 func TestAllowedSortBy(t *testing.T) {
 	allowed := allowedSortBy()
 
-	for _, field := range []string{"id", "name", "price", "stock", "created_at", "updated_at"} {
+	for _, field := range []string{"id", "name", "buy_price", "sell_price", "stock", "created_at", "updated_at"} {
 		require.True(t, allowed[field], field)
 	}
 
 	require.False(t, allowed["description"])
+	require.False(t, allowed["price"])
 }
 
 // historyProduct is a product carrying one movement from a purchase order and
@@ -422,7 +546,8 @@ func historyProduct() model.Product {
 		Id:          7,
 		Name:        "Kipas Angin",
 		Description: "Kipas angin berdiri",
-		Price:       decimal.RequireFromString("199.99"),
+		BuyPrice:    decimal.RequireFromString("150.00"),
+		SellPrice:   decimal.RequireFromString("199.99"),
 		ImageURL:    "http://storage.test/bucket/product/kipas.png",
 		Base: model.Base{
 			IsActive:  true,
@@ -500,7 +625,8 @@ func TestToProductHistoryRes(t *testing.T) {
 	require.Equal(t, int64(7), got.Id)
 	require.Equal(t, "Kipas Angin", got.Name)
 	require.Equal(t, "Kipas angin berdiri", got.Description)
-	require.True(t, decimal.RequireFromString("199.99").Equal(got.Price))
+	require.True(t, decimal.RequireFromString("150.00").Equal(got.BuyPrice))
+	require.True(t, decimal.RequireFromString("199.99").Equal(got.SellPrice))
 	require.Equal(t, "http://storage.test/bucket/product/kipas.png", got.ImageUrl)
 	require.True(t, got.IsActive)
 	require.False(t, got.IsDeleted)

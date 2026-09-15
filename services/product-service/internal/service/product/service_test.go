@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"product-service/internal/account"
 	"product-service/internal/constant"
 	"product-service/internal/dto/base"
 	dto "product-service/internal/dto/product"
@@ -29,6 +30,17 @@ var (
 // existingActor is the audit trail a row loaded from the database already
 // carries, the writes under test have to leave it on CreatedBy.
 var existingActor = uuid.MustParse("2b1f8f4a-0000-4000-8000-00000000002a")
+
+// caller is the account the token middleware puts on the request context, the
+// subject of the verified access token. The writes under test have to stamp it
+// on the rows they audit.
+var caller = uuid.MustParse("9a7c1d2e-0000-4000-8000-00000000009a")
+
+// callerContext is the context a request that went through the authorization
+// middleware arrives with.
+func callerContext() context.Context {
+	return account.WithUserLogin(context.Background(), caller)
+}
 
 // repositories gathers the doubles a product service is built on, so a test can
 // reach the one it wants to script.
@@ -85,7 +97,8 @@ func existingProduct() model.Product {
 		Id:          7,
 		Name:        "Kipas Angin",
 		Description: "Kipas angin berdiri",
-		Price:       decimal.RequireFromString("199.99"),
+		BuyPrice:    decimal.RequireFromString("150.00"),
+		SellPrice:   decimal.RequireFromString("199.99"),
 		ImageURL:    "http://storage.test/bucket/product/lama.png",
 		CategoryId:  3,
 		SupplierId:  4,
@@ -134,7 +147,8 @@ func createReq(image *multipart.FileHeader) dto.ProductCreateReq {
 	return dto.ProductCreateReq{
 		Name:        "Kipas Angin",
 		Description: "Kipas angin berdiri",
-		Price:       decimal.RequireFromString("199.99"),
+		BuyPrice:    decimal.RequireFromString("150.00"),
+		SellPrice:   decimal.RequireFromString("199.99"),
 		Image:       image,
 		CategoryId:  id(3),
 		SupplierId:  id(4),
@@ -146,7 +160,8 @@ func updateReq(image *multipart.FileHeader) dto.ProductUpdateReq {
 		Id:          7,
 		Name:        "Kipas Angin Baru",
 		Description: "Deskripsi baru",
-		Price:       decimal.RequireFromString("249.99"),
+		BuyPrice:    decimal.RequireFromString("180.00"),
+		SellPrice:   decimal.RequireFromString("249.99"),
 		Image:       image,
 		CategoryId:  id(3),
 		SupplierId:  id(4),
@@ -161,7 +176,7 @@ func TestCreate(t *testing.T) {
 		return product, nil
 	}
 
-	got, err := service.Create(context.Background(), createReq(nil))
+	got, err := service.Create(callerContext(), createReq(nil))
 
 	require.NoError(t, err)
 	require.Equal(t, int64(11), got.Id)
@@ -193,7 +208,7 @@ func TestCreateOpensTheStockPosition(t *testing.T) {
 		return product, nil
 	}
 
-	_, err := service.Create(context.Background(), createReq(nil))
+	_, err := service.Create(callerContext(), createReq(nil))
 
 	require.NoError(t, err)
 
@@ -210,8 +225,8 @@ func TestCreateOpensTheStockPosition(t *testing.T) {
 	// 0001 timestamp, and the inventory service shares this table.
 	require.True(t, position.IsActive)
 	require.False(t, position.IsDeleted)
-	require.NotEqual(t, uuid.Nil, position.CreatedBy)
-	require.NotEqual(t, uuid.Nil, position.UpdatedBy)
+	require.Equal(t, caller, position.CreatedBy)
+	require.Equal(t, caller, position.UpdatedBy)
 	require.False(t, position.CreatedAt.IsZero())
 	require.False(t, position.UpdatedAt.IsZero())
 
@@ -225,7 +240,7 @@ func TestCreateWritesNoStockPositionWhenTheProductFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	got, err := service.Create(context.Background(), createReq(nil))
+	got, err := service.Create(callerContext(), createReq(nil))
 
 	// The failure of the first write is what the caller sees, and the position is
 	// never opened against a product that does not exist.
@@ -243,7 +258,7 @@ func TestCreateReportsTheProductFailureEvenWhenTheStockPositionWouldSucceed(t *t
 		return position, nil
 	}
 
-	_, err := service.Create(context.Background(), createReq(nil))
+	_, err := service.Create(callerContext(), createReq(nil))
 
 	// A second write that would have succeeded must not overwrite the error the
 	// first one raised, which is how a failed insert once read as a success.
@@ -259,7 +274,7 @@ func TestCreateWhenTheStockPositionFails(t *testing.T) {
 		return model.StockPosition{}, errDatabase
 	}
 
-	got, err := service.Create(context.Background(), createReq(uploadedImage()))
+	got, err := service.Create(callerContext(), createReq(uploadedImage()))
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, dto.ProductCreateRes{}, got)
@@ -276,7 +291,7 @@ func TestCreateWithAnImage(t *testing.T) {
 		return "product/baru.png", nil
 	}
 
-	got, err := service.Create(context.Background(), createReq(uploadedImage()))
+	got, err := service.Create(callerContext(), createReq(uploadedImage()))
 
 	require.NoError(t, err)
 
@@ -297,7 +312,7 @@ func TestCreateWithAnUnknownCategory(t *testing.T) {
 		return model.Category{}, gorm.ErrRecordNotFound
 	}
 
-	got, err := service.Create(context.Background(), createReq(uploadedImage()))
+	got, err := service.Create(callerContext(), createReq(uploadedImage()))
 
 	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	require.Equal(t, dto.ProductCreateRes{}, got)
@@ -315,7 +330,7 @@ func TestCreateWithAnUnknownSupplier(t *testing.T) {
 		return model.Supplier{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Create(context.Background(), createReq(uploadedImage()))
+	_, err := service.Create(callerContext(), createReq(uploadedImage()))
 
 	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	require.Empty(t, deps.storage.Uploaded)
@@ -328,7 +343,7 @@ func TestCreateWhenTheUploadFails(t *testing.T) {
 		return "", errStorage
 	}
 
-	_, err := service.Create(context.Background(), createReq(uploadedImage()))
+	_, err := service.Create(callerContext(), createReq(uploadedImage()))
 
 	require.ErrorIs(t, err, errStorage)
 
@@ -347,7 +362,7 @@ func TestCreateWhenTheWriteFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	got, err := service.Create(context.Background(), createReq(uploadedImage()))
+	got, err := service.Create(callerContext(), createReq(uploadedImage()))
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, dto.ProductCreateRes{}, got)
@@ -363,7 +378,7 @@ func TestCreateWhenTheWriteFailsWithoutAnImage(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err := service.Create(context.Background(), createReq(nil))
+	_, err := service.Create(callerContext(), createReq(nil))
 
 	require.ErrorIs(t, err, errDatabase)
 
@@ -380,7 +395,7 @@ func TestCreateWhenTheCommitFails(t *testing.T) {
 		return errDatabase
 	}
 
-	_, err := service.Create(context.Background(), createReq(uploadedImage()))
+	_, err := service.Create(callerContext(), createReq(uploadedImage()))
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, []string{"product/baru.png"}, deps.storage.Removed)
@@ -396,7 +411,7 @@ func TestCreateCleansTheImageUpWhenTheWritePanics(t *testing.T) {
 	}
 
 	require.PanicsWithValue(t, "the driver gave up", func() {
-		_, _ = service.Create(context.Background(), createReq(uploadedImage()))
+		_, _ = service.Create(callerContext(), createReq(uploadedImage()))
 	})
 
 	// The panic is reported to the caller, and the orphan file is gone.
@@ -409,14 +424,16 @@ func TestSearch(t *testing.T) {
 		return []model.Product{existingProduct()}, nil
 	}
 
-	got, err := service.Search(context.Background(), dto.ProductSearchReq{
-		Name:        "  kipas  ",
-		Description: "  angin  ",
-		MinPrice:    decimal.NewFromInt(10),
-		MaxPrice:    decimal.NewFromInt(500),
-		MinStock:    1,
-		MaxStock:    99,
-		Paging:      base.Paging{SortBy: "PRICE", SortOrder: "ASC", PageSize: 500},
+	got, err := service.Search(callerContext(), dto.ProductSearchReq{
+		Name:         "  kipas  ",
+		Description:  "  angin  ",
+		MinBuyPrice:  decimal.NewFromInt(10),
+		MaxBuyPrice:  decimal.NewFromInt(500),
+		MinSellPrice: decimal.NewFromInt(20),
+		MaxSellPrice: decimal.NewFromInt(900),
+		MinStock:     1,
+		MaxStock:     99,
+		Paging:       base.Paging{SortBy: "BUY_PRICE", SortOrder: "ASC", PageSize: 500},
 	})
 
 	require.NoError(t, err)
@@ -429,11 +446,13 @@ func TestSearch(t *testing.T) {
 	filter := deps.products.SearchCalls[0]
 	require.Equal(t, "kipas", filter.Name)
 	require.Equal(t, "angin", filter.Description)
-	require.True(t, decimal.NewFromInt(10).Equal(filter.MinPrice))
-	require.True(t, decimal.NewFromInt(500).Equal(filter.MaxPrice))
+	require.True(t, decimal.NewFromInt(10).Equal(filter.MinBuyPrice))
+	require.True(t, decimal.NewFromInt(500).Equal(filter.MaxBuyPrice))
+	require.True(t, decimal.NewFromInt(20).Equal(filter.MinSellPrice))
+	require.True(t, decimal.NewFromInt(900).Equal(filter.MaxSellPrice))
 	require.Equal(t, 1, filter.MinStock)
 	require.Equal(t, 99, filter.MaxStock)
-	require.Equal(t, "price", filter.SortBy)
+	require.Equal(t, "buy_price", filter.SortBy)
 	require.Equal(t, constant.SortOrderAsc, filter.SortOrder)
 	require.Equal(t, constant.DefaultPage, filter.Page)
 	require.Equal(t, constant.MaxPageSize, filter.PageSize)
@@ -445,7 +464,7 @@ func TestSearchFails(t *testing.T) {
 		return nil, errDatabase
 	}
 
-	got, err := service.Search(context.Background(), dto.ProductSearchReq{})
+	got, err := service.Search(callerContext(), dto.ProductSearchReq{})
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, dto.ProductSearchRes{}, got)
@@ -457,7 +476,7 @@ func TestUpdate(t *testing.T) {
 		return existingProduct(), nil
 	}
 
-	got, err := service.Update(context.Background(), updateReq(nil))
+	got, err := service.Update(callerContext(), updateReq(nil))
 
 	require.NoError(t, err)
 	require.Equal(t, "Kipas Angin Baru", got.Name)
@@ -468,7 +487,8 @@ func TestUpdate(t *testing.T) {
 	written := deps.products.UpdateCalls[0]
 	require.Equal(t, int64(7), written.Id)
 	require.Equal(t, "Deskripsi baru", written.Description)
-	require.True(t, decimal.RequireFromString("249.99").Equal(written.Price))
+	require.True(t, decimal.RequireFromString("180.00").Equal(written.BuyPrice))
+	require.True(t, decimal.RequireFromString("249.99").Equal(written.SellPrice))
 
 	// The relations are re-pointed at the rows that were read.
 	require.Equal(t, int64(3), written.CategoryId)
@@ -477,7 +497,7 @@ func TestUpdate(t *testing.T) {
 	// The flags and the creation trail of the existing row survive.
 	require.True(t, written.IsActive)
 	require.Equal(t, existingActor, written.CreatedBy)
-	require.NotEqual(t, uuid.Nil, written.UpdatedBy)
+	require.Equal(t, caller, written.UpdatedBy)
 
 	// A request without an image keeps the one the product already has, and
 	// nothing is removed from the bucket.
@@ -503,7 +523,7 @@ func TestUpdateWithANewImageDropsTheOldOne(t *testing.T) {
 		return "product/lama.png"
 	}
 
-	got, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	got, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.NoError(t, err)
 	require.Equal(t, "http://storage.test/bucket/product/baru.png", got.ImageUrl)
@@ -528,7 +548,7 @@ func TestUpdateWithANewImageOnAProductThatHadNone(t *testing.T) {
 		return ""
 	}
 
-	_, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	_, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.NoError(t, err)
 
@@ -542,7 +562,7 @@ func TestUpdateNotFound(t *testing.T) {
 		return model.Product{}, gorm.ErrRecordNotFound
 	}
 
-	got, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	got, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 	require.Equal(t, dto.ProductUpdateRes{}, got)
@@ -556,7 +576,7 @@ func TestUpdateFailsToReadTheProduct(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err := service.Update(context.Background(), updateReq(nil))
+	_, err := service.Update(callerContext(), updateReq(nil))
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Empty(t, deps.products.UpdateCalls)
@@ -571,7 +591,7 @@ func TestUpdateWithAnUnknownCategory(t *testing.T) {
 		return model.Category{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	_, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	require.Empty(t, deps.suppliers.DetailCalls)
@@ -588,7 +608,7 @@ func TestUpdateWithAnUnknownSupplier(t *testing.T) {
 		return model.Supplier{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	_, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	require.Empty(t, deps.storage.Uploaded)
@@ -604,7 +624,7 @@ func TestUpdateWhenTheUploadFails(t *testing.T) {
 		return "", errStorage
 	}
 
-	_, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	_, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.ErrorIs(t, err, errStorage)
 
@@ -626,7 +646,7 @@ func TestUpdateWhenTheWriteFails(t *testing.T) {
 		return "product/baru.png", nil
 	}
 
-	_, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	_, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.ErrorIs(t, err, errDatabase)
 
@@ -647,7 +667,7 @@ func TestUpdateWhenTheCommitFails(t *testing.T) {
 		return errDatabase
 	}
 
-	_, err := service.Update(context.Background(), updateReq(uploadedImage()))
+	_, err := service.Update(callerContext(), updateReq(uploadedImage()))
 
 	require.ErrorIs(t, err, errDatabase)
 	require.Equal(t, []string{"product/baru.png"}, deps.storage.Removed)
@@ -666,7 +686,7 @@ func TestUpdateCleansTheImageUpWhenTheWritePanics(t *testing.T) {
 	}
 
 	require.PanicsWithValue(t, "the driver gave up", func() {
-		_, _ = service.Update(context.Background(), updateReq(uploadedImage()))
+		_, _ = service.Update(callerContext(), updateReq(uploadedImage()))
 	})
 
 	require.Equal(t, []string{"product/baru.png"}, deps.storage.Removed)
@@ -678,7 +698,7 @@ func TestDetail(t *testing.T) {
 		return existingProduct(), nil
 	}
 
-	got, err := service.Detail(context.Background(), dto.ProductDetailReq{Id: 7})
+	got, err := service.Detail(callerContext(), dto.ProductDetailReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, int64(7), got.Id)
@@ -694,7 +714,7 @@ func TestDetailNotFound(t *testing.T) {
 		return model.Product{}, gorm.ErrRecordNotFound
 	}
 
-	got, err := service.Detail(context.Background(), dto.ProductDetailReq{Id: 7})
+	got, err := service.Detail(callerContext(), dto.ProductDetailReq{Id: 7})
 
 	// The gorm error is translated into the exception the controller reports.
 	require.ErrorIs(t, err, exception.ErrNotFound)
@@ -707,7 +727,7 @@ func TestDetailFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err := service.Detail(context.Background(), dto.ProductDetailReq{Id: 7})
+	_, err := service.Detail(callerContext(), dto.ProductDetailReq{Id: 7})
 
 	// Anything that is not a missing row is passed through untouched.
 	require.ErrorIs(t, err, errDatabase)
@@ -719,7 +739,7 @@ func TestHistory(t *testing.T) {
 		return productWithStockHistory(), nil
 	}
 
-	got, err := service.History(context.Background(), dto.ProductHistoryReq{Id: 7})
+	got, err := service.History(callerContext(), dto.ProductHistoryReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, int64(7), got.Id)
@@ -746,7 +766,7 @@ func TestHistoryOfAProductThatNeverMoved(t *testing.T) {
 		return product, nil
 	}
 
-	got, err := service.History(context.Background(), dto.ProductHistoryReq{Id: 7})
+	got, err := service.History(callerContext(), dto.ProductHistoryReq{Id: 7})
 
 	// A product with no movements yet answers with an empty trail, not an error.
 	require.NoError(t, err)
@@ -761,7 +781,7 @@ func TestHistoryNotFound(t *testing.T) {
 		return model.Product{}, gorm.ErrRecordNotFound
 	}
 
-	got, err := service.History(context.Background(), dto.ProductHistoryReq{Id: 7})
+	got, err := service.History(callerContext(), dto.ProductHistoryReq{Id: 7})
 
 	// The gorm error is translated into the exception the controller reports.
 	require.ErrorIs(t, err, exception.ErrNotFound)
@@ -774,7 +794,7 @@ func TestHistoryFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	got, err := service.History(context.Background(), dto.ProductHistoryReq{Id: 7})
+	got, err := service.History(callerContext(), dto.ProductHistoryReq{Id: 7})
 
 	// Anything that is not a missing row is passed through untouched.
 	require.ErrorIs(t, err, errDatabase)
@@ -790,7 +810,7 @@ func TestActivate(t *testing.T) {
 		return product, nil
 	}
 
-	got, err := service.Activate(context.Background(), dto.ProductActivateReq{Id: 7})
+	got, err := service.Activate(callerContext(), dto.ProductActivateReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, constant.Active, got.Status)
@@ -798,7 +818,7 @@ func TestActivate(t *testing.T) {
 
 	require.Len(t, repository.UpdateCalls, 1)
 	require.True(t, repository.UpdateCalls[0].IsActive)
-	require.NotEqual(t, uuid.Nil, repository.UpdateCalls[0].UpdatedBy)
+	require.Equal(t, caller, repository.UpdateCalls[0].UpdatedBy)
 }
 
 func TestActivateAnAlreadyActiveProduct(t *testing.T) {
@@ -807,7 +827,7 @@ func TestActivateAnAlreadyActiveProduct(t *testing.T) {
 		return existingProduct(), nil
 	}
 
-	_, err := service.Activate(context.Background(), dto.ProductActivateReq{Id: 7})
+	_, err := service.Activate(callerContext(), dto.ProductActivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrAlreadyActive)
 	require.Empty(t, repository.UpdateCalls)
@@ -819,7 +839,7 @@ func TestActivateNotFound(t *testing.T) {
 		return model.Product{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Activate(context.Background(), dto.ProductActivateReq{Id: 7})
+	_, err := service.Activate(callerContext(), dto.ProductActivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 }
@@ -830,7 +850,7 @@ func TestActivateFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err := service.Activate(context.Background(), dto.ProductActivateReq{Id: 7})
+	_, err := service.Activate(callerContext(), dto.ProductActivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 
 	repository.DetailFn = func(*gorm.DB, string, interface{}, bool) (model.Product, error) {
@@ -843,7 +863,7 @@ func TestActivateFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err = service.Activate(context.Background(), dto.ProductActivateReq{Id: 7})
+	_, err = service.Activate(callerContext(), dto.ProductActivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 }
 
@@ -853,7 +873,7 @@ func TestDeactivate(t *testing.T) {
 		return existingProduct(), nil
 	}
 
-	got, err := service.Deactivate(context.Background(), dto.ProductDeactivateReq{Id: 7})
+	got, err := service.Deactivate(callerContext(), dto.ProductDeactivateReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, constant.Inactive, got.Status)
@@ -871,7 +891,7 @@ func TestDeactivateAnAlreadyInactiveProduct(t *testing.T) {
 		return product, nil
 	}
 
-	_, err := service.Deactivate(context.Background(), dto.ProductDeactivateReq{Id: 7})
+	_, err := service.Deactivate(callerContext(), dto.ProductDeactivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrAlreadyInactive)
 	require.Empty(t, repository.UpdateCalls)
@@ -883,7 +903,7 @@ func TestDeactivateNotFound(t *testing.T) {
 		return model.Product{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Deactivate(context.Background(), dto.ProductDeactivateReq{Id: 7})
+	_, err := service.Deactivate(callerContext(), dto.ProductDeactivateReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 }
@@ -894,7 +914,7 @@ func TestDeactivateFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err := service.Deactivate(context.Background(), dto.ProductDeactivateReq{Id: 7})
+	_, err := service.Deactivate(callerContext(), dto.ProductDeactivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 
 	repository.DetailFn = func(*gorm.DB, string, interface{}, bool) (model.Product, error) {
@@ -904,7 +924,7 @@ func TestDeactivateFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err = service.Deactivate(context.Background(), dto.ProductDeactivateReq{Id: 7})
+	_, err = service.Deactivate(callerContext(), dto.ProductDeactivateReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 }
 
@@ -914,7 +934,7 @@ func TestDelete(t *testing.T) {
 		return existingProduct(), nil
 	}
 
-	got, err := service.Delete(context.Background(), dto.ProductDeleteReq{Id: 7})
+	got, err := service.Delete(callerContext(), dto.ProductDeleteReq{Id: 7})
 
 	require.NoError(t, err)
 	require.Equal(t, constant.Delete, got.Status)
@@ -931,7 +951,7 @@ func TestDeleteNotFound(t *testing.T) {
 		return model.Product{}, gorm.ErrRecordNotFound
 	}
 
-	_, err := service.Delete(context.Background(), dto.ProductDeleteReq{Id: 7})
+	_, err := service.Delete(callerContext(), dto.ProductDeleteReq{Id: 7})
 
 	require.ErrorIs(t, err, exception.ErrNotFound)
 	require.Empty(t, repository.UpdateCalls)
@@ -943,7 +963,7 @@ func TestDeleteFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err := service.Delete(context.Background(), dto.ProductDeleteReq{Id: 7})
+	_, err := service.Delete(callerContext(), dto.ProductDeleteReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 
 	repository.DetailFn = func(*gorm.DB, string, interface{}, bool) (model.Product, error) {
@@ -953,7 +973,7 @@ func TestDeleteFails(t *testing.T) {
 		return model.Product{}, errDatabase
 	}
 
-	_, err = service.Delete(context.Background(), dto.ProductDeleteReq{Id: 7})
+	_, err = service.Delete(callerContext(), dto.ProductDeleteReq{Id: 7})
 	require.ErrorIs(t, err, errDatabase)
 }
 
@@ -961,7 +981,7 @@ func TestTheOrmIsTakenFromTheRequestContext(t *testing.T) {
 	service, repository, database := newService(t)
 
 	type key struct{}
-	ctx := context.WithValue(context.Background(), key{}, "request")
+	ctx := context.WithValue(callerContext(), key{}, "request")
 
 	var seen context.Context
 	database.OrmFn = func(ctx context.Context) *gorm.DB {

@@ -117,6 +117,8 @@ definitions:
     type: object
   product.ProductCreateRes:
     properties:
+      buy_price:
+        type: number
       category:
         type: string
       created_at:
@@ -131,7 +133,7 @@ definitions:
         type: boolean
       name:
         type: string
-      price:
+      sell_price:
         type: number
       supplier:
         type: string
@@ -158,6 +160,8 @@ definitions:
     type: object
   product.ProductDetailRes:
     properties:
+      buy_price:
+        type: number
       category:
         type: string
       created_at:
@@ -174,7 +178,7 @@ definitions:
         type: boolean
       name:
         type: string
-      price:
+      sell_price:
         type: number
       supplier:
         type: string
@@ -183,6 +187,8 @@ definitions:
     type: object
   product.ProductHistoryRes:
     properties:
+      buy_price:
+        type: number
       category:
         type: string
       created_at:
@@ -199,7 +205,7 @@ definitions:
         type: boolean
       name:
         type: string
-      price:
+      sell_price:
         type: number
       stock_history:
         items:
@@ -221,6 +227,8 @@ definitions:
     type: object
   product.ProductUpdateRes:
     properties:
+      buy_price:
+        type: number
       category:
         type: string
       created_at:
@@ -237,7 +245,7 @@ definitions:
         type: boolean
       name:
         type: string
-      price:
+      sell_price:
         type: number
       stock:
         type: integer
@@ -535,8 +543,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Search categories by name and description (ILIKE), price range
-        and stock range.
+      description: Search categories by name and description (ILIKE).
       parameters:
       - description: Category name, matched partially
         in: query
@@ -892,8 +899,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Search products by name and description (ILIKE), price range and
-        stock range.
+      description: Search products by name and description (ILIKE), buy price range,
+        sell price range and stock range.
       parameters:
       - description: Product name, matched partially
         in: query
@@ -903,13 +910,21 @@ paths:
         in: query
         name: description
         type: string
-      - description: Minimum product price
+      - description: Minimum product buying price
         in: query
-        name: min_price
+        name: min_buy_price
         type: number
-      - description: Maximum product price
+      - description: Maximum product buying price
         in: query
-        name: max_price
+        name: max_buy_price
+        type: number
+      - description: Minimum product selling price
+        in: query
+        name: min_sell_price
+        type: number
+      - description: Maximum product selling price
+        in: query
+        name: max_sell_price
         type: number
       - description: Minimum stock quantity
         in: query
@@ -923,7 +938,8 @@ paths:
         enum:
         - id
         - name
-        - price
+        - buy_price
+        - sell_price
         - stock
         - created_at
         - updated_at
@@ -992,9 +1008,14 @@ paths:
         in: formData
         name: description
         type: string
-      - description: Product price
+      - description: Product buying price from the supplier
         in: formData
-        name: price
+        name: buy_price
+        required: true
+        type: number
+      - description: Product selling price to the customer
+        in: formData
+        name: sell_price
         required: true
         type: number
       - description: Product category
@@ -1159,9 +1180,14 @@ paths:
         in: formData
         name: description
         type: string
-      - description: Product price
+      - description: Product buying price from the supplier
         in: formData
-        name: price
+        name: buy_price
+        required: true
+        type: number
+      - description: Product selling price to the customer
+        in: formData
+        name: sell_price
         required: true
         type: number
       - description: Product category

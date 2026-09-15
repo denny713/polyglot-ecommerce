@@ -31,7 +31,7 @@ func (s service) Activate(ctx context.Context, request dto.SupplierActivateReq) 
 
 	// Update supplier status to active
 	supplier.IsActive = true
-	supplier.Base = supplier.Base.Touch()
+	supplier.Base = supplier.Base.Touch(ctx)
 	_, err = s.suppliers.Update(orm, supplier)
 	if err != nil {
 		return dto.SupplierActivateRes{}, err

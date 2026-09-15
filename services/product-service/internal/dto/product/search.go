@@ -12,12 +12,14 @@ import (
 
 type (
 	ProductSearchReq struct {
-		Name        string
-		Description string
-		MinPrice    decimal.Decimal
-		MaxPrice    decimal.Decimal
-		MinStock    int
-		MaxStock    int
+		Name         string
+		Description  string
+		MinBuyPrice  decimal.Decimal
+		MaxBuyPrice  decimal.Decimal
+		MinSellPrice decimal.Decimal
+		MaxSellPrice decimal.Decimal
+		MinStock     int
+		MaxStock     int
 		base.Paging
 	}
 
@@ -26,12 +28,14 @@ type (
 	}
 
 	ProductSearchFilter struct {
-		Name        string
-		Description string
-		MinPrice    decimal.Decimal
-		MaxPrice    decimal.Decimal
-		MinStock    int
-		MaxStock    int
+		Name         string
+		Description  string
+		MinBuyPrice  decimal.Decimal
+		MaxBuyPrice  decimal.Decimal
+		MinSellPrice decimal.Decimal
+		MaxSellPrice decimal.Decimal
+		MinStock     int
+		MaxStock     int
 		base.Paging
 	}
 )
@@ -41,12 +45,20 @@ type (
 func (p ProductSearchReq) Validate() error {
 	sortAllowed := allowedSortBy()
 
-	if p.MinPrice.IsNegative() || p.MaxPrice.IsNegative() {
-		return errors.New("price filter must not be negative")
+	if p.MinBuyPrice.IsNegative() || p.MaxBuyPrice.IsNegative() {
+		return errors.New("buy price filter must not be negative")
 	}
 
-	if p.MaxPrice.IsPositive() && p.MinPrice.GreaterThan(p.MaxPrice) {
-		return errors.New("min_price must not be greater than max_price")
+	if p.MaxBuyPrice.IsPositive() && p.MinBuyPrice.GreaterThan(p.MaxBuyPrice) {
+		return errors.New("min_buy_price must not be greater than max_buy_price")
+	}
+
+	if p.MinSellPrice.IsNegative() || p.MaxSellPrice.IsNegative() {
+		return errors.New("sell price filter must not be negative")
+	}
+
+	if p.MaxSellPrice.IsPositive() && p.MinSellPrice.GreaterThan(p.MaxSellPrice) {
+		return errors.New("min_sell_price must not be greater than max_sell_price")
 	}
 
 	if p.MinStock < 0 || p.MaxStock < 0 {
@@ -58,7 +70,7 @@ func (p ProductSearchReq) Validate() error {
 	}
 
 	if sortBy := strings.ToLower(strings.TrimSpace(p.SortBy)); sortBy != "" && !sortAllowed[sortBy] {
-		return errors.New("sort_by must be one of id, name, price, stock, created_at, or updated_at")
+		return errors.New("sort_by must be one of id, name, buy_price, sell_price, stock, created_at, or updated_at")
 	}
 
 	if sortOrder := strings.ToLower(strings.TrimSpace(p.SortOrder)); sortOrder != "" &&
@@ -99,7 +111,8 @@ func allowedSortBy() map[string]bool {
 	return map[string]bool{
 		"id":         true,
 		"name":       true,
-		"price":      true,
+		"buy_price":  true,
+		"sell_price": true,
 		"stock":      true,
 		"created_at": true,
 		"updated_at": true,

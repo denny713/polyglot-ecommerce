@@ -22,7 +22,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Search categories by name and description (ILIKE), price range and stock range.",
+                "description": "Search categories by name and description (ILIKE).",
                 "consumes": [
                     "application/json"
                 ],
@@ -602,7 +602,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Search products by name and description (ILIKE), price range and stock range.",
+                "description": "Search products by name and description (ILIKE), buy price range, sell price range and stock range.",
                 "consumes": [
                     "application/json"
                 ],
@@ -628,14 +628,26 @@ const docTemplate = `{
                     },
                     {
                         "type": "number",
-                        "description": "Minimum product price",
-                        "name": "min_price",
+                        "description": "Minimum product buying price",
+                        "name": "min_buy_price",
                         "in": "query"
                     },
                     {
                         "type": "number",
-                        "description": "Maximum product price",
-                        "name": "max_price",
+                        "description": "Maximum product buying price",
+                        "name": "max_buy_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum product selling price",
+                        "name": "min_sell_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum product selling price",
+                        "name": "max_sell_price",
                         "in": "query"
                     },
                     {
@@ -654,7 +666,8 @@ const docTemplate = `{
                         "enum": [
                             "id",
                             "name",
-                            "price",
+                            "buy_price",
+                            "sell_price",
                             "stock",
                             "created_at",
                             "updated_at"
@@ -765,8 +778,15 @@ const docTemplate = `{
                     },
                     {
                         "type": "number",
-                        "description": "Product price",
-                        "name": "price",
+                        "description": "Product buying price from the supplier",
+                        "name": "buy_price",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Product selling price to the customer",
+                        "name": "sell_price",
                         "in": "formData",
                         "required": true
                     },
@@ -1192,8 +1212,15 @@ const docTemplate = `{
                     },
                     {
                         "type": "number",
-                        "description": "Product price",
-                        "name": "price",
+                        "description": "Product buying price from the supplier",
+                        "name": "buy_price",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Product selling price to the customer",
+                        "name": "sell_price",
                         "in": "formData",
                         "required": true
                     },
@@ -2154,6 +2181,9 @@ const docTemplate = `{
         "product.ProductCreateRes": {
             "type": "object",
             "properties": {
+                "buy_price": {
+                    "type": "number"
+                },
                 "category": {
                     "type": "string"
                 },
@@ -2175,7 +2205,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "price": {
+                "sell_price": {
                     "type": "number"
                 },
                 "supplier": {
@@ -2217,6 +2247,9 @@ const docTemplate = `{
         "product.ProductDetailRes": {
             "type": "object",
             "properties": {
+                "buy_price": {
+                    "type": "number"
+                },
                 "category": {
                     "type": "string"
                 },
@@ -2241,7 +2274,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "price": {
+                "sell_price": {
                     "type": "number"
                 },
                 "supplier": {
@@ -2255,6 +2288,9 @@ const docTemplate = `{
         "product.ProductHistoryRes": {
             "type": "object",
             "properties": {
+                "buy_price": {
+                    "type": "number"
+                },
                 "category": {
                     "type": "string"
                 },
@@ -2279,7 +2315,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "price": {
+                "sell_price": {
                     "type": "number"
                 },
                 "stockQuantity": {
@@ -2313,6 +2349,9 @@ const docTemplate = `{
         "product.ProductUpdateRes": {
             "type": "object",
             "properties": {
+                "buy_price": {
+                    "type": "number"
+                },
                 "category": {
                     "type": "string"
                 },
@@ -2337,7 +2376,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "price": {
+                "sell_price": {
                     "type": "number"
                 },
                 "stock": {
