@@ -4,6 +4,8 @@ import com.inventory.api.model.entity.PurchaseOrder;
 import com.inventory.api.model.entity.PurchaseOrderDetail;
 import com.inventory.api.model.entity.PurchaseReturn;
 import com.inventory.api.model.entity.PurchaseReturnDetail;
+import com.inventory.api.model.entity.SalesOrder;
+import com.inventory.api.model.entity.SalesOrderDetail;
 import com.inventory.api.util.AccountUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -151,16 +153,33 @@ class BaseTest {
     }
 
     @Test
+    void shouldCascadeToSalesOrderLines() {
+        SalesOrderDetail line = new SalesOrderDetail();
+        SalesOrder so = new SalesOrder();
+        so.setSalesOrderDetails(new ArrayList<>(List.of(line)));
+
+        so.doDelete();
+
+        assertTrue(so.getIsDeleted());
+        assertTrue(line.getIsDeleted());
+    }
+
+    @Test
     void shouldSurviveADocumentWhoseLinesWereNeverLoaded() {
-        // A lazy association that was never touched is null, not empty.
+        // A lazy association that was never touched is null, not empty. A sales
+        // order reaches this the most often: it is loaded by a consumer, which
+        // touches the lines only when it is about to move stock.
         PurchaseOrder po = new PurchaseOrder();
         PurchaseReturn pr = new PurchaseReturn();
+        SalesOrder so = new SalesOrder();
 
         po.doDelete();
         pr.doDelete();
+        so.doDelete();
 
         assertTrue(po.getIsDeleted());
         assertTrue(pr.getIsDeleted());
+        assertTrue(so.getIsDeleted());
     }
 
     @Test

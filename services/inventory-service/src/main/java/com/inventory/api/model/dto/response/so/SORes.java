@@ -1,6 +1,6 @@
 package com.inventory.api.model.dto.response.so;
 
-import com.inventory.api.enums.DocStatus;
+import com.inventory.api.enums.SalesStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +17,7 @@ import java.util.List;
 public class SORes {
 
     private String documentNumber;
-    private DocStatus status;
+    private SalesStatus status;
     private BigDecimal grandTotal;
     private Boolean isActive;
     private LocalDateTime createdAt;

@@ -12,11 +12,11 @@ import org.hibernate.annotations.NotFoundAction;
  * One stock movement — the append-only history behind
  * {@link com.inventory.api.model.entity.StockPosition}.
  * <p>
- * A row is written when a document is approved and is never revised, so the ledger
- * stays a faithful record: {@code activity} says which way the goods went and the
- * document number and type say what caused it. The two document associations are
- * mutually exclusive; whichever kind approved the movement is set, the other stays
- * null.
+ * A row is written when a purchase document is approved or a sales order is paid
+ * for, and is never revised, so the ledger stays a faithful record:
+ * {@code activity} says which way the goods went and the document number and type
+ * say what caused it. The three document associations are mutually exclusive;
+ * whichever document caused the movement is set, the other two stay null.
  */
 @EqualsAndHashCode(callSuper = false)
 @Getter
@@ -46,6 +46,11 @@ public class Stock extends Base {
 
     @ManyToOne
     @NotFound(action = NotFoundAction.IGNORE)
+    @JoinColumn(name = "sales_order_id", referencedColumnName = "id")
+    private SalesOrder salesOrder;
+
+    @ManyToOne
+    @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "purchase_order_id", referencedColumnName = "id")
     private PurchaseOrder purchaseOrder;
 
@@ -53,9 +58,4 @@ public class Stock extends Base {
     @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "purchase_return_id", referencedColumnName = "id")
     private PurchaseReturn purchaseReturn;
-
-    /*@ManyToOne
-    @NotFound(action = NotFoundAction.IGNORE)
-    @JoinColumn(name = "sales_order_id", referencedColumnName = "id")
-    private SalesOrder salesOrder;*/
 }

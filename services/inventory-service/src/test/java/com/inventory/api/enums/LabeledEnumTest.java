@@ -2,9 +2,7 @@ package com.inventory.api.enums;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Pins the labels of the three labelled enums.
@@ -25,9 +23,20 @@ class LabeledEnumTest {
 
     @Test
     void shouldPinTheDocumentTypes() {
+        assertEquals("Sales Order", DocType.SO.getLabel());
         assertEquals("Purchase Order", DocType.PO.getLabel());
         assertEquals("Purchase Return", DocType.PR.getLabel());
-        assertEquals(2, DocType.values().length);
+        assertEquals(3, DocType.values().length);
+    }
+
+    @Test
+    void shouldPinTheSalesStatus() {
+        assertEquals("Pending", SalesStatus.PENDING.getLabel());
+        assertEquals("Expired", SalesStatus.EXPIRED.getLabel());
+        assertEquals("Paid", SalesStatus.PAID.getLabel());
+        assertEquals("Cancelled", SalesStatus.CANCELLED.getLabel());
+        assertEquals("Completed", SalesStatus.COMPLETED.getLabel());
+        assertEquals(5, SalesStatus.values().length);
     }
 
     @Test
@@ -39,16 +48,15 @@ class LabeledEnumTest {
 
     @Test
     void shouldPrintTheLabelRatherThanTheConstantName() {
-        // toString is what shows up in log lines and error messages.
         assertEquals("Approved", DocStatus.APPROVED.toString());
         assertEquals("Purchase Return", DocType.PR.toString());
         assertEquals("Stock Out", StockActivity.SO.toString());
+        assertEquals("Paid", SalesStatus.PAID.toString());
     }
 
     @Test
     void shouldKeepTheConstantNamesTheDocumentPrefixesDependOn() {
-        // DocType.name() is passed to generate_doc_no, so renaming a constant
-        // silently changes every document number that function produces.
+        assertEquals("SO", DocType.SO.name());
         assertEquals("PO", DocType.PO.name());
         assertEquals("PR", DocType.PR.name());
     }
@@ -57,7 +65,7 @@ class LabeledEnumTest {
     void shouldExposeEveryConstantThroughTheLabeledContract() {
         for (Labeled value : DocStatus.values()) {
             assertNotNull(value.getLabel());
-            assertTrue(value.getLabel().length() > 0);
+            assertFalse(value.getLabel().isEmpty());
         }
     }
 }
