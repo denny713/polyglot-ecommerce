@@ -1,8 +1,15 @@
 HELP.md
+mvnw
+mvnw.cmd
 target/
-.mvn/wrapper/maven-wrapper.jar
+config/
+logs/
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+.DS_Store
+.gitattributes
+lombok.config
 
 ### STS ###
 .apt_generated
