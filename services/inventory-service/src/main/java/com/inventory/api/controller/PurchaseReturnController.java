@@ -20,22 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * HTTP surface for purchase returns, under {@code /pr}.
- * <p>
- * Mirrors {@code PurchaseOrderController} with one difference: approve carries no
- * body, because a return ships the quantities already recorded on the document
- * instead of reporting new ones.
- * <p>
- * Authorization is not declared here. {@code TokenFilter} requires the Keycloak
- * {@code admin} role before the request ever reaches this class.
- * <p>
- * The OpenAPI annotations are written out by hand: every method returns
- * {@code Response}, so the status codes come from {@code ResponseHandler} and
- * {@code TokenFilter} rather than from anything visible in a signature.
- * {@link SecurityRequirement} is documentation only — it puts the padlock in
- * Swagger UI and enforces nothing.
- */
+/** HTTP surface for purchase returns, under {@code /pr}. */
 @RestController
 @RequestMapping("/pr")
 @AllArgsConstructor

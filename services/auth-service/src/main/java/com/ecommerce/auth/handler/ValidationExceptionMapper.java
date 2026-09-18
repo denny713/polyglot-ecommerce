@@ -12,16 +12,7 @@ import jakarta.ws.rs.ext.Provider;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Normalizes the response shape for {@code @Valid} failures on request DTOs, e.g.
- * a blank username or password.
- *
- * <p>It maps {@code ResteasyReactiveViolationException} — not its parent
- * {@code ConstraintViolationException} — because Quarkus already ships a built-in
- * mapper for that type, and JAX-RS always picks the mapper most specific to the
- * type actually thrown. The {@link Priority} of {@link Priorities#USER} makes sure
- * this mapper is the one used.
- */
+/** Normalizes the response shape for {@code @Valid} failures on request DTOs, e.g. a blank username or password. */
 @Provider
 @Priority(Priorities.USER)
 public class ValidationExceptionMapper implements ExceptionMapper<ResteasyReactiveViolationException> {

@@ -6,12 +6,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
-/**
- * Keycloak is down or not responding: 503, not 401.
- *
- * <p>Telling the two apart matters — a 401 would tell the client its credentials
- * were wrong when the problem is actually on our side.
- */
+/** Keycloak is down or not responding: 503, not 401. */
 @Provider
 public class IdentityProviderUnavailableExceptionMapper
         implements ExceptionMapper<IdentityProviderUnavailableException> {

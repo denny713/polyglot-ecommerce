@@ -15,14 +15,7 @@ import org.jboss.logging.Logger;
 
 import java.util.Locale;
 
-/**
- * Translates Keycloak error responses into domain exceptions.
- *
- * <p>
- * This is the boundary between the "language" of OAuth2 and the language of the
- * application: from here upwards, no code needs to know the term
- * {@code invalid_grant}.
- */
+/** Translates Keycloak error responses into domain exceptions. */
 public class KeycloakErrorResponseMapper implements ResponseExceptionMapper<RuntimeException> {
 
     private static final Logger LOG = Logger.getLogger(KeycloakErrorResponseMapper.class);

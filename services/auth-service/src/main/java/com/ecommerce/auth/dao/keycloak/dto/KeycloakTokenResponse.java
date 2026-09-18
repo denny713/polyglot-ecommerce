@@ -3,15 +3,7 @@ package com.ecommerce.auth.dao.keycloak.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * Success body returned by
- * {@code POST /realms/{realm}/protocol/openid-connect/token}.
- *
- * <p>
- * This DTO belongs to the infrastructure layer — its shape follows Keycloak, not
- * the needs of the domain. The conversion to {@code AuthToken} lives in
- * {@code KeycloakTokenMapper}.
- */
+/** Success body returned by {@code POST /realms/{realm}/protocol/openid-connect/token}. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record KeycloakTokenResponse(
                 @JsonProperty("access_token") String accessToken,

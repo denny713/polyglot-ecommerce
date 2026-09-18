@@ -6,13 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Unit tests for the token value object.
- *
- * <p>
- * The only behaviour it has is keeping both tokens out of the logs while still
- * printing the metadata that makes a log line useful.
- */
+/** Unit tests for the token value object. */
 class AuthTokenTest {
 
     @Test

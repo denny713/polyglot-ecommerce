@@ -36,18 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Tests the HTTP layer of {@code /po} in isolation.
- * <p>
- * Standalone setup rather than {@code @SpringBootTest}: the controller only
- * routes and delegates, so a mocked service is enough and no database, Keycloak
- * or application context is needed. {@link ResponseHandler} is registered
- * because mapping an exception to a status code is part of what the HTTP layer
- * promises, and would otherwise go untested.
- * <p>
- * {@code TokenFilter} is deliberately absent — it is a filter, so it sits
- * outside this slice and is covered by its own test.
- */
+/** Tests the HTTP layer of {@code /po} in isolation. */
 class PurchaseOrderControllerTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();

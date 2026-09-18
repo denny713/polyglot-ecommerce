@@ -8,13 +8,7 @@ import org.hibernate.annotations.NotFoundAction;
 
 import java.math.BigDecimal;
 
-/**
- * One product line of a purchase return.
- * <p>
- * {@code unitPrice} is a copy taken when the line was written, so the credit is
- * computed at the price the goods were bought at. {@code reason} is the cause for
- * this line specifically; the document-level cause lives on the parent.
- */
+/** One product line of a purchase return. */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

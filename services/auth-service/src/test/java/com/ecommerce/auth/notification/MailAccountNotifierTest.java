@@ -20,15 +20,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-/**
- * Unit tests for the registration email.
- *
- * <p>
- * This message is the only place the generated password ever appears, so the
- * assertions here are less about formatting than about the two ways it can go
- * wrong: the password not reaching the body at all, and the send failing
- * silently instead of telling the caller to undo the registration.
- */
+/** Unit tests for the registration email. */
 class MailAccountNotifierTest {
 
     private static final Account ACCOUNT = new Account(

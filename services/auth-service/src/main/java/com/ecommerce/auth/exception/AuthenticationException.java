@@ -7,11 +7,6 @@ import java.util.Objects;
 /**
  * Parent of all <em>expected</em> authentication failures — the ones caused by
  * user input rather than by a technical error.
- *
- * <p>
- * Every subclass can be handled uniformly by a single exception mapper (Liskov
- * Substitution Principle): the mapper only needs to read {@link #errorCode()}, it
- * never needs to know the concrete class.
  */
 public abstract class AuthenticationException extends RuntimeException {
 

@@ -23,14 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-/**
- * Tests which filters a search request turns into.
- * <p>
- * The Criteria API is mocked with deep stubs, so what is asserted is the calls
- * the DAO makes rather than the SQL that results. That is the right level here:
- * the rule under test is which fields are applied and which are skipped, and an
- * accidentally applied filter would silently hide rows from the caller.
- */
+/** Tests which filters a search request turns into. */
 class PurchaseOrderDaoTest {
 
     private final PurchaseOrderDao dao = new PurchaseOrderDao();

@@ -8,13 +8,7 @@ import lombok.Setter;
 
 import java.util.List;
 
-/**
- * Payload for creating or updating a purchase order, and for approving one.
- * <p>
- * The details list must be non-empty, since a purchase order with no lines has
- * nothing to order. When used for approve, the supplier is ignored and each
- * detail's {@code id} must already belong to the document.
- */
+/** Payload for creating or updating a purchase order, and for approving one. */
 @Getter
 @Setter
 public class POSubmitReq {

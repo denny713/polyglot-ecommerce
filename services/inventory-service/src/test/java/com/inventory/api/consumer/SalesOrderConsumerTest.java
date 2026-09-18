@@ -25,20 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Tests the sales order listener.
- * <p>
- * The listener is called directly here rather than through a broker, because what
- * it decides is what matters: which failures are worth redelivering and which are
- * not, and whether the user behind the message reaches the auditing thread local.
- * Message conversion and the queue it binds to belong to
- * {@link com.inventory.api.configuration.BrokerConfig} and are covered there.
- * <p>
- * The exception type is the contract with the broker:
- * {@code AmqpRejectAndDontRequeueException} means "never send this again", so a
- * test asserting it is asserting that a message goes to the dead letter queue
- * instead of being redelivered forever.
- */
+/** Tests the sales order listener. */
 class SalesOrderConsumerTest {
 
     private static final String USER_ID = "3f2a7c14-6f38-4f1e-9a55-7c2f1b9d4e01";

@@ -8,14 +8,7 @@ import lombok.Setter;
 
 import java.util.List;
 
-/**
- * Payload for creating or updating a purchase return.
- * <p>
- * The details list must be non-empty. {@code reason} explains the return as a
- * whole; a per-line cause belongs on {@code PRDetailSubmitReq}. Both
- * {@code reason} and {@code note} fall back to {@code "-"} when blank, so the
- * stored document never carries nulls in those columns.
- */
+/** Payload for creating or updating a purchase return. */
 @Getter
 @Setter
 public class PRSubmitReq {

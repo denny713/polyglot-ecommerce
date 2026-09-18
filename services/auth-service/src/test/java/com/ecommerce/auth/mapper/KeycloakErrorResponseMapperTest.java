@@ -16,16 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the translation of Keycloak token-endpoint errors into domain
- * exceptions.
- *
- * <p>
- * This mapper reads free-text {@code error_description} strings, which makes it
- * the most fragile piece of the DAO layer and the one most worth pinning down —
- * especially the ordering rule that keeps "Account is temporarily disabled" from
- * being read as a permanently disabled account.
- */
+/** Unit tests for the translation of Keycloak token-endpoint errors into domain exceptions. */
 class KeycloakErrorResponseMapperTest {
 
     private final KeycloakErrorResponseMapper mapper = new KeycloakErrorResponseMapper();

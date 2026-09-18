@@ -37,15 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests the filter against a real Keycloak-shaped JWKS endpoint.
- * <p>
- * The signature check is the whole point of this class, so mocking it away would
- * leave nothing worth testing. Instead an RSA key is generated in memory, its
- * public half is published by a throwaway HTTP server on a loopback port, and
- * tokens are signed for real — which is also the only way to prove that a token
- * signed by the wrong key, or for the wrong issuer, is actually rejected.
- */
+/** Tests the filter against a real Keycloak-shaped JWKS endpoint. */
 class TokenFilterTest {
 
     private static final UUID SUBJECT = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");

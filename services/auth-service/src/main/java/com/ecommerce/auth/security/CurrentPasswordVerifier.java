@@ -11,25 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-/**
- * Checks that whoever is asking to change a password knows the current one.
- *
- * <p>
- * Keycloak has no "is this password correct?" endpoint, so the only way to ask
- * is to attempt a login. That has a useful side effect and an awkward one.
- *
- * <p>
- * The useful one: the attempt goes through the realm's brute force detection
- * like any other login, so this endpoint cannot be used as an offline password
- * oracle — guess often enough and the account locks and answers 429.
- *
- * <p>
- * The awkward one: a successful attempt mints a token pair and opens a Keycloak
- * session that nobody asked for. This class ends it immediately. Leaving it
- * behind would mean every password change quietly added a live session to the
- * account, and the refresh token would be a working credential that was created
- * only to be thrown away.
- */
+/** Checks that whoever is asking to change a password knows the current one. */
 @ApplicationScoped
 public class CurrentPasswordVerifier {
 

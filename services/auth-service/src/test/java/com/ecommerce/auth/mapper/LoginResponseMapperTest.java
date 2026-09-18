@@ -7,14 +7,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-/**
- * Unit tests for the domain → DTO mapping.
- *
- * <p>
- * Worth testing despite being "just field copying": the two records have the same
- * types in almost the same order, so a swapped pair of arguments would compile
- * cleanly and only show up as a wrong token handed to a client.
- */
+/** Unit tests for the domain → DTO mapping. */
 class LoginResponseMapperTest {
 
     private final LoginResponseMapper mapper = new LoginResponseMapper();

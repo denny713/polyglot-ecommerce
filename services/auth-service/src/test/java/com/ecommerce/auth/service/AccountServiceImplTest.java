@@ -42,14 +42,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the account business layer.
- *
- * <p>
- * No {@code @QuarkusTest}, for the same reason as
- * {@link DefaultAuthenticationServiceTest}: constructor injection means the
- * class can be built by hand and the whole file runs in milliseconds.
- */
+/** Unit tests for the account business layer. */
 class AccountServiceImplTest {
 
     private static final String ACCOUNT_ID = "8f1a5c2e-6b3d-4f7a-9e21-0c4d8b5a7f36";
@@ -202,10 +195,7 @@ class AccountServiceImplTest {
     // register — the role
     // ------------------------------------------------------------------
 
-    /**
-     * This endpoint is self-service registration, so {@code user} is the only
-     * role it may ever produce.
-     */
+    /** This endpoint is self-service registration, so {@code user} is the only role it may ever produce. */
     @Test
     void shouldGiveEveryRegisteredAccountTheUserRole() {
         when(accountProviderDao.doCreate(eq(NEW_ACCOUNT), any())).thenReturn(CREATED);

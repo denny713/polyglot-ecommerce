@@ -16,15 +16,7 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
-/**
- * Implementation of {@link IdentityProviderDao} that uses Keycloak's Resource
- * Owner Password Credentials grant.
- *
- * <p>This is the only class in the entire service that knows the identity
- * provider in use is Keycloak. Switching providers means adding another
- * implementation of that interface, without changing the service or the
- * controller.
- */
+/** Implementation of {@link IdentityProviderDao} that uses Keycloak's Resource Owner Password Credentials grant. */
 @ApplicationScoped
 public class KeycloakIdentityProviderDao implements IdentityProviderDao {
 

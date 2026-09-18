@@ -21,15 +21,7 @@ import org.jboss.logging.Logger;
 
 import java.util.Objects;
 
-/**
- * Default implementation of {@link AccountService}.
- *
- * <p>
- * Like {@link DefaultAuthenticationService}, it depends on interfaces rather
- * than on Keycloak or on SMTP, so swapping either does not change this class
- * (Dependency Inversion Principle), and constructor injection lets it be built
- * by hand in unit tests without a CDI container.
- */
+/** Default implementation of {@link AccountService}. */
 @ApplicationScoped
 public class AccountServiceImpl implements AccountService {
 
@@ -51,18 +43,7 @@ public class AccountServiceImpl implements AccountService {
         this.currentPasswordVerifier = currentPasswordVerifier;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>
-     * The account is always given {@link AccountRole#USER}. This endpoint is
-     * self-service registration, so the role cannot come from the request — a
-     * caller who could name their own role could ask to be an administrator, and
-     * this is the one endpoint reachable without a token. It is granted here
-     * rather than left to a realm default so that the role an account gets is
-     * visible in the code that creates it, and so that it does not silently
-     * change when someone edits the realm's default role set.
-     */
+    /** {@inheritDoc} */
     @Override
     public Account doRegister(NewAccount newAccount) {
         Objects.requireNonNull(newAccount, "newAccount must not be null");
@@ -88,17 +69,7 @@ public class AccountServiceImpl implements AccountService {
         return account;
     }
 
-    /**
-     * Grants the role, and removes the account again if that fails.
-     *
-     * <p>
-     * The role has to be a second request — Keycloak's create-user call ignores
-     * roles — but registration is not finished without it: the account would
-     * exist, be logged into successfully, and then be refused by every endpoint
-     * that asks for {@code user}, which reads as a broken platform rather than a
-     * failed registration. Undoing leaves the caller with a plain error and a
-     * username they can register again.
-     */
+    /** Grants the role, and removes the account again if that fails. */
     private void assignRoleOrUndo(Account account, AccountRole role) {
         try {
             accountProviderDao.doAssignRole(account.id(), role);
@@ -110,22 +81,7 @@ public class AccountServiceImpl implements AccountService {
         }
     }
 
-    /**
-     * Sends the generated password, and removes the account again if that fails.
-     *
-     * <p>
-     * The password exists in exactly two places at this moment: the identity
-     * provider, which stores only a hash of it, and this method's argument. If
-     * the email does not go out, nobody will ever know it — the account is
-     * unusable, and it is holding the username and the email address, so the
-     * obvious next thing the caller does (try again) would fail with 409 for as
-     * long as the account stays.
-     *
-     * <p>
-     * The undo is best effort. If it fails too there is nothing further this
-     * service can do, so it says so loudly and still reports the original
-     * failure, which is the one the caller can act on.
-     */
+    /** Sends the generated password, and removes the account again if that fails. */
     private void deliverOrUndo(Account account, RawPassword password) {
         try {
             accountNotifier.sendTemporaryPassword(account, password);
@@ -136,15 +92,7 @@ public class AccountServiceImpl implements AccountService {
         }
     }
 
-    /**
-     * Removes a half-registered account, best effort.
-     *
-     * <p>
-     * Shared by both steps that can fail after the account exists. It never
-     * throws: if the undo fails there is nothing further this service can do, so
-     * it says so loudly and lets the caller see the original failure, which is
-     * the one they can act on.
-     */
+    /** Removes a half-registered account, best effort. */
     private void undo(Account account) {
         try {
             accountProviderDao.doDelete(account.id());

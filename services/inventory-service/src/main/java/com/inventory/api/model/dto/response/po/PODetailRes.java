@@ -7,13 +7,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
-/**
- * One purchase order line as returned to the caller.
- * <p>
- * The product is flattened to an id and a name so the client needs no second call,
- * and both subtotals are exposed: {@code orderSubtotal} is what was ordered,
- * {@code realSubtotal} stays zero until the document is approved.
- */
+/** One purchase order line as returned to the caller. */
 @Getter
 @Setter
 @AllArgsConstructor

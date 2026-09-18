@@ -22,15 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the business layer.
- *
- * <p>
- * No {@code @QuarkusTest} here on purpose: {@link DefaultAuthenticationService}
- * takes its collaborators through the constructor, so it can be built by hand and
- * the whole class runs in milliseconds without a CDI container. That is the
- * payoff of constructor injection.
- */
+/** Unit tests for the business layer. */
 class DefaultAuthenticationServiceTest {
 
     private static final UserCredentials CREDENTIALS = new UserCredentials("adminapp", "P@ssw0rd");

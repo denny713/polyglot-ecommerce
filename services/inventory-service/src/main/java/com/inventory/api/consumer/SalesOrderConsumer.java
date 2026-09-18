@@ -14,38 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/**
- * The messaging entry point of the sales order flow.
- * <p>
- * A sales order is created and paid for in the order service; this service only
- * hears about it once, when the payment settles, and answers by moving stock. That
- * is why there is no controller for it: the caller is a broker, not a user, and
- * nothing here is triggered by an HTTP request.
- * <p>
- * The listener deliberately holds no logic of its own beyond deciding what a
- * failure means. Everything it does is delegated to
- * {@link com.inventory.api.service.SalesOrderService#doSubmit}, which runs in its
- * own transaction, so a message is either fully applied or fully rolled back.
- * <p>
- * Failures are split in two, because the broker treats them differently:
- * <ul>
- *   <li>A message this service will never be able to apply — no id, an order that
- *       does not exist, or a line asking for more than the stock holds — is
- *       rejected with {@link AmqpRejectAndDontRequeueException}. Redelivering it
- *       would fail identically, so it goes straight to the dead letter queue.</li>
- *   <li>Anything else is allowed to propagate. The container rejects it with
- *       {@code default-requeue-rejected} false, so it also reaches the dead letter
- *       queue rather than looping — but it is there to be replayed once the cause
- *       is fixed, not to be discarded.</li>
- * </ul>
- * <p>
- * Note the {@link AccountUtil} bracket. Auditing in {@code Base} reads the user
- * from a thread local that {@code TokenFilter} populates per request, and a
- * listener thread never passes through that filter. Without the header the stock
- * rows this consumer writes would record no author at all, and without the
- * {@code finally} the pooled listener thread would carry one message's user into
- * the next one.
- */
+/** The messaging entry point of the sales order flow. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -10,14 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests the enum-to-column mapping.
- * <p>
- * The point of this converter is that the database holds the readable label
- * rather than the constant name, so both directions are asserted against the
- * label — and an unknown label has to fail rather than quietly become null,
- * which would turn bad data into missing data.
- */
+/** Tests the enum-to-column mapping. */
 class LabelConverterTest {
 
     private final DocStatusConverter status = new DocStatusConverter();

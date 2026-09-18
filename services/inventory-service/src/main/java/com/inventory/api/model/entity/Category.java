@@ -7,12 +7,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 import java.util.List;
 
-/**
- * Product grouping, owned by another service in the stack.
- * <p>
- * Inventory only reads it — it is mapped here so a product can be returned with
- * its category, not so this service can maintain categories.
- */
+/** Product grouping, owned by another service in the stack. */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

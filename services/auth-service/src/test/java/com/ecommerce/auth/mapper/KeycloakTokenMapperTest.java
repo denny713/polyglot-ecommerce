@@ -8,15 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * Unit tests for the Keycloak payload → domain mapping.
- *
- * <p>
- * This is the boundary where OAuth2's {@code expires_in} / {@code refresh_expires_in}
- * become the domain's {@code expiresInSeconds} / {@code refreshExpiresInSeconds}.
- * The two are easy to transpose and impossible to notice afterwards, which is the
- * whole reason these assertions use distinct values.
- */
+/** Unit tests for the Keycloak payload → domain mapping. */
 class KeycloakTokenMapperTest {
 
     private final KeycloakTokenMapper mapper = new KeycloakTokenMapper();

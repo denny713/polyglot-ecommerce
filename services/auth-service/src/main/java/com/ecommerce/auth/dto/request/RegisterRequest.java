@@ -6,29 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
-/**
- * Request body for {@code POST /api/account/register}.
- *
- * <p>
- * Email, first name and last name are required, not optional decoration.
- * Keycloak 26 enables the "Verify Profile" required action by default, and an
- * account missing any of them is created happily and then rejected at its first
- * login with "Account is not fully set up" — a failure that would surface far
- * away from the call that caused it.
- *
- * <p>
- * There is no password field. The caller does not choose one: the service
- * generates an eight-character password and mails it to {@code email}, so
- * whoever registers has to be able to read that mailbox for the account to be
- * usable at all. That is what makes the address mandatory here in the strong
- * sense — a typo in it does not degrade the account, it makes it unreachable.
- *
- * <p>
- * As with {@code LoginRequest}, the {@code @Schema} annotations only carry what
- * the Bean Validation constraints cannot express — SmallRye OpenAPI derives
- * {@code required}, {@code maxLength} and {@code pattern} from the constraints
- * on its own.
- */
+/** Request body for {@code POST /api/account/register}. */
 @Schema(
         name = "RegisterRequest",
         description = """

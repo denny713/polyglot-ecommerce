@@ -12,16 +12,7 @@ import org.hibernate.annotations.NotFoundAction;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Goods sent back to a supplier.
- * <p>
- * Only one grand total, unlike a purchase order: the quantities are known when the
- * document is written, so there is nothing to reconcile at approval. Approving is
- * still where stock moves — outward.
- * <p>
- * Overriding {@code cascadeChildren} is what makes delete, activate and deactivate
- * reach the detail lines.
- */
+/** Goods sent back to a supplier. */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

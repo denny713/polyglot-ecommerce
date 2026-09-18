@@ -23,22 +23,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-/**
- * Authentication endpoint — the equivalent of {@code @RestController} in Spring Boot.
- *
- * <p>
- * It has only three jobs: accept the request, translate the DTO into the domain
- * model, and wrap the result into an HTTP response. There is no business logic
- * here, and no {@code try/catch} blocks — failures are handled by the exception
- * mappers in the {@code com.ecommerce.auth.exception.handler} package.
- *
- * <p>
- * The OpenAPI annotations describe what those mappers produce. They are written
- * out by hand rather than inferred, because the status codes come from the
- * mappers and not from anything visible in the method signature — an
- * {@code @APIResponse} is the only place a reader of the document can learn that
- * a locked account answers 429.
- */
+/** Authentication endpoint — the equivalent of {@code @RestController} in Spring Boot. */
 @Path("/api/auth")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -114,18 +99,6 @@ public class AuthController {
 
     /**
      * Ends the session the refresh token belongs to.
-     *
-     * <p>
-     * Answers {@code 204 No Content} — there is nothing meaningful to return, and
-     * the same answer is given whether the session was live or had already
-     * expired: logout is idempotent, and a distinguishable response would let a
-     * caller probe whether a refresh token is still valid.
-     *
-     * <p>
-     * The access token issued alongside the refresh token stays valid until it
-     * expires, because a JWT cannot be recalled. Clients must discard both tokens
-     * after calling this.
-     *
      * @param request the logout request containing the refresh token
      * @return an empty {@code 204} response
      * @throws jakarta.validation.ConstraintViolationException                   if the request is invalid

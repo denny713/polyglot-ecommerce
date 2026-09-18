@@ -11,12 +11,6 @@ import jakarta.ws.rs.ext.Provider;
  * Translates every subclass of {@link AccountException} into an HTTP response,
  * exactly as {@link AuthenticationExceptionMapper} does for authentication
  * failures.
- *
- * <p>
- * The {@code switch} is deliberately exhaustive and has no {@code default}: add
- * a constant to {@link AccountErrorCode} and the compiler points here, which is
- * the whole reason the status mapping lives in one place instead of being
- * scattered over the controller.
  */
 @Provider
 public class AccountExceptionMapper implements ExceptionMapper<AccountException> {

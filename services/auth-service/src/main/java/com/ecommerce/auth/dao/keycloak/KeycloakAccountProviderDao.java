@@ -21,17 +21,7 @@ import org.jboss.logging.Logger;
 
 import java.util.List;
 
-/**
- * Implementation of {@link AccountProviderDao} that uses Keycloak's Admin REST
- * API.
- *
- * <p>
- * Together with {@link KeycloakIdentityProviderDao} and
- * {@link KeycloakSessionTerminationDao}, these are the only classes that know
- * the identity provider is Keycloak. Switching providers means adding another
- * implementation of the interface, without touching the service or the
- * controller.
- */
+/** Implementation of {@link AccountProviderDao} that uses Keycloak's Admin REST API. */
 @ApplicationScoped
 public class KeycloakAccountProviderDao implements AccountProviderDao {
 
@@ -53,16 +43,7 @@ public class KeycloakAccountProviderDao implements AccountProviderDao {
         this.userMapper = userMapper;
     }
 
-    /**
-     * Creates the account, then reads it back.
-     *
-     * <p>
-     * The read-back is not paranoia: {@code POST /users} answers 201 with an
-     * empty body, so the id exists only in the {@code Location} header, and
-     * Keycloak normalizes the username on the way in (lower-casing it, among
-     * other things). Fetching the stored representation gives the caller the
-     * account as it actually is rather than an echo of what was asked for.
-     */
+    /** Creates the account, then reads it back. */
     @Override
     public Account doCreate(NewAccount newAccount, RawPassword password) {
         String bearerToken = tokenProvider.bearerToken();
@@ -87,16 +68,7 @@ public class KeycloakAccountProviderDao implements AccountProviderDao {
         return account;
     }
 
-    /**
-     * Looks the role up in the realm, then maps it onto the account.
-     *
-     * <p>
-     * Two calls because Keycloak's role mapping resolves roles by id and the
-     * caller only knows the name. The lookup is not cached: it happens once per
-     * registration, against the same connection pool as the create, and a cached
-     * id would go stale exactly when someone recreates the role — the one moment
-     * a wrong id would be hardest to explain.
-     */
+    /** Looks the role up in the realm, then maps it onto the account. */
     @Override
     public void doAssignRole(String accountId, AccountRole role) {
         String bearerToken = tokenProvider.bearerToken();
@@ -159,10 +131,6 @@ public class KeycloakAccountProviderDao implements AccountProviderDao {
      * Runs an admin call, translating anything the
      * {@link KeycloakAdminErrorResponseMapper} did not already turn into a domain
      * exception — a refused connection, a timeout, an unreadable body.
-     *
-     * <p>
-     * All three operations need exactly this treatment, so it lives here once
-     * rather than as three identical {@code try/catch} blocks.
      */
     private <T> T call(AdminCall<T> adminCall) {
         try {

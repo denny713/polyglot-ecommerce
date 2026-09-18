@@ -23,16 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the "does this caller know the current password?" check.
- *
- * <p>
- * Two behaviours carry the weight. A wrong password has to come back as the
- * authentication failure it is, so the realm's brute force detection stays in
- * the loop and this endpoint cannot be used as an offline oracle; and the
- * session the check opens has to be closed again, or every password change
- * would quietly leave a live refresh token behind that nobody asked for.
- */
+/** Unit tests for the "does this caller know the current password?" check. */
 class CurrentPasswordVerifierTest {
 
     private static final AuthToken TOKEN =

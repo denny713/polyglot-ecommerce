@@ -24,15 +24,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Tests the HTTP layer — routing, status codes, JSON shape and the exception
- * mappers — without starting Keycloak.
- *
- * <p>
- * This is possible precisely because the controller depends on interfaces: only
- * {@link IdentityProviderDao} and {@link SessionTerminationDao} need to be
- * mocked, everything between them and the socket runs as-is.
- */
+/** Tests the HTTP layer — routing, status codes, JSON shape and the exception mappers — without starting Keycloak. */
 @QuarkusTest
 class AuthControllerTest {
 

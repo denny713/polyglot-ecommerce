@@ -31,14 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-/**
- * Tests the behaviour every repository in this service inherits.
- * <p>
- * The inherited Spring Data methods are stubbed on a spy rather than driven
- * through a mocked {@code EntityManager}: what is under test is this class's own
- * decisions — the paging defaults and the preconditions on a state change — not
- * whether {@code SimpleJpaRepository} can build a criteria query.
- */
+/** Tests the behaviour every repository in this service inherits. */
 class CommonRepositoryImplTest {
 
     private CommonRepositoryImpl<PurchaseOrder, Long> repository;

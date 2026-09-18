@@ -7,14 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Unit tests for the credentials value object.
- *
- * <p>
- * The {@code toString} assertion is not cosmetic: this record travels through
- * every log statement in the service layer, so a regression there would print
- * plaintext passwords into the log files.
- */
+/** Unit tests for the credentials value object. */
 class UserCredentialsTest {
 
     @Test

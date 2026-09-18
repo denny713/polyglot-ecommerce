@@ -36,19 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for submitting a sales order.
- * <p>
- * Unlike a purchase order, a sales order arrives already decided: the order
- * service created it and the lines carry the quantities and prices that were paid.
- * Submitting is therefore only the stock side of it, and that is what these tests
- * pin — that every line leaves a stock out movement, that the positions are
- * deducted once per product rather than once per line, and that an order asking
- * for more than is held is refused before anything is written.
- * <p>
- * Everything is mocked at the repository boundary, so what is under test is the
- * decisions the service makes rather than the persistence around them.
- */
+/** Unit tests for submitting a sales order. */
 class SalesOrderServiceTest {
 
     private static final BigDecimal PRICE = new BigDecimal("1500");

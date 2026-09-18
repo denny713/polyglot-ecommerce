@@ -14,14 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests the correlation id interceptor.
- * <p>
- * Note that these tests call it directly. The interceptor is a
- * {@code @Component} but nothing registers it through a
- * {@code WebMvcConfigurer}, so in the running application it is never invoked —
- * these tests cover what it does, not that it is wired in.
- */
+/** Tests the correlation id interceptor. */
 class InterceptorConfigTest {
 
     private final InterceptorConfig interceptor = new InterceptorConfig();

@@ -23,18 +23,6 @@ import java.util.List;
 /**
  * HTTP client for the Keycloak Admin REST API user endpoints — pure transport,
  * no business logic, exactly like {@link KeycloakTokenClient}.
- *
- * <p>
- * It shares the {@code keycloak-token-api} config key with the token and logout
- * clients: same host, same timeouts, so there is nothing to configure
- * separately. Only the base path differs, {@code /admin/realms} instead of
- * {@code /realms}.
- *
- * <p>
- * The bearer token is an explicit {@link HeaderParam} rather than something a
- * filter attaches, so that the one class holding the service account token —
- * {@link KeycloakAdminTokenProvider} — stays visible in the call chain instead
- * of acting invisibly on every request.
  */
 @Path("/admin/realms")
 @RegisterRestClient(configKey = "keycloak-token-api")
@@ -79,13 +67,7 @@ public interface KeycloakAdminClient {
             @PathParam("realm") String realm,
             @PathParam("userId") String userId);
 
-    /**
-     * Replaces the account's password and answers HTTP 204.
-     *
-     * <p>
-     * The realm password policy is applied here just as it is on create, so a
-     * value it refuses comes back as HTTP 400 rather than being stored.
-     */
+    /** Replaces the account's password and answers HTTP 204. */
     @PUT
     @Path("/{realm}/users/{userId}/reset-password")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -94,9 +76,7 @@ public interface KeycloakAdminClient {
             @PathParam("userId") String userId,
             KeycloakCredentialRepresentation credential);
 
-    /**
-     * Applies only the fields present in the body and answers HTTP 204.
-     */
+    /** Applies only the fields present in the body and answers HTTP 204. */
     @PUT
     @Path("/{realm}/users/{userId}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -118,14 +98,7 @@ public interface KeycloakAdminClient {
             @PathParam("realm") String realm,
             @PathParam("roleName") String roleName);
 
-    /**
-     * Adds realm roles to an account and answers HTTP 204.
-     *
-     * <p>
-     * Additive and idempotent: roles not listed are left alone, and a role the
-     * account already holds is silently accepted. The body is a list because
-     * that is the shape Keycloak takes, even for a single role.
-     */
+    /** Adds realm roles to an account and answers HTTP 204. */
     @POST
     @Path("/{realm}/users/{userId}/role-mappings/realm")
     @Consumes(MediaType.APPLICATION_JSON)

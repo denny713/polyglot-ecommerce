@@ -7,13 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * Unit tests for the refresh token value object.
- *
- * <p>
- * A refresh token is as sensitive as a password — whoever holds it can mint new
- * access tokens — which is why it must never reach a log line.
- */
+/** Unit tests for the refresh token value object. */
 class RefreshTokenTest {
 
     @Test

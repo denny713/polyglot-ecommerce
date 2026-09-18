@@ -10,21 +10,7 @@ import org.hibernate.annotations.SQLRestriction;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Goods sold to a customer.
- * <p>
- * Unlike a purchase order, this service never creates one. The document is written
- * when the order is placed upstream, and inventory reads it on the submit message
- * to learn what left the warehouse, which is also why there is a single
- * {@code grandTotal}: a sale has no ordered-versus-received split to keep, what was
- * sold is what goes out.
- * <p>
- * {@code status} is the order service's view of the document and is not advanced
- * from here — see {@link com.inventory.api.enums.SalesStatus}.
- * <p>
- * Overriding {@code cascadeChildren} is what makes delete, activate and deactivate
- * reach the detail lines.
- */
+/** Goods sold to a customer. */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter

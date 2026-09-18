@@ -42,21 +42,6 @@ import static org.mockito.Mockito.when;
  * Tests the HTTP layer of {@link AccountController} — routing, status codes,
  * JSON shape, the exception mappers and the access rule — without starting
  * Keycloak.
- *
- * <p>
- * Only {@link AccountProviderDao} is mocked, exactly as in
- * {@link AuthControllerTest}: everything between it and the socket, including
- * Bean Validation and {@code CurrentAccount}, runs as it does in production.
- * That is what makes the 401 cases below meaningful rather than a restatement
- * of the mock setup.
- *
- * <p>
- * Note what is <em>not</em> tested here any more: there are no "somebody else's
- * account" cases, because there is no longer a way to express one. Every
- * endpoint under {@code } takes its subject from the token, so the wrong
- * request cannot be phrased. {@link #shouldActOnWhicheverAccountTheTokenNames}
- * is what stands in for those tests — it checks the id really does come from
- * the token rather than from anywhere else.
  */
 @QuarkusTest
 class AccountControllerTest {
@@ -371,10 +356,7 @@ class AccountControllerTest {
         verify(accountProviderDao, never()).doFindById(any());
     }
 
-    /**
-     * A JWT outlives the account it names, so a valid token can point at
-     * something that is no longer there.
-     */
+    /** A JWT outlives the account it names, so a valid token can point at something that is no longer there. */
     @Test
     @TestSecurity(user = USERNAME, roles = USER)
     @OidcSecurity(claims = @Claim(key = "sub", value = OWN_ID))
@@ -555,10 +537,7 @@ class AccountControllerTest {
         verify(sessionTerminationDao).revoke(new RefreshToken("refresh-token"));
     }
 
-    /**
-     * A valid bearer token is not enough. If it were, a stolen token would be a
-     * permanently stolen account.
-     */
+    /** A valid bearer token is not enough. If it were, a stolen token would be a permanently stolen account. */
     @Test
     @TestSecurity(user = USERNAME, roles = USER)
     @OidcSecurity(claims = @Claim(key = "sub", value = OWN_ID))
@@ -647,10 +626,7 @@ class AccountControllerTest {
                 .body("details[1].field", equalTo("oldPassword"));
     }
 
-    /**
-     * The realm owns the policy, so its wording is passed through rather than
-     * guessed at here.
-     */
+    /** The realm owns the policy, so its wording is passed through rather than guessed at here. */
     @Test
     @TestSecurity(user = USERNAME, roles = USER)
     @OidcSecurity(claims = @Claim(key = "sub", value = OWN_ID))

@@ -7,31 +7,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Produces the eight-character password a newly registered account is given.
- *
- * <p>
- * <strong>Why one character of each class.</strong> The {@code ecommerce} realm
- * runs {@code length(8) and upperCase(1) and lowerCase(1) and specialChars(1)},
- * and Keycloak applies that policy to admin-set passwords too — a password that
- * happened to come out all lower-case would be refused with HTTP 400 and the
- * registration would fail for no reason the caller could act on. Guaranteeing
- * one of each class up front makes that impossible rather than unlikely. A digit
- * is included on the same principle, so the value stays acceptable if the policy
- * ever gains {@code digits(1)}.
- *
- * <p>
- * <strong>Why these alphabets.</strong> The pairs that are indistinguishable in
- * most fonts are left out — {@code O}/{@code 0}, {@code l}/{@code 1}/{@code I} —
- * because this password is read out of an email and typed by hand, and a
- * character the reader cannot identify turns into a support request. The special
- * characters are limited to ones that survive a copy-paste out of a mail client
- * without being swallowed by quoting or auto-formatting.
- *
- * <p>
- * {@link SecureRandom} rather than {@link java.util.Random}: this value is a
- * credential, and a predictable one is no credential at all.
- */
+/** Produces the eight-character password a newly registered account is given. */
 @ApplicationScoped
 public class TemporaryPasswordGenerator {
 

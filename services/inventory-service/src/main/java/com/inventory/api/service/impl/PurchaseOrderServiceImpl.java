@@ -33,25 +33,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Implements the purchase order lifecycle.
- * <p>
- * Two things are worth knowing before changing this class.
- * <p>
- * Submitting reconciles rather than replaces. The details in the request are
- * matched against what is stored: lines with an id are updated, lines without one
- * are added, and stored lines the request left out are soft-deleted. That is why a
- * duplicated id in one request is rejected — it would make the intent ambiguous.
- * <p>
- * Approving is the only place stock moves. It writes the ledger rows and updates
- * the per-product positions in the same transaction as the status change, so the
- * document and the stock level cannot disagree. Positions are accumulated in a map
- * first, so a product appearing on several lines is written once rather than
- * overwritten per line.
- * <p>
- * Prices are read from the product at submit time and copied onto the line, so a
- * later price change does not rewrite an existing document.
- */
+/** Implements the purchase order lifecycle. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

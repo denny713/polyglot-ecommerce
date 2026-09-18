@@ -1,14 +1,6 @@
 package com.ecommerce.auth.model;
 
-/**
- * The token resulting from authentication, in a form that is neutral with respect
- * to the identity provider.
- *
- * <p>
- * This domain model deliberately avoids the snake_case naming used by OAuth2 /
- * Keycloak. That way the service layer does not have to change if the provider is
- * ever swapped out (Open/Closed Principle).
- */
+/** The token resulting from authentication, in a form that is neutral with respect to the identity provider. */
 public record AuthToken(
         String accessToken,
         String refreshToken,

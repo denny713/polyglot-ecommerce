@@ -18,16 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the translation of Keycloak Admin REST API errors.
- *
- * <p>
- * Like the logout mapper, the point is that the statuses do <em>not</em> mean
- * what they mean on the token endpoint. The two that matter most are the ones
- * that must never be passed through: a 401 or 403 here is our service account
- * being rejected, and forwarding it would tell a caller their own perfectly
- * valid token was refused.
- */
+/** Unit tests for the translation of Keycloak Admin REST API errors. */
 class KeycloakAdminErrorResponseMapperTest {
 
     private final KeycloakAdminErrorResponseMapper mapper = new KeycloakAdminErrorResponseMapper();

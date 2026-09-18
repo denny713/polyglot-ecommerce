@@ -24,9 +24,7 @@ public record KeycloakCredentialRepresentation(
         return new KeycloakCredentialRepresentation("password", password, false);
     }
 
-    /**
-     * The password is never printed, not even when a request is logged.
-     */
+    /** The password is never printed, not even when a request is logged. */
     @Override
     public String toString() {
         return "KeycloakCredentialRepresentation[type=" + type + ", value=***, temporary=" + temporary + "]";

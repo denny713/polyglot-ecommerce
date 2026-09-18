@@ -41,28 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Authenticates and authorizes every request before Spring MVC sees it.
- * <p>
- * Tokens are issued by Keycloak, so this service only verifies them: the RS256
- * signature is checked against the realm's JWKS endpoint — keys are fetched on
- * first use and cached — and {@code exp} and {@code iss} are checked by the claims
- * verifier. A wrong {@code keycloak.issuer-uri} therefore rejects every token,
- * because it must equal the {@code iss} claim exactly.
- * <p>
- * Authorization is here rather than on the controllers because the whole service
- * is administrative: the realm role {@code admin} is required once, which covers
- * every endpoint that exists now and every one added later. The roles are read
- * from {@code realm_access}, where Keycloak puts realm roles; client roles would
- * arrive under {@code resource_access} instead.
- * <p>
- * The verified {@code sub} is published through {@link AccountUtil} for the
- * duration of the request and cleared afterwards, so a pooled thread cannot carry
- * one user's identity into the next request.
- * <p>
- * Being a filter, it runs outside the reach of {@code ResponseHandler}, so it
- * writes the same {@code Response} envelope itself.
- */
+/** Authenticates and authorizes every request before Spring MVC sees it. */
 @Slf4j
 @Component
 public class TokenFilter extends OncePerRequestFilter {

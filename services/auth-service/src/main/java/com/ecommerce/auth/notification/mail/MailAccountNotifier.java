@@ -10,20 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-/**
- * Sends the registration email over SMTP.
- *
- * <p>
- * This is the only class in the service that knows the notification channel is
- * email, in the same way {@code KeycloakIdentityProviderDao} is the only one
- * that knows the identity provider is Keycloak.
- *
- * <p>
- * The message is plain text on purpose. An HTML mail client is free to reflow,
- * auto-link or "helpfully" capitalize a password; plain text between blank lines
- * arrives as it was written, which for a value the reader has to type by hand
- * matters more than looking nice.
- */
+/** Sends the registration email over SMTP. */
 @ApplicationScoped
 public class MailAccountNotifier implements AccountNotifier {
 

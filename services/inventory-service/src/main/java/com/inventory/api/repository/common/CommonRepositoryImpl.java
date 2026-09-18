@@ -16,22 +16,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 
-/**
- * Implements {@link CommonRepository} for every entity at once.
- * <p>
- * It is wired in as the repository base class in {@code Application}, so each
- * concrete repository inherits these bodies without declaring anything.
- * <p>
- * Two decisions live here rather than in the services. Paging defaults are applied
- * when the request omits them, so a missing {@code size} cannot turn into an
- * unbounded query. And a state change is validated before it is applied: a
- * soft-deleted row is untouchable, and activating an already-active row is a 400
- * rather than a silent no-op, so a double click is reported instead of hidden.
- * <p>
- * Error messages name the entity via {@code getTableName}, which reads the Java
- * type name — accurate for the caller because it matches the API, even though it
- * is not the physical table name.
- */
+/** Implements {@link CommonRepository} for every entity at once. */
 public class CommonRepositoryImpl<T extends Base, ID> extends SimpleJpaRepository<T, ID> implements CommonRepository<T, ID> {
 
     private final JpaEntityInformation<T, ?> entityInfo;

@@ -9,13 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests the OpenAPI description.
- * <p>
- * The part that matters is the security scheme: without it Swagger UI has no
- * Authorize button, so every "Try it out" would go out without a token and come
- * back 401 from {@code TokenFilter}.
- */
+/** Tests the OpenAPI description. */
 class DocConfigTest {
 
     private final OpenAPI openAPI = new DocConfig().openAPI();

@@ -14,16 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the translation of Keycloak end-session errors.
- *
- * <p>
- * The point of this class is that the same status codes mean something different
- * here than on the token endpoint: a 400 is a dead session rather than a wrong
- * password, and a rejected client is our own misconfiguration rather than the
- * user's problem. These tests are what keep the two mappers from drifting into
- * each other.
- */
+/** Unit tests for the translation of Keycloak end-session errors. */
 class KeycloakLogoutErrorResponseMapperTest {
 
     private final KeycloakLogoutErrorResponseMapper mapper = new KeycloakLogoutErrorResponseMapper();

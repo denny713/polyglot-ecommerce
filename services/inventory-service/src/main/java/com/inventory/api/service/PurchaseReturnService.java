@@ -5,12 +5,7 @@ import com.inventory.api.model.dto.request.pr.PRSubmitReq;
 import com.inventory.api.model.dto.response.PagingResponse;
 import com.inventory.api.model.dto.response.Response;
 
-/**
- * What a purchase return can go through, from draft to approved or cancelled.
- * <p>
- * Mirrors {@code PurchaseOrderService}, except {@code doApprove} takes no payload:
- * a return ships the quantities already on the document.
- */
+/** What a purchase return can go through, from draft to approved or cancelled. */
 public interface PurchaseReturnService {
 
     Response doSubmit(Long id, PRSubmitReq req);

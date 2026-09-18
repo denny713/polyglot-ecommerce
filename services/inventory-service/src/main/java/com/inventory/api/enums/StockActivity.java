@@ -2,13 +2,7 @@ package com.inventory.api.enums;
 
 import lombok.Getter;
 
-/**
- * Direction of a stock movement: {@code SI} adds to the position, {@code SO}
- * subtracts from it.
- * <p>
- * Approving a purchase order writes {@code SI} rows, approving a purchase return
- * writes {@code SO} rows.
- */
+/** Direction of a stock movement: {@code SI} adds to the position, {@code SO} subtracts from it. */
 @Getter
 public enum StockActivity implements Labeled {
 

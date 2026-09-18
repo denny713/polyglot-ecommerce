@@ -5,9 +5,7 @@ import io.smallrye.config.WithDefault;
 
 import java.util.Optional;
 
-/**
- * Configuration properties for Keycloak authentication.
- */
+/** Configuration properties for Keycloak authentication. */
 @ConfigMapping(prefix = "keycloak.auth")
 public interface KeycloakAuthProperties {
 

@@ -38,17 +38,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the account management DAO.
- *
- * <p>
- * Mirrors {@link KeycloakSessionTerminationDaoTest}: the request Keycloak
- * receives is the contract, and everything else is exception translation. The
- * status-code translation itself lives in
- * {@code KeycloakAdminErrorResponseMapperTest} — here we only check that
- * whatever it produced is passed through untouched, and that a transport
- * failure it never saw still becomes an outage.
- */
+/** Unit tests for the account management DAO. */
 class KeycloakAccountProviderDaoTest {
 
     private static final String ACCOUNT_ID = "8f1a5c2e-6b3d-4f7a-9e21-0c4d8b5a7f36";

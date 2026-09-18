@@ -24,16 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 
-/**
- * Unit tests for the service account token used on the Admin REST API.
- *
- * <p>
- * Two behaviours carry real weight here. The cache is what keeps a burst of
- * registrations from hammering the token endpoint hard enough to look like an
- * attack; and the translation of <em>any</em> failure into an outage is what
- * stops a wrong client secret in our own deployment from surfacing to a caller
- * as though their credentials were the problem.
- */
+/** Unit tests for the service account token used on the Admin REST API. */
 class KeycloakAdminTokenProviderTest {
 
     private KeycloakAdminTokenClient tokenClient;

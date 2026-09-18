@@ -14,16 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for resolving "me" from the bearer token.
- *
- * <p>
- * This is what replaced the old path-versus-token comparison. There is no
- * authorization decision left to test — an endpoint that takes its subject from
- * the token cannot be pointed at another account — so what remains is that the
- * subject is read from the right place, and that an unusable token fails
- * cleanly rather than sending a {@code null} id to Keycloak.
- */
+/** Unit tests for resolving "me" from the bearer token. */
 class CurrentAccountTest {
 
     private static final String OWN_ID = "8f1a5c2e-6b3d-4f7a-9e21-0c4d8b5a7f36";

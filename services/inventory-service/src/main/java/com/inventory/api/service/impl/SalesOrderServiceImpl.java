@@ -25,21 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Applies a paid sales order to stock.
- * <p>
- * The payload is deliberately thin — an id and nothing else. Quantities and prices
- * are read from the stored document rather than from the message, so a replayed or
- * altered message cannot move more stock than was actually sold.
- * <p>
- * Positions are collected in a map keyed by product before anything is written.
- * A document that lists the same product on two lines therefore deducts twice from
- * one position, rather than twice from two copies of it that each only saw one line.
- * <p>
- * A line that would drive a position below zero fails the whole message. The method
- * is transactional, so an order is either recorded in full or not at all, and the
- * ledger never claims more went out than was on hand.
- */
+/** Applies a paid sales order to stock. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

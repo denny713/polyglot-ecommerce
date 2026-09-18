@@ -28,14 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the login DAO.
- *
- * <p>
- * The form body is what really matters here: it is the OAuth2 contract, and a
- * misspelled key would only surface as an opaque HTTP 400 from Keycloak at
- * runtime. The rest of the class is exception translation.
- */
+/** Unit tests for the login DAO. */
 class KeycloakIdentityProviderDaoTest {
 
     private static final UserCredentials CREDENTIALS = new UserCredentials("adminapp", "P@ssw0rd");
@@ -165,10 +158,7 @@ class KeycloakIdentityProviderDaoTest {
         assertThrows(IdentityProviderUnavailableException.class, () -> dao.authenticate(CREDENTIALS));
     }
 
-    /**
-     * Runs a successful authentication and hands back the form that was actually
-     * put on the wire.
-     */
+    /** Runs a successful authentication and hands back the form that was actually put on the wire. */
     private MultivaluedMap<String, String> captureForm() {
         when(tokenClient.requestToken(any(), any()))
                 .thenReturn(new KeycloakTokenResponse("access", "refresh", "Bearer", 300, 1800, "profile"));

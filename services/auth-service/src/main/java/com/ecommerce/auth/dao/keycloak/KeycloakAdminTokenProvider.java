@@ -19,19 +19,6 @@ import java.time.Instant;
  * Supplies the {@code Authorization} header value for Admin REST API calls,
  * obtained with the {@code client_credentials} grant on the {@code auth-service}
  * service account.
- *
- * <p>
- * The token is cached until shortly before it expires. Without that, every
- * register, update and delete would spend an extra round trip on a token that
- * is typically valid for five minutes — and a burst of registrations would
- * hammer the token endpoint hard enough to look like an attack to Keycloak's own
- * rate limiting.
- *
- * <p>
- * Refreshing is {@code synchronized} while reads are not: concurrent requests
- * see a {@code volatile} snapshot and only the thread that finds it stale takes
- * the lock, so the common case stays lock-free and at most one token request is
- * ever in flight.
  */
 @ApplicationScoped
 public class KeycloakAdminTokenProvider {
@@ -115,9 +102,7 @@ public class KeycloakAdminTokenProvider {
         return form;
     }
 
-    /**
-     * A token together with the instant it stops being safe to send.
-     */
+    /** A token together with the instant it stops being safe to send. */
     private record CachedToken(String header, Instant usableUntil) {
 
         boolean isUsableAt(Instant now) {

@@ -4,13 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Pins the labels of the three labelled enums.
- * <p>
- * These are not cosmetic: {@code LabelConverter} writes them into the database,
- * so changing one is a data migration rather than a rename. A test that fails on
- * an edited label is the point.
- */
+/** Pins the labels of the three labelled enums. */
 class LabeledEnumTest {
 
     @Test

@@ -21,13 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests the auditing and soft-delete behaviour every entity inherits.
- * <p>
- * The cascade is the part worth pinning: deleting a document has to reach its
- * lines, or they would survive as orphans that the {@code @SQLRestriction} no
- * longer hides.
- */
+/** Tests the auditing and soft-delete behaviour every entity inherits. */
 class BaseTest {
 
     private static final UUID USER = UUID.fromString("11111111-2222-3333-4444-555555555555");

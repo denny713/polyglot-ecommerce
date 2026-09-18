@@ -10,11 +10,6 @@ import jakarta.ws.rs.ext.Provider;
 /**
  * Translates every subclass of {@link AuthenticationException} into an HTTP
  * response — the equivalent of {@code @RestControllerAdvice} in Spring Boot.
- *
- * <p>A single mapper is enough for all subclasses: it only reads
- * {@link AuthenticationException#errorCode()}, never the concrete type. Adding a
- * new kind of failure means adding one {@code case} here, not touching the
- * controller (Open/Closed Principle).
  */
 @Provider
 public class AuthenticationExceptionMapper implements ExceptionMapper<AuthenticationException> {

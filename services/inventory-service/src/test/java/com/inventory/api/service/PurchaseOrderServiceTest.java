@@ -51,15 +51,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the purchase order lifecycle.
- * <p>
- * Everything is mocked at the repository boundary, so these tests exercise the
- * decisions the service makes rather than the persistence around them. That is
- * where the rules live: which transitions are allowed, how a submitted details
- * list is reconciled against what is stored, and what happens to stock when a
- * document is approved.
- */
+/** Unit tests for the purchase order lifecycle. */
 class PurchaseOrderServiceTest {
 
     private static final BigDecimal PRICE = new BigDecimal("1500");

@@ -14,18 +14,7 @@ import org.jboss.logging.Logger;
 
 import java.util.Objects;
 
-/**
- * Default implementation of {@link AuthenticationService}.
- *
- * <p>
- * It is deliberately not named "Keycloak...": this class depends on
- * {@link IdentityProviderDao}, not on Keycloak, so whichever provider sits behind
- * it does not change this class (Dependency Inversion Principle).
- *
- * <p>
- * Constructor injection is used to keep the dependencies explicit and to let the
- * class be instantiated directly in unit tests without a CDI container.
- */
+/** Default implementation of {@link AuthenticationService}. */
 @ApplicationScoped
 public class DefaultAuthenticationService implements AuthenticationService {
 

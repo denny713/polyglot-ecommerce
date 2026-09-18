@@ -51,13 +51,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the purchase return lifecycle.
- * <p>
- * The interesting difference from {@link PurchaseOrderServiceTest} is
- * approve: it takes no payload and moves stock outward, so it can fail on
- * something a purchase order never can — returning more than is on hand.
- */
+/** Unit tests for the purchase return lifecycle. */
 class PurchaseReturnServiceTest {
 
     private static final BigDecimal PRICE = new BigDecimal("1500");

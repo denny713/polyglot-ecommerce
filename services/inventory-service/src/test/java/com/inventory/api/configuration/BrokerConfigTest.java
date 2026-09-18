@@ -25,18 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests the declared broker topology.
- * <p>
- * These assertions look like restatements of the configuration, and that is the
- * point: RabbitMQ refuses to redeclare an existing queue with different arguments,
- * so changing a name or a dead letter argument here is a change that has to be
- * applied to a running broker rather than just deployed. A failing test is the
- * reminder.
- * <p>
- * The names are the literals from {@code config/application.yml} rather than the
- * placeholders, so the defaults this service ships with stay visible in one place.
- */
+/** Tests the declared broker topology. */
 class BrokerConfigTest {
 
     private static final String EXCHANGE = "sales.exchange";

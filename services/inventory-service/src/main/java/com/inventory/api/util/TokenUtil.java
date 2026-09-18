@@ -2,13 +2,7 @@ package com.inventory.api.util;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/**
- * Extracts the bearer token from the {@code Authorization} header.
- * <p>
- * Returns null for anything unusable — header absent, a different scheme, or the
- * prefix with nothing after it — so the caller has one case to handle instead of
- * also guarding against an empty token.
- */
+/** Extracts the bearer token from the {@code Authorization} header. */
 public class TokenUtil {
 
     private static final String BEARER_PREFIX = "Bearer ";

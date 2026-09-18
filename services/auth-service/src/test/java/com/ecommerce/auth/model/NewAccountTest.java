@@ -5,15 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * The invariants that make {@link NewAccount} safe to pass around: it cannot be
- * built half-empty.
- *
- * <p>
- * There is no password to guard here — registration generates one and mails it,
- * so the profile and the credential travel separately. See
- * {@link RawPasswordTest} for the credential half.
- */
+/** The invariants that make {@link NewAccount} safe to pass around: it cannot be built half-empty. */
 class NewAccountTest {
 
     private static NewAccount valid() {
@@ -42,10 +34,7 @@ class NewAccountTest {
                 () -> new NewAccount(null, "denny@mail.com", "Denny", "Afrizal"));
     }
 
-    /**
-     * The address is where the generated password goes, so an account without
-     * one could never be logged in to.
-     */
+    /** The address is where the generated password goes, so an account without one could never be logged in to. */
     @Test
     void shouldRejectABlankEmail() {
         assertEquals("email must not be blank", assertThrows(IllegalArgumentException.class,

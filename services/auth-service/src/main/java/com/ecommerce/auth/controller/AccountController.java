@@ -31,47 +31,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-/**
- * Account lifecycle endpoint — the counterpart of {@link AuthController}, which
- * only deals in tokens.
- *
- * <p>
- * It has the same three jobs and no more: accept the request, translate the DTO
- * into the domain model, and wrap the result into an HTTP response. There is no
- * business logic and no {@code try/catch} — failures are handled by the mappers
- * in {@code com.ecommerce.auth.handler}.
- *
- * <p>
- * <strong>Everything but register acts on {@code }.</strong> The account id
- * is taken from the {@code sub} claim of the bearer token, never from the URL.
- * That is not a convenience: an endpoint shaped
- * {@code /api/account/{accountId}} can be asked about somebody else's account,
- * so it needs a check that the id matches the token, and a check is something
- * a future endpoint can forget. With the id coming from the token there is no
- * way to phrase the wrong request in the first place, so there is nothing left
- * to enforce. It also means a client never needs to be told its own id before
- * it can use the API.
- *
- * <p>
- * <strong>Who may call what.</strong> {@code POST /register} is open, since a
- * new customer has no token yet; {@code application.properties} lists it in
- * {@code quarkus.http.auth.permission.public.paths} for exactly that reason.
- * Everything under {@code } demands a bearer token, stated twice over: the
- * {@code authenticated} policy on {@code /*} stops an anonymous request before
- * it reaches this class, and {@link Authenticated} on each method says the same
- * in code, so the requirement survives a configuration file being edited or
- * going missing.
- *
- * <p>
- * {@link SecurityRequirement} is documentation only — it puts the padlock in
- * Swagger UI and enforces nothing.
- *
- * <p>
- * As on {@link AuthController}, the OpenAPI annotations are written out by
- * hand: the status codes come from the exception mappers, not from anything
- * visible in a method signature, so an {@code @APIResponse} is the only place a
- * reader of the document can learn that a taken username answers 409.
- */
+/** Account lifecycle endpoint — the counterpart of {@link AuthController}, which only deals in tokens. */
 @Path("/api/account")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

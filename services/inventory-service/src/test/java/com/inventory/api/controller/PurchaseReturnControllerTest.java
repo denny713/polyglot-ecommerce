@@ -37,13 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Tests the HTTP layer of {@code /pr} in isolation, the same way
- * {@link PurchaseOrderControllerTest} does.
- * <p>
- * The one behavioural difference worth a test of its own is approve: it takes no
- * body here, so a request with none must still succeed.
- */
+/** Tests the HTTP layer of {@code /pr} in isolation, the same way {@link PurchaseOrderControllerTest} does. */
 class PurchaseReturnControllerTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();

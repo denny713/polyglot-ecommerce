@@ -63,9 +63,7 @@ public record ErrorResponse(
         return new ErrorResponse(status, error, message, details, Instant.now());
     }
 
-    /**
-     * A single validation violation on a single field.
-     */
+    /** A single validation violation on a single field. */
     @Schema(name = "FieldError", description = "A single validation violation on a single field")
     public record FieldError(
 

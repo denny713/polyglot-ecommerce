@@ -5,18 +5,6 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 /**
  * An account as this API represents it — returned by
  * {@code POST /api/account/register} and by {@code GET /api/account}.
- *
- * <p>
- * One record for both on purpose. The two answer the same question, "what does
- * this account look like now?", and a second identical type would show up in
- * the OpenAPI document as a second identical schema for every client generator
- * to reproduce.
- *
- * <p>
- * No password field, in either direction. Registration generates one and mails
- * it, and Keycloak stores only a hash, so there is nothing here to return even
- * if it were wise to.
- *
  * @param id        the identifier Keycloak assigned; also the {@code sub} claim
  *                  of every token issued for this account
  * @param username  the username as Keycloak stored it

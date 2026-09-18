@@ -23,18 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-/**
- * Tests the predicate helpers directly, including the ones the two search DAOs
- * do not currently use.
- * <p>
- * The convention under test is the one the search DTOs rely on: a null filter
- * value produces a null predicate, and {@code add} drops it. If a helper ever
- * returned a predicate for a null value instead, every optional filter would
- * silently start excluding rows.
- * <p>
- * The helpers are {@code protected static}, so this subclass reaches them the
- * same way {@code PurchaseOrderDao} does.
- */
+/** Tests the predicate helpers directly, including the ones the two search DAOs do not currently use. */
 class CommonDaoTest extends CommonDao {
 
     private CriteriaBuilder cb;

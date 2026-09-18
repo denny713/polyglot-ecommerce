@@ -10,14 +10,7 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 
-/**
- * Describes this service to Swagger UI and springdoc.
- * <p>
- * Besides the title and version it declares the {@code bearerAuth} scheme, which is
- * what puts the <em>Authorize</em> button in Swagger UI. Without it every "Try it
- * out" would be sent without an {@code Authorization} header and rejected by
- * {@code TokenFilter} with 401.
- */
+/** Describes this service to Swagger UI and springdoc. */
 @Configuration
 public class DocConfig {
 

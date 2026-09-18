@@ -23,12 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-/**
- * Tests which filters a purchase return search turns into.
- * <p>
- * Same contract as {@link PurchaseOrderDaoTest} over a single grand total, since
- * a return has no ordered-versus-received split to filter on.
- */
+/** Tests which filters a purchase return search turns into. */
 class PurchaseReturnDaoTest {
 
     private final PurchaseReturnDao dao = new PurchaseReturnDao();

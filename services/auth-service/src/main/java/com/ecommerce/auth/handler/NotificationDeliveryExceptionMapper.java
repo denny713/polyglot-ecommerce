@@ -6,15 +6,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
-/**
- * The mail server is down or refusing us: 503, and a code of its own.
- *
- * <p>
- * It would be easy to fold this into {@code IDENTITY_PROVIDER_UNAVAILABLE} —
- * both are 503 — but the two send an operator to different places, and a client
- * retrying a registration deserves to know that Keycloak was fine and the mail
- * was not.
- */
+/** The mail server is down or refusing us: 503, and a code of its own. */
 @Provider
 public class NotificationDeliveryExceptionMapper implements ExceptionMapper<NotificationDeliveryException> {
 

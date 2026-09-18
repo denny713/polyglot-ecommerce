@@ -26,13 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests the exception-to-status mapping.
- * <p>
- * Two properties matter beyond the status codes: the body always has the same
- * shape as a successful response, and a 500 must not leak its real message —
- * that one is replaced with a generic sentence and only logged.
- */
+/** Tests the exception-to-status mapping. */
 class ResponseHandlerTest {
 
     private final ResponseHandler handler = new ResponseHandler();

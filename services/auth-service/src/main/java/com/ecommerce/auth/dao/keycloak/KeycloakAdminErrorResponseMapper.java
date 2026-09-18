@@ -15,22 +15,6 @@ import org.jboss.logging.Logger;
 /**
  * Translates Keycloak Admin REST API errors into domain exceptions — the
  * account-management counterpart of {@link KeycloakErrorResponseMapper}.
- *
- * <p>
- * The statuses mean something different here than on the token endpoint, which
- * is why this cannot be the same class:
- *
- * <ul>
- * <li><strong>400</strong> — the account data was rejected, almost always by the
- * realm's password policy. The caller can fix this, so it becomes a 400 of our
- * own.</li>
- * <li><strong>401 / 403</strong> — <em>our</em> service account token was
- * rejected or lacks the {@code realm-management} roles. That is a deployment
- * problem, never the caller's fault, so it must not surface as 401 or 403 to
- * them.</li>
- * <li><strong>404</strong> — no such account.</li>
- * <li><strong>409</strong> — the username or email is taken.</li>
- * </ul>
  */
 public class KeycloakAdminErrorResponseMapper implements ResponseExceptionMapper<RuntimeException> {
 

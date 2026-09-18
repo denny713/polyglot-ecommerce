@@ -11,22 +11,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.jboss.logging.Logger;
 
-/**
- * Translates Keycloak end-session errors into domain exceptions.
- *
- * <p>
- * The same status codes mean something different here than they do on the token
- * endpoint, which is why this cannot be {@link KeycloakErrorResponseMapper}:
- *
- * <ul>
- * <li><strong>400 {@code invalid_grant}</strong> — the refresh token is expired,
- * unknown, or already revoked. Nothing is wrong with the caller's credentials;
- * the session it asked us to end simply no longer exists.</li>
- * <li><strong>401 {@code invalid_client}</strong> — <em>our</em> client id or
- * secret was rejected. That is a misconfiguration of this service, never the
- * user's fault, so it must not come back to the client as a 401.</li>
- * </ul>
- */
+/** Translates Keycloak end-session errors into domain exceptions. */
 public class KeycloakLogoutErrorResponseMapper implements ResponseExceptionMapper<RuntimeException> {
 
     private static final Logger LOG = Logger.getLogger(KeycloakLogoutErrorResponseMapper.class);

@@ -14,15 +14,6 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
  * HTTP client for the same Keycloak token endpoint as {@link KeycloakTokenClient},
  * but used with the {@code client_credentials} grant to obtain the service
  * account token that the Admin REST API requires.
- *
- * <p>
- * It is a separate interface for one reason: {@link KeycloakTokenClient}
- * registers {@link KeycloakErrorResponseMapper}, which reads a 400 or 401 as
- * "the user's password was wrong". Here the only credentials in play are
- * <em>this service's own</em>, so a rejection is a deployment problem and must
- * never come back to a caller as 401. No provider is registered at all: the
- * rest client's default {@code WebApplicationException} is translated by
- * {@link KeycloakAdminTokenProvider}, which is the only class that calls this.
  */
 @Path("/realms")
 @RegisterRestClient(configKey = "keycloak-token-api")

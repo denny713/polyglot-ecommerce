@@ -8,16 +8,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Criteria predicate helpers shared by the search DAOs.
- * <p>
- * The convention that makes them worth having: a null filter value yields a null
- * predicate, and {@code add} silently drops it. That is what lets every field of a
- * search request be optional without the caller writing a null check per field.
- * <p>
- * {@code isTrue} and {@code isFalse} are the exceptions — they take no value, so
- * the caller has to decide whether to apply them.
- */
+/** Criteria predicate helpers shared by the search DAOs. */
 public class CommonDao {
 
     protected static <T> Predicate like(String value, String fieldName, Path<T> path, CriteriaBuilder cb) {

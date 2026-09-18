@@ -14,15 +14,7 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
-/**
- * Implementation of {@link SessionTerminationDao} that calls Keycloak's OpenID
- * Connect end-session endpoint.
- *
- * <p>Together with {@link KeycloakIdentityProviderDao} these are the only classes
- * that know the identity provider is Keycloak. Switching providers means adding
- * another implementation of the interface, without touching the service or the
- * controller.
- */
+/** Implementation of {@link SessionTerminationDao} that calls Keycloak's OpenID Connect end-session endpoint. */
 @ApplicationScoped
 public class KeycloakSessionTerminationDao implements SessionTerminationDao {
 

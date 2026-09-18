@@ -11,29 +11,7 @@ import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.servers.Server;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-/**
- * Describes the service as a whole in the OpenAPI document — the header that
- * sits above the individual endpoints.
- *
- * <p>
- * This metadata is kept in code rather than in {@code application.properties}
- * for the same reason the DTOs carry their own annotations: the description of
- * an endpoint belongs next to the endpoint, and a rename or a new tag is then
- * caught by the compiler instead of silently drifting out of date.
- *
- * <p>
- * The class extends {@link Application} only because that is where the
- * MicroProfile OpenAPI specification expects {@link OpenAPIDefinition} to live.
- * It deliberately does not override {@code getClasses()} or
- * {@code getSingletons()} — doing so would switch Quarkus from scanning for
- * resources to using only what is listed here, and the controller would
- * disappear from the running application.
- *
- * <p>
- * The document is served at {@code /q/openapi} and rendered by Swagger UI at
- * {@code /q/swagger-ui}; both paths are configured in
- * {@code application.properties}.
- */
+/** Describes the service as a whole in the OpenAPI document — the header that sits above the individual endpoints. */
 @ApplicationPath("/")
 @OpenAPIDefinition(
         info = @Info(

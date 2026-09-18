@@ -34,10 +34,7 @@ class PasswordChangeTest {
                 () -> new PasswordChange("K7mQ2x#9", null)).getMessage());
     }
 
-    /**
-     * Re-setting the same value would look like a successful rotation in an
-     * audit log while changing nothing.
-     */
+    /** Re-setting the same value would look like a successful rotation in an audit log while changing nothing. */
     @Test
     void shouldRecogniseAChangeThatChangesNothing() {
         assertTrue(new PasswordChange("K7mQ2x#9", "K7mQ2x#9").isNoOp());
@@ -48,9 +45,7 @@ class PasswordChangeTest {
         assertFalse(new PasswordChange("K7mQ2x#9", "Secret#2026").isNoOp());
     }
 
-    /**
-     * Case matters — treating these as equal would refuse a legitimate change.
-     */
+    /** Case matters — treating these as equal would refuse a legitimate change. */
     @Test
     void shouldCompareThePasswordsExactly() {
         assertFalse(new PasswordChange("K7mQ2x#9", "k7mq2X#9").isNoOp());

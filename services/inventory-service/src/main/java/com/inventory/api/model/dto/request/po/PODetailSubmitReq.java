@@ -5,16 +5,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * One line of a purchase order being submitted.
- * <p>
- * {@code id} carries the intent: null adds a new line, a value updates that line,
- * and a line the request omits entirely is soft-deleted by the service. Repeating
- * the same id in one request is rejected.
- * <p>
- * On approve this DTO is reused and {@code quantity} changes meaning — it is then
- * the quantity actually received, which may not exceed the ordered quantity.
- */
+/** One line of a purchase order being submitted. */
 @Getter
 @Setter
 public class PODetailSubmitReq {

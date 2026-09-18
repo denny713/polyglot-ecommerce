@@ -18,16 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * The translation between the account domain models and Keycloak's
- * {@code UserRepresentation}.
- *
- * <p>
- * Several of these assertions are about fields being <em>absent</em>. That is
- * the whole mechanism behind a partial update: {@code @JsonInclude(NON_NULL)}
- * drops nulls, and Keycloak leaves anything not in the body alone — so a field
- * that accidentally became non-null here would silently overwrite stored data.
- */
+/** The translation between the account domain models and Keycloak's {@code UserRepresentation}. */
 class KeycloakUserMapperTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -75,10 +66,7 @@ class KeycloakUserMapperTest {
                 "a pending required action would stop the user at a setup screen on first login");
     }
 
-    /**
-     * Nothing has verified the address, and claiming otherwise is a lie the rest
-     * of the platform would then trust.
-     */
+    /** Nothing has verified the address, and claiming otherwise is a lie the rest of the platform would then trust. */
     @Test
     void shouldClaimTheEmailIsVerified() {
         assertEquals(Boolean.TRUE, mapper.toRepresentation(

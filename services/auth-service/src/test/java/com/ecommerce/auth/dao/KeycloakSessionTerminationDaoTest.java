@@ -26,13 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the logout DAO.
- *
- * <p>
- * Mirrors {@link KeycloakIdentityProviderDaoTest}: the end-session form is the
- * contract, and everything else is exception translation.
- */
+/** Unit tests for the logout DAO. */
 class KeycloakSessionTerminationDaoTest {
 
     private static final RefreshToken REFRESH_TOKEN = new RefreshToken("refresh-token");
@@ -68,10 +62,7 @@ class KeycloakSessionTerminationDaoTest {
         assertEquals("refresh-token", form.getFirst("refresh_token"));
     }
 
-    /**
-     * Logout is not a grant — sending {@code grant_type} here would be copied-over
-     * noise from the token endpoint.
-     */
+    /** Logout is not a grant — sending {@code grant_type} here would be copied-over noise from the token endpoint. */
     @Test
     void shouldNotSendAGrantType() {
         assertFalse(captureForm().containsKey("grant_type"));
