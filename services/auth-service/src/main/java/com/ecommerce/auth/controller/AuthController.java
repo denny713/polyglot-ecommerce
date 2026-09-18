@@ -67,50 +67,42 @@ public class AuthController {
     @Path("/login")
     @Operation(
             operationId = "login",
-            summary = "Exchange username and password for a token pair",
-            description = """
-                    Verifies the credentials against Keycloak and returns an access token, \
-                    a refresh token, and the lifetime of each.
-
-                    Send the access token as `Authorization: Bearer <accessToken>` on \
-                    subsequent calls, and keep the refresh token for `POST /api/auth/logout`.
-                    """)
+            summary = "Log in to an account",
+            description = "Verify the credentials against Keycloak and return an access token and a refresh token.")
     @APIResponses({
             @APIResponse(
                     responseCode = "200",
-                    description = "The credentials were accepted",
+                    description = "OK",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = LoginResponse.class))),
             @APIResponse(
                     responseCode = "400",
-                    description = "`VALIDATION_ERROR` — a required field is blank or too long; "
-                            + "the offending fields are listed in `details`",
+                    description = "Bad Request, `VALIDATION_ERROR`",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(
                     responseCode = "401",
-                    description = "`INVALID_CREDENTIALS` — wrong username or password",
+                    description = "Unauthorized, `INVALID_CREDENTIALS`",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(
                     responseCode = "403",
-                    description = "`ACCOUNT_DISABLED` — the account exists but is disabled, "
-                            + "or has pending required actions",
+                    description = "Forbidden, `ACCOUNT_DISABLED`",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(
                     responseCode = "429",
-                    description = "`ACCOUNT_LOCKED` — temporarily locked by Keycloak's brute force detection",
+                    description = "Too Many Requests, `ACCOUNT_LOCKED`",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(
                     responseCode = "503",
-                    description = "`IDENTITY_PROVIDER_UNAVAILABLE` — Keycloak is down or not responding",
+                    description = "Service Unavailable, `IDENTITY_PROVIDER_UNAVAILABLE`",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = ErrorResponse.class)))
@@ -143,30 +135,21 @@ public class AuthController {
     @Path("/logout")
     @Operation(
             operationId = "logout",
-            summary = "End the session a refresh token belongs to",
-            description = """
-                    Revokes the refresh token and the Keycloak session behind it.
-
-                    The call is idempotent: an unknown, expired or already-revoked token \
-                    answers 204 just like a live one, so the response cannot be used to \
-                    probe whether a token is still valid.
-
-                    The access token issued alongside it stays valid until it expires — a \
-                    JWT cannot be recalled — so clients must discard both tokens themselves.
-                    """)
+            summary = "Log out of a session",
+            description = "Revoke the refresh token and the Keycloak session behind it, an unknown token answers 204 too.")
     @APIResponses({
             @APIResponse(
                     responseCode = "204",
-                    description = "The session was ended, or had already ended"),
+                    description = "No Content"),
             @APIResponse(
                     responseCode = "400",
-                    description = "`VALIDATION_ERROR` — `refreshToken` is blank or too long",
+                    description = "Bad Request, `VALIDATION_ERROR`",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(
                     responseCode = "503",
-                    description = "`IDENTITY_PROVIDER_UNAVAILABLE` — Keycloak is down or not responding",
+                    description = "Service Unavailable, `IDENTITY_PROVIDER_UNAVAILABLE`",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = ErrorResponse.class)))
