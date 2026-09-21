@@ -2,6 +2,7 @@ package com.order.api.constant;
 
 import java.util.List;
 
+/** Values shared by the two classes that deal with authentication. */
 public class SecurityType {
 
     public static final String SECURITY_SCHEME = "bearerAuth";

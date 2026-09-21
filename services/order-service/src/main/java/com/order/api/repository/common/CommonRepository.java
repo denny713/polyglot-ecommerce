@@ -1,7 +1,7 @@
-package com.inventory.api.repository.common;
+package com.order.api.repository.common;
 
-import com.inventory.api.model.dto.request.PageReq;
-import com.inventory.api.model.entity.base.Base;
+import com.order.api.model.dto.request.PageReq;
+import com.order.api.model.entity.base.Base;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;

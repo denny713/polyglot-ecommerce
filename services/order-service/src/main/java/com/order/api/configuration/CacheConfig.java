@@ -84,9 +84,14 @@ public class CacheConfig {
      */
     public record CartCacheProperties(String keyPrefix, Duration ttl) {
 
-        /** The single key holding everything {@code customerId} has put in their cart. */
+        /** The namespace every line of {@code customerId}'s cart sits under. */
         public String keyFor(Object customerId) {
             return keyPrefix + ":" + customerId;
+        }
+
+        /** The one key holding how many of {@code productId} is in {@code customerId}'s cart. */
+        public String keyFor(Object customerId, Object productId) {
+            return keyFor(customerId) + ":" + productId;
         }
     }
 }

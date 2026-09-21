@@ -9,6 +9,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.UUID;
 
+/** Tags each request with a correlation id, echoed back as {@code X-Correlation-Id}, so it can be followed across log lines. */
 @Configuration
 public class InterceptorConfig implements HandlerInterceptor {
 

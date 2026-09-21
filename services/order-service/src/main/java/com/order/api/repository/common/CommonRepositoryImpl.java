@@ -1,10 +1,10 @@
-package com.inventory.api.repository.common;
+package com.order.api.repository.common;
 
-import com.inventory.api.constant.ActionType;
-import com.inventory.api.exception.BadRequestException;
-import com.inventory.api.exception.NotFoundException;
-import com.inventory.api.model.dto.request.PageReq;
-import com.inventory.api.model.entity.base.Base;
+import com.order.api.constant.ActionType;
+import com.order.api.exception.BadRequestException;
+import com.order.api.exception.NotFoundException;
+import com.order.api.model.dto.request.PageReq;
+import com.order.api.model.entity.base.Base;
 import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

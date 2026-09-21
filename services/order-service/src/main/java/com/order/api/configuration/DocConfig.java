@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 
+/** Describes this service to Swagger UI and springdoc. */
 @Configuration
 public class DocConfig {
 
