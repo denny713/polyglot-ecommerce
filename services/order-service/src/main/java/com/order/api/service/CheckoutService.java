@@ -7,4 +7,6 @@ import com.order.api.model.dto.response.Response;
 public interface CheckoutService {
 
     Response doCheckout(CheckoutReq req);
+
+    Response doCancel(Long checkoutId);
 }

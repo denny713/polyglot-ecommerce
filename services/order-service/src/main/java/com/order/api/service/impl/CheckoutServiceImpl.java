@@ -69,10 +69,15 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final CartCacheProperties cartCacheProperties;
     private final CheckoutProperties checkoutProperties;
 
+    /**
+     * Checks the lines against the cart (when they come from it), the catalogue and the
+     * stock, then saves them as one pending sales order. Checked-out lines leave the
+     * cart only after the order commits.
+     */
     @Override
     @Transactional
     public Response doCheckout(CheckoutReq req) {
-        UUID userLogin = userLogin();
+        UUID userLogin = getUserLogin();
         boolean fromCart = Boolean.TRUE.equals(req.getFromCart());
         List<CheckoutDetailReq> items = req.getItems();
 
@@ -103,15 +108,40 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
 
         log.info("Sales order {} created with {} product(s)", order.getDocumentNumber(), details.size());
-        return new Response(200, ResponseMsg.SUCCESS, setCheckoutResponse(order));
+        return success(order);
     }
 
+    /**
+     * Cancels a sales order, which releases the stock it was holding. An order that is
+     * already cancelled is refused.
+     */
+    @Override
+    @Transactional
+    public Response doCancel(Long checkoutId) {
+        SalesOrder order = soRepository.doGet(checkoutId);
+        if (order.getCreatedBy() == null || !order.getCreatedBy().equals(getUserLogin())) {
+            throw new ForbiddenException("You don't have permission to cancel this sales order");
+        }
+
+        if (order.getStatus() == SalesStatus.CANCELLED) {
+            throw new BadRequestException("Sales order " + order.getDocumentNumber() + " is already cancelled");
+        }
+
+        order.setStatus(SalesStatus.CANCELLED);
+        soRepository.save(order);
+
+        log.info("Sales order {} success for cancelled", order.getDocumentNumber());
+        return success(order);
+    }
+
+    /**
+     * Each product may appear once only, so its quantity is never split across lines.
+     */
     private void validateNoDuplicate(List<CheckoutDetailReq> items) {
         Set<Long> seen = new HashSet<>();
         for (CheckoutDetailReq item : items) {
             if (!seen.add(item.getProductId())) {
-                throw new BadRequestException(String.format(
-                        "Product with id %s appears more than once", item.getProductId()));
+                throw new BadRequestException("Product with id " + item.getProductId() + " appears more than once");
             }
         }
     }
@@ -131,20 +161,22 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
 
         for (int i = 0; i < items.size(); i++) {
-            CheckoutDetailReq item = items.get(i);
+            Long productId = items.get(i).getProductId();
             Object quantity = (quantities == null) ? null : quantities.get(i);
 
             if (!(quantity instanceof Number cartQuantity)) {
-                throw new NotFoundException("Data Product with id " + item.getProductId() + " not found in cart");
+                throw new NotFoundException("Data Product with id " + productId + " not found in cart");
             }
-
-            if (cartQuantity.intValue() != item.getQuantity()) {
-                throw new BadRequestException(String.format(
-                        "Cart has changed for product with id %s, please refresh", item.getProductId()));
+            if (cartQuantity.intValue() != items.get(i).getQuantity()) {
+                throw new BadRequestException("Cart has changed for product with id " + productId + ", please refresh");
             }
         }
     }
 
+    /**
+     * Loads every product on the order, keyed by id. Each one must exist and still be on
+     * sale.
+     */
     private Map<Long, Product> loadProducts(List<CheckoutDetailReq> items) {
         Map<Long, Product> products = productRepository.doList(productIds(items)).stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
@@ -154,10 +186,8 @@ public class CheckoutServiceImpl implements CheckoutService {
             if (product == null) {
                 throw new NotFoundException("Data Product with id " + item.getProductId() + " not found");
             }
-
             if (!Boolean.TRUE.equals(product.getIsActive())) {
-                throw new BadRequestException(String.format(
-                        "Product %s is no longer available", product.getName()));
+                throw new BadRequestException("Product " + product.getName() + " is no longer available");
             }
         }
 
@@ -179,23 +209,19 @@ public class CheckoutServiceImpl implements CheckoutService {
                 LocalDateTime.now().minus(checkoutProperties.paymentTimeout())));
 
         for (CheckoutDetailReq item : items) {
-            int available = Math.max(0, onHand.getOrDefault(item.getProductId(), 0)
-                    - reserved.getOrDefault(item.getProductId(), 0));
+            Long productId = item.getProductId();
+            int available = Math.max(0, onHand.getOrDefault(productId, 0) - reserved.getOrDefault(productId, 0));
             if (item.getQuantity() > available) {
                 throw new BadRequestException(String.format(
                         "Quantity (%s) cannot be greater than available stock (%s) for product %s",
-                        item.getQuantity(), available, products.get(item.getProductId()).getName()));
+                        item.getQuantity(), available, products.get(productId).getName()));
             }
         }
     }
 
-    private static Map<Long, Integer> toMap(List<ProductQuantity> quantities) {
-        return quantities.stream().collect(Collectors.toMap(
-                ProductQuantity::getProductId,
-                quantity -> Objects.requireNonNullElse(quantity.getQuantity(), 0)));
-    }
-
-    /** The price is always the product's current selling price, never one the caller sent. */
+    /**
+     * The price is always the product's current selling price, never one the caller sent.
+     */
     private SalesOrderDetail buildDetail(SalesOrder order, Product product, Integer quantity) {
         SalesOrderDetail detail = new SalesOrderDetail();
         detail.setSalesOrder(order);
@@ -203,7 +229,6 @@ public class CheckoutServiceImpl implements CheckoutService {
         detail.setQuantity(quantity);
         detail.setUnitPrice(product.getSellPrice());
         detail.setSubtotal(product.getSellPrice().multiply(BigDecimal.valueOf(quantity)));
-
         return detail;
     }
 
@@ -224,46 +249,64 @@ public class CheckoutServiceImpl implements CheckoutService {
             }
         };
 
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    clear.run();
-                }
-            });
-        } else {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             clear.run();
+            return;
         }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                clear.run();
+            }
+        });
     }
 
+    /**
+     * The Redis keys of the cart lines behind these items, in the same order.
+     */
     private List<String> cartKeys(UUID userLogin, List<CheckoutDetailReq> items) {
         return items.stream()
                 .map(item -> cartCacheProperties.keyFor(userLogin, item.getProductId()))
                 .toList();
     }
 
+    /**
+     * The product ids of these items, in the same order.
+     */
     private static List<Long> productIds(List<CheckoutDetailReq> items) {
         return items.stream().map(CheckoutDetailReq::getProductId).toList();
     }
 
-    private CheckoutRes setCheckoutResponse(SalesOrder order) {
+    /**
+     * Quantities keyed by product id, with a missing quantity counted as zero.
+     */
+    private static Map<Long, Integer> toMap(List<ProductQuantity> quantities) {
+        return quantities.stream().collect(Collectors.toMap(
+                ProductQuantity::getProductId,
+                quantity -> Objects.requireNonNullElse(quantity.getQuantity(), 0)));
+    }
+
+    /**
+     * Wraps the order in a successful response. Its payment deadline is the moment it
+     * was created plus the payment timeout.
+     */
+    private Response success(SalesOrder order) {
         List<CheckoutDetailRes> items = order.getSalesOrderDetails().stream()
-                .map(detail -> new CheckoutDetailRes(
-                        detail.getId(),
-                        detail.getProduct().getId(),
-                        detail.getProduct().getName(),
-                        detail.getQuantity(),
-                        detail.getUnitPrice(),
+                .map(detail -> new CheckoutDetailRes(detail.getId(), detail.getProduct().getId(),
+                        detail.getProduct().getName(), detail.getQuantity(), detail.getUnitPrice(),
                         detail.getSubtotal()))
                 .toList();
 
-        return new CheckoutRes(order.getId(), order.getDocumentNumber(), order.getGrandTotal(),
+        CheckoutRes res = new CheckoutRes(order.getId(), order.getDocumentNumber(), order.getGrandTotal(),
                 order.getStatus(), order.getCreatedAt(),
                 order.getCreatedAt().plus(checkoutProperties.paymentTimeout()), items);
+        return new Response(200, ResponseMsg.SUCCESS, res);
     }
 
-    /** The account behind the access token, which is who the order is for. */
-    private UUID userLogin() {
+    /**
+     * The account behind the access token, which is who the order is for.
+     */
+    private UUID getUserLogin() {
         UUID userLogin = AccountUtil.getUserLogin();
         if (userLogin == null) {
             throw new ForbiddenException("You don't have permission to access this resource");

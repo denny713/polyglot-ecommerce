@@ -3,6 +3,7 @@ package com.order.api.controller;
 import com.order.api.constant.ResponseMsg;
 import com.order.api.enums.SalesStatus;
 import com.order.api.exception.BadRequestException;
+import com.order.api.exception.ForbiddenException;
 import com.order.api.exception.NotFoundException;
 import com.order.api.handler.ResponseHandler;
 import com.order.api.model.dto.request.checkout.CheckoutDetailReq;
@@ -24,12 +25,14 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -66,7 +69,11 @@ class CheckoutControllerTest {
     }
 
     private static CheckoutRes order() {
-        return new CheckoutRes(15L, "SO20260923001", new BigDecimal("100000.00"), SalesStatus.PENDING, null, null,
+        return order(SalesStatus.PENDING);
+    }
+
+    private static CheckoutRes order(SalesStatus status) {
+        return new CheckoutRes(15L, "SO20260923001", new BigDecimal("100000.00"), status, null, null,
                 List.of(new CheckoutDetailRes(31L, 7L, "Kopi Gayo 200g", 2,
                         new BigDecimal("50000.00"), new BigDecimal("100000.00"))));
     }
@@ -184,6 +191,60 @@ class CheckoutControllerTest {
 
         mvc.perform(post("/order/checkout").contentType(APPLICATION_JSON)
                         .content(JSON.writeValueAsString(request(true, item(7L, 2)))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.status").value(ResponseMsg.NOT_FOUND));
+    }
+
+    // ------------------------------------------------------------------
+    // cancelling an order
+    // ------------------------------------------------------------------
+
+    @Test
+    void shouldPassTheOrderToCancelToTheService() throws Exception {
+        when(service.doCancel(15L))
+                .thenReturn(new Response(200, ResponseMsg.SUCCESS, order(SalesStatus.CANCELLED)));
+
+        mvc.perform(put("/order/checkout/15"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.status").value(ResponseMsg.SUCCESS))
+                .andExpect(jsonPath("$.data.id").value(15))
+                .andExpect(jsonPath("$.data.status").value(SalesStatus.CANCELLED.getLabel()));
+
+        verify(service).doCancel(15L);
+    }
+
+    @Test
+    void shouldAnswerBadRequestWhenTheOrderIsAlreadyCancelled() throws Exception {
+        when(service.doCancel(anyLong()))
+                .thenThrow(new BadRequestException("Sales order SO20260923001 is already cancelled"));
+
+        mvc.perform(put("/order/checkout/15"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.status").value(ResponseMsg.BAD_REQUEST))
+                .andExpect(jsonPath("$.data.error").value("Sales order SO20260923001 is already cancelled"));
+    }
+
+    @Test
+    void shouldAnswerForbiddenWhenTheOrderBelongsToSomeoneElse() throws Exception {
+        when(service.doCancel(anyLong()))
+                .thenThrow(new ForbiddenException("You don't have permission to cancel this sales order"));
+
+        mvc.perform(put("/order/checkout/15"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403))
+                .andExpect(jsonPath("$.status").value(ResponseMsg.FORBIDDEN))
+                .andExpect(jsonPath("$.data.error").value("You don't have permission to cancel this sales order"));
+    }
+
+    @Test
+    void shouldAnswerNotFoundWhenTheOrderDoesNotExist() throws Exception {
+        when(service.doCancel(anyLong()))
+                .thenThrow(new NotFoundException("Data Sales Order with id 99 not found"));
+
+        mvc.perform(put("/order/checkout/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
                 .andExpect(jsonPath("$.status").value(ResponseMsg.NOT_FOUND));

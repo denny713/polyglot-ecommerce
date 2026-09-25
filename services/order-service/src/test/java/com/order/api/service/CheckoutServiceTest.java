@@ -185,6 +185,29 @@ class CheckoutServiceTest {
         when(valueOps.multiGet(anyCollection())).thenReturn(Arrays.asList(quantities));
     }
 
+    private SalesOrder givenOrder(SalesStatus status, UUID createdBy) {
+        Product kopi = product(7L, "Kopi Gayo 200g", "50000.00");
+        SalesOrder order = new SalesOrder();
+        order.setId(15L);
+        order.setDocumentNumber(DOC_NO);
+        order.setStatus(status);
+        order.setGrandTotal(new BigDecimal("100000.00"));
+        order.setCreatedAt(CREATED_AT);
+        order.setCreatedBy(createdBy);
+
+        SalesOrderDetail detail = new SalesOrderDetail();
+        detail.setId(31L);
+        detail.setSalesOrder(order);
+        detail.setProduct(kopi);
+        detail.setQuantity(2);
+        detail.setUnitPrice(kopi.getSellPrice());
+        detail.setSubtotal(new BigDecimal("100000.00"));
+        order.setSalesOrderDetails(List.of(detail));
+
+        when(soRepository.doGet(15L)).thenReturn(order);
+        return order;
+    }
+
     // ------------------------------------------------------------------
     // the happy path
     // ------------------------------------------------------------------
@@ -475,5 +498,82 @@ class CheckoutServiceTest {
 
         // The order is committed by then; failing the request would hide it from the customer.
         assertEquals(200, response.getCode());
+    }
+
+    // ------------------------------------------------------------------
+    // cancelling an order
+    // ------------------------------------------------------------------
+
+    @Test
+    void shouldCancelAPendingOrderOfTheSignedInUser() {
+        givenOrder(SalesStatus.PENDING, USER);
+
+        Response response = service.doCancel(15L);
+
+        assertEquals(200, response.getCode());
+        assertEquals(ResponseMsg.SUCCESS, response.getStatus());
+
+        CheckoutRes res = assertInstanceOf(CheckoutRes.class, response.getData());
+        assertEquals(15L, res.getId());
+        assertEquals(DOC_NO, res.getDocumentNumber());
+        assertEquals(SalesStatus.CANCELLED, res.getStatus());
+        assertEquals(new BigDecimal("100000.00"), res.getGrandTotal());
+        assertEquals(CREATED_AT.plusMinutes(60), res.getExpiredAt());
+        assertEquals(1, res.getItems().size());
+        assertEquals("Kopi Gayo 200g", res.getItems().get(0).getProductName());
+
+        ArgumentCaptor<SalesOrder> saved = ArgumentCaptor.forClass(SalesOrder.class);
+        verify(soRepository).save(saved.capture());
+        assertEquals(SalesStatus.CANCELLED, saved.getValue().getStatus());
+    }
+
+    @Test
+    void shouldRefuseAnOrderAlreadyCancelled() {
+        givenOrder(SalesStatus.CANCELLED, USER);
+
+        BadRequestException exc = assertThrows(BadRequestException.class, () -> service.doCancel(15L));
+
+        assertEquals("Sales order " + DOC_NO + " is already cancelled", exc.getMessage());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+    }
+
+    @Test
+    void shouldRefuseToCancelAnotherCustomersOrder() {
+        givenOrder(SalesStatus.PENDING, UUID.fromString("99999999-8888-7777-6666-555555555555"));
+
+        ForbiddenException exc = assertThrows(ForbiddenException.class, () -> service.doCancel(15L));
+
+        assertEquals("You don't have permission to cancel this sales order", exc.getMessage());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+    }
+
+    @Test
+    void shouldRefuseToCancelAnOrderWithNoKnownOwner() {
+        givenOrder(SalesStatus.PENDING, null);
+
+        ForbiddenException exc = assertThrows(ForbiddenException.class, () -> service.doCancel(15L));
+
+        assertEquals("You don't have permission to cancel this sales order", exc.getMessage());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+    }
+
+    @Test
+    void shouldRefuseACancelWithNoSignedInUser() {
+        givenOrder(SalesStatus.PENDING, USER);
+        AccountUtil.clearUserLogin();
+
+        ForbiddenException exc = assertThrows(ForbiddenException.class, () -> service.doCancel(15L));
+
+        assertEquals("You don't have permission to access this resource", exc.getMessage());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+    }
+
+    @Test
+    void shouldRefuseAnOrderThatDoesNotExist() {
+        when(soRepository.doGet(99L)).thenThrow(new NotFoundException("Data Sales Order with id 99 not found"));
+
+        assertThrows(NotFoundException.class, () -> service.doCancel(99L));
+
+        verify(soRepository, never()).save(any(SalesOrder.class));
     }
 }
