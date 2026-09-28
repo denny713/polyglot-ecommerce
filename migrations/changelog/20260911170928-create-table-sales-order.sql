@@ -15,9 +15,13 @@ CREATE TABLE IF NOT EXISTS sales_order
     document_number VARCHAR(30)    NOT NULL UNIQUE,
     status          VARCHAR(20)    NOT NULL DEFAULT 'Pending',
     grand_total     DECIMAL(12, 2) NOT NULL,
+    paid            DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    outstanding     DECIMAL(12, 2) NOT NULL DEFAULT 0,
 
     CONSTRAINT chk_sales_order_grand_total CHECK (grand_total >= 0),
+    CONSTRAINT chk_sales_order_paid CHECK (paid >= 0 AND paid <= grand_total),
+    CONSTRAINT chk_sales_order_outstanding CHECK (outstanding >= 0 AND paid + outstanding = grand_total),
     CONSTRAINT chk_sales_order_status CHECK (status IN ('Pending', 'Expired', 'Paid', 'Cancelled', 'Completed'))
-)
+);
 
 --rollback DROP TABLE IF EXISTS sales_order;

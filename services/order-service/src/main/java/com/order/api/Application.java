@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import com.order.api.repository.common.CommonRepositoryImpl;
 
-/** Boots the inventory service. */
+/** Boots the order service. */
 @SpringBootApplication
 @EnableJpaRepositories(repositoryBaseClass = CommonRepositoryImpl.class)
 public class Application {

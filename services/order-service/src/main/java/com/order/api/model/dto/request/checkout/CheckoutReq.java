@@ -19,7 +19,7 @@ import java.util.List;
 @Setter
 public class CheckoutReq {
 
-    @NotNull(message = "fromCart cannot be null")
+    @NotNull(message = "From cart cannot be null")
     private Boolean fromCart;
 
     @Valid

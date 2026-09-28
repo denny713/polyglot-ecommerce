@@ -3,7 +3,6 @@ package com.order.api.service.impl;
 import com.order.api.configuration.CacheConfig.CartCacheProperties;
 import com.order.api.constant.ResponseMsg;
 import com.order.api.exception.BadRequestException;
-import com.order.api.exception.ForbiddenException;
 import com.order.api.exception.NotFoundException;
 import com.order.api.exception.ServiceException;
 import com.order.api.model.dto.request.cart.CartPushReq;
@@ -39,7 +38,7 @@ public class CartServiceImpl implements CartService {
      */
     @Override
     public Response doPush(CartPushReq req) {
-        UUID userLogin = userLogin();
+        UUID userLogin = AccountUtil.requireUserLogin();
         Product product = productRepository.doGet(req.getProductId());
         String key = cartCacheProperties.keyFor(userLogin, product.getId());
 
@@ -60,7 +59,7 @@ public class CartServiceImpl implements CartService {
      */
     @Override
     public Response doRemove(Long productId) {
-        UUID userLogin = userLogin();
+        UUID userLogin = AccountUtil.requireUserLogin();
         if (productId == null) {
             throw new BadRequestException("Product id cannot be null");
         }
@@ -80,15 +79,5 @@ public class CartServiceImpl implements CartService {
 
         log.info("Cart line {} removed", key);
         return new Response(200, ResponseMsg.SUCCESS, new CartRes(userLogin, productId, 0));
-    }
-
-    /** The account behind the access token, which is whose cart is being worked on. */
-    private UUID userLogin() {
-        UUID userLogin = AccountUtil.getUserLogin();
-        if (userLogin == null) {
-            throw new ForbiddenException("You don't have permission to access this resource");
-        }
-
-        return userLogin;
     }
 }

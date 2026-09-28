@@ -20,6 +20,24 @@ class LabeledEnumTest {
     }
 
     @Test
+    void shouldPinTheRefundReasonsToWhatTheRefundTableAccepts() {
+        assertEquals("Overpayment", RefundReason.OVERPAYMENT.getLabel());
+        assertEquals("Cancellation", RefundReason.CANCELLATION.getLabel());
+        assertEquals("Expired", RefundReason.EXPIRED.getLabel());
+        assertEquals(3, RefundReason.values().length);
+    }
+
+    @Test
+    void shouldPinTheDocTypesToWhatTheDocumentNumberFunctionAccepts() {
+        assertEquals("PO", DocType.PURCHASE_ORDER.getLabel());
+        assertEquals("PR", DocType.PURCHASE_RETURN.getLabel());
+        assertEquals("SO", DocType.SALES_ORDER.getLabel());
+        assertEquals("PY", DocType.PAYMENT.getLabel());
+        assertEquals("RF", DocType.REFUND.getLabel());
+        assertEquals(5, DocType.values().length);
+    }
+
+    @Test
     void shouldPrintTheLabelRatherThanTheConstantName() {
         // What ends up in a log line or a message payload.
         assertEquals("Paid", SalesStatus.PAID.toString());

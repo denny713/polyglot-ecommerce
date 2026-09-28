@@ -3,6 +3,8 @@ package com.order.api.service.impl;
 import com.order.api.configuration.CacheConfig.CartCacheProperties;
 import com.order.api.configuration.CheckoutConfig.CheckoutProperties;
 import com.order.api.constant.ResponseMsg;
+import com.order.api.enums.DocType;
+import com.order.api.enums.RefundReason;
 import com.order.api.enums.SalesStatus;
 import com.order.api.exception.BadRequestException;
 import com.order.api.exception.ForbiddenException;
@@ -23,6 +25,7 @@ import com.order.api.repository.SalesOrderDetailRepository;
 import com.order.api.repository.SalesOrderRepository;
 import com.order.api.repository.StockPositionRepository;
 import com.order.api.service.CheckoutService;
+import com.order.api.service.RefundService;
 import com.order.api.util.AccountUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +60,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CheckoutServiceImpl implements CheckoutService {
 
-    private static final String DOC_TYPE = "SO";
     private static final ZoneId ZONE = ZoneId.of("Asia/Jakarta");
 
     private final DocumentNumberRepository docNoRepository;
@@ -65,6 +67,7 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final SalesOrderRepository soRepository;
     private final SalesOrderDetailRepository soDetailRepository;
     private final StockPositionRepository stockPositionRepository;
+    private final RefundService refundService;
     private final RedisTemplate<String, Object> cartRedisTemplate;
     private final CartCacheProperties cartCacheProperties;
     private final CheckoutProperties checkoutProperties;
@@ -77,7 +80,7 @@ public class CheckoutServiceImpl implements CheckoutService {
     @Override
     @Transactional
     public Response doCheckout(CheckoutReq req) {
-        UUID userLogin = getUserLogin();
+        UUID userLogin = AccountUtil.requireUserLogin();
         boolean fromCart = Boolean.TRUE.equals(req.getFromCart());
         List<CheckoutDetailReq> items = req.getItems();
 
@@ -90,7 +93,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         validateStock(items, products);
 
         SalesOrder order = new SalesOrder();
-        order.setDocumentNumber(docNoRepository.generateDocumentNumber(DOC_TYPE, LocalDate.now(ZONE)));
+        order.setDocumentNumber(docNoRepository.generateDocumentNumber(DocType.SALES_ORDER, LocalDate.now(ZONE)));
         order.setStatus(SalesStatus.PENDING);
 
         List<SalesOrderDetail> details = items.stream()
@@ -99,6 +102,9 @@ public class CheckoutServiceImpl implements CheckoutService {
         order.setGrandTotal(details.stream()
                 .map(SalesOrderDetail::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
+
+        order.setPaid(BigDecimal.ZERO);
+        order.setOutstanding(order.getGrandTotal());
 
         soRepository.save(order);
         order.setSalesOrderDetails(soDetailRepository.saveAll(details));
@@ -112,26 +118,65 @@ public class CheckoutServiceImpl implements CheckoutService {
     }
 
     /**
-     * Cancels a sales order, which releases the stock it was holding. An order that is
-     * already cancelled is refused.
+     * Cancels a pending or paid sales order, which releases the stock it was holding,
+     * and refunds everything paid towards it. The order's row stays locked until this
+     * commits, so a payment arriving meanwhile waits and then finds it cancelled.
      */
     @Override
     @Transactional
     public Response doCancel(Long checkoutId) {
-        SalesOrder order = soRepository.doGet(checkoutId);
-        if (order.getCreatedBy() == null || !order.getCreatedBy().equals(getUserLogin())) {
+        UUID userLogin = AccountUtil.requireUserLogin();
+        SalesOrder order = lockOrder(checkoutId);
+        if (order.getCreatedBy() == null || !order.getCreatedBy().equals(userLogin)) {
             throw new ForbiddenException("You don't have permission to cancel this sales order");
         }
 
-        if (order.getStatus() == SalesStatus.CANCELLED) {
-            throw new BadRequestException("Sales order " + order.getDocumentNumber() + " is already cancelled");
+        if (order.getStatus() != SalesStatus.PENDING && order.getStatus() != SalesStatus.PAID) {
+            throw new BadRequestException("Only a pending or paid order can be cancelled");
         }
 
         order.setStatus(SalesStatus.CANCELLED);
         soRepository.save(order);
+        refundPaid(order, RefundReason.CANCELLATION);
 
-        log.info("Sales order {} success for cancelled", order.getDocumentNumber());
+        log.info("Sales order {} successfully cancelled", order.getDocumentNumber());
         return success(order);
+    }
+
+    /**
+     * Expires one pending order whose payment window has run out and refunds what was
+     * paid towards it, for the expiry job. Says whether it expired the order: one paid
+     * in full or cancelled since the job listed it is left alone.
+     */
+    @Override
+    @Transactional
+    public boolean doExpire(Long checkoutId) {
+        SalesOrder order = lockOrder(checkoutId);
+        LocalDateTime cutoff = LocalDateTime.now().minus(checkoutProperties.paymentTimeout());
+        if (order.getStatus() != SalesStatus.PENDING || order.getCreatedAt().isAfter(cutoff)) {
+            return false;
+        }
+
+        order.setStatus(SalesStatus.EXPIRED);
+        soRepository.save(order);
+        refundPaid(order, RefundReason.EXPIRED);
+
+        log.info("Sales order {} expired", order.getDocumentNumber());
+        return true;
+    }
+
+    private SalesOrder lockOrder(Long checkoutId) {
+        return soRepository.lockById(checkoutId)
+                .orElseThrow(() -> new NotFoundException("Data Sales Order with id " + checkoutId + " not found"));
+    }
+
+    /**
+     * Nothing paid means nothing to refund.
+     */
+    private void refundPaid(SalesOrder order, RefundReason reason) {
+        if (order.getPaid() != null && order.getPaid().signum() > 0) {
+            refundService.doRefundOrder(order, reason);
+        }
     }
 
     /**
@@ -301,17 +346,5 @@ public class CheckoutServiceImpl implements CheckoutService {
                 order.getStatus(), order.getCreatedAt(),
                 order.getCreatedAt().plus(checkoutProperties.paymentTimeout()), items);
         return new Response(200, ResponseMsg.SUCCESS, res);
-    }
-
-    /**
-     * The account behind the access token, which is who the order is for.
-     */
-    private UUID getUserLogin() {
-        UUID userLogin = AccountUtil.getUserLogin();
-        if (userLogin == null) {
-            throw new ForbiddenException("You don't have permission to access this resource");
-        }
-
-        return userLogin;
     }
 }

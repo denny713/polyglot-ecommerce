@@ -9,4 +9,6 @@ public interface CheckoutService {
     Response doCheckout(CheckoutReq req);
 
     Response doCancel(Long checkoutId);
+
+    boolean doExpire(Long checkoutId);
 }

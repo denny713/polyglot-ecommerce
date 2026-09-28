@@ -1,7 +1,7 @@
 -- liquibase formatted sql
 --
 -- create function generate doc no
--- changeset denny.afrizal:20260911171550-create-function-generate-doc-no splitStatements:false
+-- changeset denny.afrizal:20260925160610-create-function-generate-doc-no splitStatements:false
 
 CREATE OR REPLACE FUNCTION generate_doc_no(p_type TEXT, p_date DATE)
     RETURNS VARCHAR
@@ -15,7 +15,13 @@ DECLARE
     v_sequence    BIGINT;
 
 BEGIN
-    v_table := CASE p_type WHEN 'PO' THEN 'purchase_order' WHEN 'PR' THEN 'purchase_return' WHEN 'SO' THEN 'sales_order' END;
+    v_table := CASE p_type
+                   WHEN 'PO' THEN 'purchase_order'
+                   WHEN 'PR' THEN 'purchase_return'
+                   WHEN 'SO' THEN 'sales_order'
+                   WHEN 'PY' THEN 'payment'
+                   WHEN 'RF' THEN 'refund'
+        END;
 
     IF v_table IS NULL THEN
         RAISE EXCEPTION 'Unknown document type: %', p_type;

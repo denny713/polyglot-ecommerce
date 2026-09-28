@@ -3,6 +3,8 @@ package com.order.api.service;
 import com.order.api.configuration.CacheConfig.CartCacheProperties;
 import com.order.api.configuration.CheckoutConfig.CheckoutProperties;
 import com.order.api.constant.ResponseMsg;
+import com.order.api.enums.DocType;
+import com.order.api.enums.RefundReason;
 import com.order.api.enums.SalesStatus;
 import com.order.api.exception.BadRequestException;
 import com.order.api.exception.ForbiddenException;
@@ -27,6 +29,8 @@ import com.order.api.util.AccountUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -42,9 +46,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -73,6 +79,7 @@ class CheckoutServiceTest {
     private SalesOrderRepository soRepository;
     private SalesOrderDetailRepository soDetailRepository;
     private StockPositionRepository stockPositionRepository;
+    private RefundService refundService;
     private RedisTemplate<String, Object> cartRedisTemplate;
     private ValueOperations<String, Object> valueOps;
 
@@ -86,11 +93,12 @@ class CheckoutServiceTest {
         soRepository = mock(SalesOrderRepository.class);
         soDetailRepository = mock(SalesOrderDetailRepository.class);
         stockPositionRepository = mock(StockPositionRepository.class);
+        refundService = mock(RefundService.class);
         cartRedisTemplate = mock(RedisTemplate.class);
         valueOps = mock(ValueOperations.class);
         when(cartRedisTemplate.opsForValue()).thenReturn(valueOps);
 
-        when(docNoRepository.generateDocumentNumber(eq("SO"), any(LocalDate.class))).thenReturn(DOC_NO);
+        when(docNoRepository.generateDocumentNumber(eq(DocType.SALES_ORDER), any(LocalDate.class))).thenReturn(DOC_NO);
         when(soRepository.save(any(SalesOrder.class))).thenAnswer(inv -> {
             SalesOrder order = inv.getArgument(0);
             order.setId(15L);
@@ -106,7 +114,7 @@ class CheckoutServiceTest {
         });
 
         service = new CheckoutServiceImpl(docNoRepository, productRepository, soRepository, soDetailRepository,
-                stockPositionRepository, cartRedisTemplate, new CartCacheProperties("cart", Duration.ofDays(7)),
+                stockPositionRepository, refundService, cartRedisTemplate, new CartCacheProperties("cart", Duration.ofDays(7)),
                 new CheckoutProperties(PAYMENT_TIMEOUT));
 
         AccountUtil.setUserLogin(USER);
@@ -192,6 +200,8 @@ class CheckoutServiceTest {
         order.setDocumentNumber(DOC_NO);
         order.setStatus(status);
         order.setGrandTotal(new BigDecimal("100000.00"));
+        order.setPaid(BigDecimal.ZERO);
+        order.setOutstanding(new BigDecimal("100000.00"));
         order.setCreatedAt(CREATED_AT);
         order.setCreatedBy(createdBy);
 
@@ -204,7 +214,7 @@ class CheckoutServiceTest {
         detail.setSubtotal(new BigDecimal("100000.00"));
         order.setSalesOrderDetails(List.of(detail));
 
-        when(soRepository.doGet(15L)).thenReturn(order);
+        when(soRepository.lockById(15L)).thenReturn(Optional.of(order));
         return order;
     }
 
@@ -525,15 +535,57 @@ class CheckoutServiceTest {
         ArgumentCaptor<SalesOrder> saved = ArgumentCaptor.forClass(SalesOrder.class);
         verify(soRepository).save(saved.capture());
         assertEquals(SalesStatus.CANCELLED, saved.getValue().getStatus());
+        // Nothing was paid, so nothing is owed back.
+        verifyNoInteractions(refundService);
     }
 
     @Test
-    void shouldRefuseAnOrderAlreadyCancelled() {
-        givenOrder(SalesStatus.CANCELLED, USER);
+    void shouldRefundWhatWasPaidInPartWhenAPendingOrderIsCancelled() {
+        SalesOrder order = givenOrder(SalesStatus.PENDING, USER);
+        order.setPaid(new BigDecimal("40000.00"));
+        order.setOutstanding(new BigDecimal("60000.00"));
+
+        service.doCancel(15L);
+
+        assertEquals(SalesStatus.CANCELLED, order.getStatus());
+        verify(refundService).doRefundOrder(order, RefundReason.CANCELLATION);
+    }
+
+    @Test
+    void shouldCancelAPaidOrderAndRefundIt() {
+        SalesOrder order = givenOrder(SalesStatus.PAID, USER);
+        order.setPaid(new BigDecimal("100000.00"));
+        order.setOutstanding(BigDecimal.ZERO);
+
+        Response response = service.doCancel(15L);
+
+        assertEquals(200, response.getCode());
+        assertEquals(SalesStatus.CANCELLED, order.getStatus());
+        InOrder inOrder = inOrder(soRepository, refundService);
+        inOrder.verify(soRepository).save(order);
+        inOrder.verify(refundService).doRefundOrder(order, RefundReason.CANCELLATION);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = SalesStatus.class, names = {"PENDING", "PAID"}, mode = EnumSource.Mode.EXCLUDE)
+    void shouldRefuseToCancelAnOrderThatIsNeitherPendingNorPaid(SalesStatus status) {
+        givenOrder(status, USER);
 
         BadRequestException exc = assertThrows(BadRequestException.class, () -> service.doCancel(15L));
 
-        assertEquals("Sales order " + DOC_NO + " is already cancelled", exc.getMessage());
+        assertEquals("Only a pending or paid order can be cancelled", exc.getMessage());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+        verifyNoInteractions(refundService);
+    }
+
+    @Test
+    void shouldCheckTheOwnerBeforeTheStatus() {
+        // Someone else's order must not reveal what state it is in.
+        givenOrder(SalesStatus.CANCELLED, UUID.fromString("99999999-8888-7777-6666-555555555555"));
+
+        ForbiddenException exc = assertThrows(ForbiddenException.class, () -> service.doCancel(15L));
+
+        assertEquals("You don't have permission to cancel this sales order", exc.getMessage());
         verify(soRepository, never()).save(any(SalesOrder.class));
     }
 
@@ -570,10 +622,60 @@ class CheckoutServiceTest {
 
     @Test
     void shouldRefuseAnOrderThatDoesNotExist() {
-        when(soRepository.doGet(99L)).thenThrow(new NotFoundException("Data Sales Order with id 99 not found"));
+        when(soRepository.lockById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> service.doCancel(99L));
+        NotFoundException exc = assertThrows(NotFoundException.class, () -> service.doCancel(99L));
 
+        assertEquals("Data Sales Order with id 99 not found", exc.getMessage());
         verify(soRepository, never()).save(any(SalesOrder.class));
+    }
+
+    // ------------------------------------------------------------------
+    // expiring an order paid in part
+    // ------------------------------------------------------------------
+
+    private SalesOrder givenPartlyPaidOrder(LocalDateTime createdAt) {
+        SalesOrder order = givenOrder(SalesStatus.PENDING, USER);
+        order.setCreatedAt(createdAt);
+        order.setPaid(new BigDecimal("40000.00"));
+        order.setOutstanding(new BigDecimal("60000.00"));
+        return order;
+    }
+
+    @Test
+    void shouldExpireAnOrderPastItsWindowAndRefundWhatWasPaid() {
+        SalesOrder order = givenPartlyPaidOrder(LocalDateTime.now().minus(PAYMENT_TIMEOUT).minusMinutes(1));
+
+        assertTrue(service.doExpire(15L));
+
+        assertEquals(SalesStatus.EXPIRED, order.getStatus());
+        InOrder inOrder = inOrder(soRepository, refundService);
+        inOrder.verify(soRepository).save(order);
+        inOrder.verify(refundService).doRefundOrder(order, RefundReason.EXPIRED);
+    }
+
+    @Test
+    void shouldLeaveAnOrderStillInsideItsWindow() {
+        SalesOrder order = givenPartlyPaidOrder(LocalDateTime.now().minus(PAYMENT_TIMEOUT).plusMinutes(1));
+
+        assertFalse(service.doExpire(15L));
+
+        assertEquals(SalesStatus.PENDING, order.getStatus());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+        verifyNoInteractions(refundService);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = SalesStatus.class, names = "PENDING", mode = EnumSource.Mode.EXCLUDE)
+    void shouldLeaveAnOrderNoLongerPendingWhenTheJobGetsToIt(SalesStatus status) {
+        // Paid in full or cancelled between the job listing it and locking it.
+        SalesOrder order = givenPartlyPaidOrder(LocalDateTime.now().minus(PAYMENT_TIMEOUT).minusMinutes(1));
+        order.setStatus(status);
+
+        assertFalse(service.doExpire(15L));
+
+        assertEquals(status, order.getStatus());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+        verifyNoInteractions(refundService);
     }
 }

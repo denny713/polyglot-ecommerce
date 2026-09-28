@@ -31,6 +31,12 @@ public class SalesOrder extends Base {
     @Column(name = "grand_total")
     private BigDecimal grandTotal;
 
+    @Column(name = "paid")
+    private BigDecimal paid;
+
+    @Column(name = "outstanding")
+    private BigDecimal outstanding;
+
     @OneToMany(mappedBy = "salesOrder", fetch = FetchType.LAZY)
     @SQLRestriction("is_deleted = false")
     @BatchSize(size = 50)

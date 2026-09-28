@@ -3,12 +3,15 @@ package com.order.api.util;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import com.order.api.exception.ForbiddenException;
+
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests the per-request user holder, including the property that makes it safe:
@@ -60,5 +63,19 @@ class AccountUtilTest {
         // The documented limitation: a scheduled or async write audits nothing.
         assertNull(seenElsewhere);
         assertEquals(USER, AccountUtil.getUserLogin(), "the request thread keeps its own value");
+    }
+
+    @Test
+    void shouldRequireTheUserThatWasSet() {
+        AccountUtil.setUserLogin(USER);
+
+        assertEquals(USER, AccountUtil.requireUserLogin());
+    }
+
+    @Test
+    void shouldRefuseWorkOnSomeonesBehalfWhenNobodyIsSignedIn() {
+        ForbiddenException exc = assertThrows(ForbiddenException.class, AccountUtil::requireUserLogin);
+
+        assertEquals("You don't have permission to access this resource", exc.getMessage());
     }
 }

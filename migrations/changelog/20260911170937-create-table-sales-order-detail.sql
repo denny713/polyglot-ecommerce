@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS sales_order_detail
     CONSTRAINT chk_sales_order_detail_quantity CHECK (quantity > 0),
     CONSTRAINT chk_sales_order_detail_unit_price CHECK (unit_price >= 0),
     CONSTRAINT chk_sales_order_detail_subtotal CHECK (subtotal >= 0)
-)
+);
 
 CREATE INDEX IF NOT EXISTS idx_sales_order_detail_sales_order_id ON sales_order_detail (sales_order_id);
 CREATE INDEX IF NOT EXISTS idx_sales_order_detail_product_id ON sales_order_detail (product_id);

@@ -124,7 +124,7 @@ class CheckoutControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.status").value(ResponseMsg.BAD_REQUEST))
-                .andExpect(jsonPath("$.data.error").value("fromCart cannot be null"));
+                .andExpect(jsonPath("$.data.error").value("From cart cannot be null"));
 
         verifyNoInteractions(service);
     }
@@ -216,15 +216,15 @@ class CheckoutControllerTest {
     }
 
     @Test
-    void shouldAnswerBadRequestWhenTheOrderIsAlreadyCancelled() throws Exception {
+    void shouldAnswerBadRequestWhenTheOrderIsNoLongerPending() throws Exception {
         when(service.doCancel(anyLong()))
-                .thenThrow(new BadRequestException("Sales order SO20260923001 is already cancelled"));
+                .thenThrow(new BadRequestException("Only pending sales orders can be cancelled"));
 
         mvc.perform(put("/order/checkout/15"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.status").value(ResponseMsg.BAD_REQUEST))
-                .andExpect(jsonPath("$.data.error").value("Sales order SO20260923001 is already cancelled"));
+                .andExpect(jsonPath("$.data.error").value("Only pending sales orders can be cancelled"));
     }
 
     @Test
