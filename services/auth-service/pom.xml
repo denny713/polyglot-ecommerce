@@ -58,13 +58,13 @@
             <artifactId>quarkus-smallrye-openapi</artifactId>
         </dependency>
         <!--
-            Delivers the generated password to the address given at registration.
-            In dev and test mode the extension defaults to mock delivery, so the
-            message is written to the log and nothing leaves the machine.
+            Publishes account events (registration, profile update, password
+            change, delete) to RabbitMQ. The notification service consumes them
+            and owns the email templates and the SMTP connection.
         -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-mailer</artifactId>
+            <artifactId>quarkus-messaging-rabbitmq</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -84,6 +84,15 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-test-security-oidc</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Stands in for RabbitMQ in the %test profile, so the suite boots
+            without a broker.
+        -->
+        <dependency>
+            <groupId>io.smallrye.reactive</groupId>
+            <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -135,6 +135,11 @@ public class AccountServiceImpl implements AccountService {
             LOG.warnf("Update failed for account %s: %s", accountId, e.errorCode());
             throw e;
         }
+
+        // Read back after the change, so the message goes to the address the
+        // account has now and greets the holder by the name they just set.
+        notifyQuietly(accountId, "update",
+                () -> accountNotifier.notifyAccountUpdated(accountProviderDao.doFindById(accountId), update));
     }
 
     @Override
@@ -170,17 +175,38 @@ public class AccountServiceImpl implements AccountService {
         }
 
         LOG.infof("Password changed for account %s", accountId);
+
+        notifyQuietly(accountId, "password change", () -> accountNotifier.notifyPasswordChanged(account));
     }
 
     @Override
     public void doDelete(String accountId) {
         requireAccountId(accountId);
 
+        // Read before the delete: afterwards there is no address left to write to.
+        Account account;
         try {
+            account = accountProviderDao.doFindById(accountId);
             accountProviderDao.doDelete(accountId);
         } catch (AccountException e) {
             LOG.warnf("Delete failed for account %s: %s", accountId, e.errorCode());
             throw e;
+        }
+
+        notifyQuietly(accountId, "delete", () -> accountNotifier.notifyAccountDeleted(account));
+    }
+
+    /**
+     * Runs a notification for a change that has already been made. The change
+     * stands whether or not the message goes out — failing the request now
+     * would tell the caller it did not happen, and a retry would then fail for
+     * a different reason — so a failure is logged and nothing more.
+     */
+    private void notifyQuietly(String accountId, String action, Runnable notification) {
+        try {
+            notification.run();
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "The %s of account %s succeeded but its notification could not be sent", action, accountId);
         }
     }
 

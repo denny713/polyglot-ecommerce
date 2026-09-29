@@ -98,7 +98,7 @@ Two consequences worth knowing:
 - **The email address is load-bearing.** A typo does not merely inconvenience
   the new customer, it makes the account unusable, because the mailbox is the
   only place the password ever appears.
-- **Registration is all-or-nothing.** If the mail cannot be sent, the account is
+- **Registration is all-or-nothing.** If the broker does not accept the email, the account is
   deleted again and the call answers `503 NOTIFICATION_UNAVAILABLE`. Otherwise
   it would sit there with a password nobody knows, holding the username and
   address against the retry.
@@ -163,18 +163,24 @@ The client secret goes into `.env` twice — once as
 `KEYCLOAK_ADMIN_API_CLIENT_SECRET` for making outgoing admin calls. The init
 script prints it at the end of its run.
 
-### Where the registration email goes
+### Where the account emails go
 
-| Mode | Setting | Result |
+auth-service does not talk to SMTP. It publishes an account event to RabbitMQ
+(exchange `notification.exchange`, routing key `notification.account`) and
+`services/notification-service` turns it into an email:
+
+| Event | Sent when | Blocks the request? |
 | --- | --- | --- |
-| dev / test | `QUARKUS_MAILER_MOCK=true` (the extension's default) | The message is written to the application log; nothing is sent |
-| compose | `MOCK=false`, `HOST=mailpit` | Caught by Mailpit — read it at <http://localhost:8025> |
-| anywhere else | `QUARKUS_MAILER_HOST` / `_PORT` / `_FROM` | Sent over SMTP |
+| `ACCOUNT_REGISTERED` | `POST /api/account` — carries the generated password | Yes: waits for the broker's confirm, and the account is deleted again if it does not come |
+| `ACCOUNT_UPDATED` | `PUT /api/account` — lists the changed fields | No: best effort, a failure is only logged |
+| `PASSWORD_CHANGED` | `PUT /api/account/password` | No |
+| `ACCOUNT_DELETED` | `DELETE /api/account` | No |
 
-Mailpit is in `app/docker-compose.yml` and keeps nothing across restarts, which
-is the right lifetime for throwaway credentials. Mock delivery is deliberately
-*off* in compose: a container that only logged the password would hand out
-accounts nobody can log in to.
+The broker connection comes from `RABBITMQ_HOST` / `_PORT` / `_USERNAME` /
+`_PASSWORD` in `.env`; the channel itself is in `application.properties`. The
+test profile swaps the channel for the in-memory connector, so the suite needs
+no broker. With the notification service pointed at Mailpit (`SMTP_HOST=localhost`,
+`SMTP_PORT=1025`), the emails can be read at <http://localhost:8025>.
 
 ## Packaging and running the application
 

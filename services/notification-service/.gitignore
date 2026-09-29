@@ -5,11 +5,12 @@ target/
 config/
 logs/
 .mvn/
+.env
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-node_modules/
 .DS_Store
+node_modules/
 .ideaDataSources/*
 dataSources/*
 .codegraph/

@@ -1,6 +1,6 @@
 package com.ecommerce.auth.exception;
 
-/** The message carrying a newly generated password could not be handed to the mail server. */
+/** An account notification could not be handed to the message broker. */
 public class NotificationDeliveryException extends RuntimeException {
 
     public NotificationDeliveryException(String message, Throwable cause) {

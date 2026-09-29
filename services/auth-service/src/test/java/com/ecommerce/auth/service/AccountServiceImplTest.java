@@ -573,4 +573,130 @@ class AccountServiceImplTest {
                 assertThrows(IllegalArgumentException.class, () -> service.doDelete("")).getMessage());
         verifyNoInteractions(accountProviderDao);
     }
+
+    // ------------------------------------------------------------------
+    // notifications after a change
+    // ------------------------------------------------------------------
+
+    @Test
+    void shouldNotifyTheUpdatedAccountAfterAnUpdate() {
+        AccountUpdate update = new AccountUpdate("baru@mail.com", null, null);
+        Account updated = new Account(ACCOUNT_ID, "denny.afrizal", "baru@mail.com", "Denny", "Afrizal", true);
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(updated);
+
+        service.doUpdate(ACCOUNT_ID, update);
+
+        // Read back after the change, so the message reaches the new address.
+        InOrder order = inOrder(accountProviderDao, accountNotifier);
+        order.verify(accountProviderDao).doUpdate(ACCOUNT_ID, update);
+        order.verify(accountProviderDao).doFindById(ACCOUNT_ID);
+        order.verify(accountNotifier).notifyAccountUpdated(updated, update);
+    }
+
+    @Test
+    void shouldNotNotifyAFailedUpdate() {
+        doThrow(new AccountNotFoundException("gone")).when(accountProviderDao).doUpdate(eq(ACCOUNT_ID), any());
+
+        assertThrows(AccountNotFoundException.class,
+                () -> service.doUpdate(ACCOUNT_ID, new AccountUpdate("baru@mail.com", null, null)));
+
+        verifyNoInteractions(accountNotifier);
+    }
+
+    /** The update already happened; reporting it as failed would be the lie. */
+    @Test
+    void shouldKeepAnUpdateWhenItsNotificationFails() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(CREATED);
+        doThrow(new NotificationDeliveryException("broker down", new RuntimeException()))
+                .when(accountNotifier).notifyAccountUpdated(any(), any());
+
+        service.doUpdate(ACCOUNT_ID, new AccountUpdate("baru@mail.com", null, null));
+    }
+
+    @Test
+    void shouldKeepAnUpdateWhenTheReadBackFails() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenThrow(new IdentityProviderUnavailableException("down"));
+
+        service.doUpdate(ACCOUNT_ID, new AccountUpdate("baru@mail.com", null, null));
+
+        verifyNoInteractions(accountNotifier);
+    }
+
+    @Test
+    void shouldNotifyAPasswordChange() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(CREATED);
+
+        service.doChangePassword(ACCOUNT_ID, new PasswordChange("K7mQ2x#9", "Rahasia#2026"));
+
+        InOrder order = inOrder(accountProviderDao, accountNotifier);
+        order.verify(accountProviderDao).doChangePassword(eq(ACCOUNT_ID), any());
+        order.verify(accountNotifier).notifyPasswordChanged(CREATED);
+    }
+
+    @Test
+    void shouldNotNotifyARefusedPasswordChange() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(CREATED);
+        doThrow(new InvalidCredentialsException("wrong")).when(currentPasswordVerifier).verify(any(), any());
+
+        assertThrows(InvalidCredentialsException.class,
+                () -> service.doChangePassword(ACCOUNT_ID, new PasswordChange("wrong", "Rahasia#2026")));
+
+        verifyNoInteractions(accountNotifier);
+    }
+
+    @Test
+    void shouldKeepAPasswordChangeWhenItsNotificationFails() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(CREATED);
+        doThrow(new NotificationDeliveryException("broker down", new RuntimeException()))
+                .when(accountNotifier).notifyPasswordChanged(any());
+
+        service.doChangePassword(ACCOUNT_ID, new PasswordChange("K7mQ2x#9", "Rahasia#2026"));
+
+        verify(accountProviderDao).doChangePassword(eq(ACCOUNT_ID), any());
+    }
+
+    /** Read before the delete: afterwards there is no address left to write to. */
+    @Test
+    void shouldNotifyTheAccountAsItWasBeforeTheDelete() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(CREATED);
+
+        service.doDelete(ACCOUNT_ID);
+
+        InOrder order = inOrder(accountProviderDao, accountNotifier);
+        order.verify(accountProviderDao).doFindById(ACCOUNT_ID);
+        order.verify(accountProviderDao).doDelete(ACCOUNT_ID);
+        order.verify(accountNotifier).notifyAccountDeleted(CREATED);
+    }
+
+    @Test
+    void shouldNotDeleteAnAccountItCannotFind() {
+        AccountNotFoundException missing = new AccountNotFoundException("gone");
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenThrow(missing);
+
+        assertSame(missing, assertThrows(AccountNotFoundException.class, () -> service.doDelete(ACCOUNT_ID)));
+
+        verify(accountProviderDao, never()).doDelete(any());
+        verifyNoInteractions(accountNotifier);
+    }
+
+    @Test
+    void shouldNotNotifyAFailedDelete() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(CREATED);
+        doThrow(new IdentityProviderUnavailableException("down")).when(accountProviderDao).doDelete(ACCOUNT_ID);
+
+        assertThrows(IdentityProviderUnavailableException.class, () -> service.doDelete(ACCOUNT_ID));
+
+        verifyNoInteractions(accountNotifier);
+    }
+
+    @Test
+    void shouldKeepADeleteWhenItsNotificationFails() {
+        when(accountProviderDao.doFindById(ACCOUNT_ID)).thenReturn(CREATED);
+        doThrow(new NotificationDeliveryException("broker down", new RuntimeException()))
+                .when(accountNotifier).notifyAccountDeleted(any());
+
+        service.doDelete(ACCOUNT_ID);
+
+        verify(accountProviderDao).doDelete(ACCOUNT_ID);
+    }
 }
