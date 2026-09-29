@@ -3,6 +3,7 @@ package com.order.api.producer;
 import com.order.api.configuration.BrokerConfig;
 import com.order.api.model.dto.message.SOCancelMsg;
 import com.order.api.model.dto.message.SOSubmitMsg;
+import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
 import com.order.api.util.AccountUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -47,11 +49,14 @@ public class SalesOrderProducer {
                         message -> withUser(message, userLogin), correlation)));
     }
 
-    /** Asks the inventory service to put back the stock of a cancelled paid order. */
-    public void doCancelAfterCommit(SalesOrder order) {
+    /**
+     * Asks the inventory service to put back the stock of a cancelled paid order,
+     * recorded under the refunds that took it back.
+     */
+    public void doCancelAfterCommit(SalesOrder order, List<Refund> refunds) {
         String docNo = order.getDocumentNumber();
         UUID userLogin = AccountUtil.getUserLogin();
-        Object payload = new SOCancelMsg(order.getId());
+        Object payload = new SOCancelMsg(order.getId(), refunds.stream().map(Refund::getId).toList());
 
         afterCommit(() -> send("cancel", docNo, userLogin,
                 correlation -> salesRabbitTemplate.convertAndSend(cancelRoutingKey, payload,
