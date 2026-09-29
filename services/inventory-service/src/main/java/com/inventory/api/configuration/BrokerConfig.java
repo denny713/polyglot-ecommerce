@@ -25,6 +25,10 @@ public class BrokerConfig {
     private final String submitDeadLetterQueue;
     private final String submitRoutingKey;
     private final String submitDeadLetterRoutingKey;
+    private final String cancelQueue;
+    private final String cancelDeadLetterQueue;
+    private final String cancelRoutingKey;
+    private final String cancelDeadLetterRoutingKey;
 
     public BrokerConfig(
             @Value("${rabbitmq.exchange.sales}") String exchange,
@@ -32,13 +36,21 @@ public class BrokerConfig {
             @Value("${rabbitmq.queue.so-submit}") String submitQueue,
             @Value("${rabbitmq.queue.so-submit-dlq}") String submitDeadLetterQueue,
             @Value("${rabbitmq.routing-key.so-submit}") String submitRoutingKey,
-            @Value("${rabbitmq.routing-key.so-submit-dlq}") String submitDeadLetterRoutingKey) {
+            @Value("${rabbitmq.routing-key.so-submit-dlq}") String submitDeadLetterRoutingKey,
+            @Value("${rabbitmq.queue.so-cancel}") String cancelQueue,
+            @Value("${rabbitmq.queue.so-cancel-dlq}") String cancelDeadLetterQueue,
+            @Value("${rabbitmq.routing-key.so-cancel}") String cancelRoutingKey,
+            @Value("${rabbitmq.routing-key.so-cancel-dlq}") String cancelDeadLetterRoutingKey) {
         this.exchange = exchange;
         this.deadLetterExchange = deadLetterExchange;
         this.submitQueue = submitQueue;
         this.submitDeadLetterQueue = submitDeadLetterQueue;
         this.submitRoutingKey = submitRoutingKey;
         this.submitDeadLetterRoutingKey = submitDeadLetterRoutingKey;
+        this.cancelQueue = cancelQueue;
+        this.cancelDeadLetterQueue = cancelDeadLetterQueue;
+        this.cancelRoutingKey = cancelRoutingKey;
+        this.cancelDeadLetterRoutingKey = cancelDeadLetterRoutingKey;
     }
 
     @Bean
@@ -74,6 +86,32 @@ public class BrokerConfig {
         return BindingBuilder.bind(salesOrderSubmitDeadLetterQueue())
                 .to(salesDeadLetterExchange())
                 .with(submitDeadLetterRoutingKey);
+    }
+
+    /** Returns the stock of a cancelled paid order; dead letters the same way as submit. */
+    @Bean
+    public Queue salesOrderCancelQueue() {
+        return QueueBuilder.durable(cancelQueue)
+                .deadLetterExchange(deadLetterExchange)
+                .deadLetterRoutingKey(cancelDeadLetterRoutingKey)
+                .build();
+    }
+
+    @Bean
+    public Queue salesOrderCancelDeadLetterQueue() {
+        return QueueBuilder.durable(cancelDeadLetterQueue).build();
+    }
+
+    @Bean
+    public Binding salesOrderCancelBinding() {
+        return BindingBuilder.bind(salesOrderCancelQueue()).to(salesExchange()).with(cancelRoutingKey);
+    }
+
+    @Bean
+    public Binding salesOrderCancelDeadLetterBinding() {
+        return BindingBuilder.bind(salesOrderCancelDeadLetterQueue())
+                .to(salesDeadLetterExchange())
+                .with(cancelDeadLetterRoutingKey);
     }
 
     /**

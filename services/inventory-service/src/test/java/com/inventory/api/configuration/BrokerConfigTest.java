@@ -1,6 +1,7 @@
 package com.inventory.api.configuration;
 
 import com.inventory.api.consumer.SalesOrderConsumer;
+import com.inventory.api.model.dto.request.so.SOCancelReq;
 import com.inventory.api.model.dto.request.so.SOSubmitReq;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Binding;
@@ -34,8 +35,13 @@ class BrokerConfigTest {
     private static final String DLQ = "inventory.so.submit.dlq";
     private static final String ROUTING_KEY = "sales.order.submitted";
     private static final String DLQ_ROUTING_KEY = "sales.order.submitted.dlq";
+    private static final String CANCEL_QUEUE = "inventory.so.cancel";
+    private static final String CANCEL_DLQ = "inventory.so.cancel.dlq";
+    private static final String CANCEL_ROUTING_KEY = "sales.order.cancelled";
+    private static final String CANCEL_DLQ_ROUTING_KEY = "sales.order.cancelled.dlq";
 
-    private final BrokerConfig config = new BrokerConfig(EXCHANGE, DLX, QUEUE, DLQ, ROUTING_KEY, DLQ_ROUTING_KEY);
+    private final BrokerConfig config = new BrokerConfig(EXCHANGE, DLX, QUEUE, DLQ, ROUTING_KEY, DLQ_ROUTING_KEY,
+            CANCEL_QUEUE, CANCEL_DLQ, CANCEL_ROUTING_KEY, CANCEL_DLQ_ROUTING_KEY);
 
     @Test
     void shouldDeclareADurableTopicExchangeForSalesEvents() {
@@ -100,6 +106,36 @@ class BrokerConfigTest {
         assertEquals(DLQ_ROUTING_KEY, binding.getRoutingKey());
         assertEquals(config.salesOrderSubmitQueue().getArguments().get("x-dead-letter-routing-key"),
                 binding.getRoutingKey());
+    }
+
+    @Test
+    void shouldDeadLetterFailedCancelsToTheirOwnQueue() {
+        Queue queue = config.salesOrderCancelQueue();
+
+        assertEquals(CANCEL_QUEUE, queue.getName());
+        assertTrue(queue.isDurable());
+        assertEquals(DLX, queue.getArguments().get("x-dead-letter-exchange"));
+        assertEquals(CANCEL_DLQ_ROUTING_KEY, queue.getArguments().get("x-dead-letter-routing-key"));
+
+        Queue deadLetters = config.salesOrderCancelDeadLetterQueue();
+        assertEquals(CANCEL_DLQ, deadLetters.getName());
+        assertTrue(deadLetters.isDurable());
+        assertNull(deadLetters.getArguments().get("x-dead-letter-exchange"));
+    }
+
+    @Test
+    void shouldBindTheCancelQueuesToTheirRoutingKeys() {
+        Binding binding = config.salesOrderCancelBinding();
+
+        assertEquals(CANCEL_QUEUE, binding.getDestination());
+        assertEquals(EXCHANGE, binding.getExchange());
+        assertEquals(CANCEL_ROUTING_KEY, binding.getRoutingKey());
+
+        Binding deadLetters = config.salesOrderCancelDeadLetterBinding();
+        assertEquals(CANCEL_DLQ, deadLetters.getDestination());
+        assertEquals(DLX, deadLetters.getExchange());
+        assertEquals(config.salesOrderCancelQueue().getArguments().get("x-dead-letter-routing-key"),
+                deadLetters.getRoutingKey());
     }
 
     // ------------------------------------------------------------------
@@ -177,14 +213,21 @@ class BrokerConfigTest {
 
         // Two placeholders pointing at different properties would leave a declared
         // queue with no consumer, and a consumer on a queue nothing binds.
-        assertEquals(submitQueueProperty(), listenedTo);
+        assertEquals(queueProperty(2), listenedTo);
     }
 
-    /** The placeholder the constructor binds the work queue name from. */
-    private static String submitQueueProperty() {
+    @Test
+    void shouldListenForCancelsOnTheCancelQueueThisConfigurationDeclares() throws NoSuchMethodException {
+        Method listener = SalesOrderConsumer.class.getMethod("doConsumeCancel", SOCancelReq.class, String.class);
+
+        assertEquals(queueProperty(6), listener.getAnnotation(RabbitListener.class).queues()[0]);
+    }
+
+    /** The placeholder the constructor binds the parameter at this position from. */
+    private static String queueProperty(int position) {
         Annotation[][] parameters = BrokerConfig.class.getConstructors()[0].getParameterAnnotations();
 
-        return Arrays.stream(parameters[2])
+        return Arrays.stream(parameters[position])
                 .filter(Value.class::isInstance)
                 .map(annotation -> ((Value) annotation).value())
                 .findFirst()

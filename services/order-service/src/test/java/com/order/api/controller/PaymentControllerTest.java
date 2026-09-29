@@ -4,9 +4,11 @@ import com.order.api.constant.ResponseMsg;
 import com.order.api.enums.PaymentMethod;
 import com.order.api.enums.SalesStatus;
 import com.order.api.exception.BadRequestException;
+import com.order.api.exception.NotFoundException;
 import com.order.api.handler.ResponseHandler;
 import com.order.api.model.dto.request.payment.PaymentReq;
 import com.order.api.model.dto.response.Response;
+import com.order.api.model.dto.response.payment.PaymentCancelRes;
 import com.order.api.model.dto.response.payment.PaymentRes;
 import com.order.api.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +29,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -116,5 +120,40 @@ class PaymentControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(ResponseMsg.BAD_REQUEST))
                 .andExpect(jsonPath("$.data.error").value("Only a pending order can be paid"));
+    }
+
+    // ------------------------------------------------------------------
+    // cancelling a paid order
+    // ------------------------------------------------------------------
+
+    @Test
+    void shouldPassTheOrderToCancelToTheService() throws Exception {
+        when(service.doCancel(15L)).thenReturn(new Response(200, ResponseMsg.SUCCESS,
+                new PaymentCancelRes(15L, "SO20260923001", SalesStatus.CANCELLED, new BigDecimal("100000.00"),
+                        new BigDecimal("100000.00"), List.of("RF20260923001"))));
+
+        mvc.perform(put("/order/payment/15"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("Cancelled"))
+                .andExpect(jsonPath("$.data.refundDocNos[0]").value("RF20260923001"));
+
+        verify(service).doCancel(15L);
+    }
+
+    @Test
+    void shouldAnswerBadRequestWhenTheOrderIsNotPaid() throws Exception {
+        when(service.doCancel(15L)).thenThrow(new BadRequestException("Only a paid order can be cancelled"));
+
+        mvc.perform(put("/order/payment/15"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.data.error").value("Only a paid order can be cancelled"));
+    }
+
+    @Test
+    void shouldAnswerNotFoundForAnUnknownOrder() throws Exception {
+        when(service.doCancel(99L)).thenThrow(new NotFoundException("Data Sales Order with id 99 not found"));
+
+        mvc.perform(put("/order/payment/99"))
+                .andExpect(status().isNotFound());
     }
 }

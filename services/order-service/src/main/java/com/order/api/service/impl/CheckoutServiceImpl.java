@@ -118,8 +118,10 @@ public class CheckoutServiceImpl implements CheckoutService {
     }
 
     /**
-     * Cancels a pending or paid sales order, which releases the stock it was holding,
-     * and refunds everything paid towards it. The order's row stays locked until this
+     * Cancels a pending sales order, which releases the stock it was holding, and
+     * refunds whatever was paid towards it in part. A paid order has had its stock
+     * taken by the inventory service, so it is cancelled through payment instead,
+     * which also puts that stock back. The order's row stays locked until this
      * commits, so a payment arriving meanwhile waits and then finds it cancelled.
      */
     @Override
@@ -131,8 +133,8 @@ public class CheckoutServiceImpl implements CheckoutService {
             throw new ForbiddenException("You don't have permission to cancel this sales order");
         }
 
-        if (order.getStatus() != SalesStatus.PENDING && order.getStatus() != SalesStatus.PAID) {
-            throw new BadRequestException("Only a pending or paid order can be cancelled");
+        if (order.getStatus() != SalesStatus.PENDING) {
+            throw new BadRequestException("Only a pending order can be cancelled");
         }
 
         order.setStatus(SalesStatus.CANCELLED);

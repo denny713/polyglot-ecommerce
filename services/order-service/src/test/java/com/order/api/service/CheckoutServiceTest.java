@@ -551,29 +551,15 @@ class CheckoutServiceTest {
         verify(refundService).doRefundOrder(order, RefundReason.CANCELLATION);
     }
 
-    @Test
-    void shouldCancelAPaidOrderAndRefundIt() {
-        SalesOrder order = givenOrder(SalesStatus.PAID, USER);
-        order.setPaid(new BigDecimal("100000.00"));
-        order.setOutstanding(BigDecimal.ZERO);
-
-        Response response = service.doCancel(15L);
-
-        assertEquals(200, response.getCode());
-        assertEquals(SalesStatus.CANCELLED, order.getStatus());
-        InOrder inOrder = inOrder(soRepository, refundService);
-        inOrder.verify(soRepository).save(order);
-        inOrder.verify(refundService).doRefundOrder(order, RefundReason.CANCELLATION);
-    }
-
     @ParameterizedTest
-    @EnumSource(value = SalesStatus.class, names = {"PENDING", "PAID"}, mode = EnumSource.Mode.EXCLUDE)
-    void shouldRefuseToCancelAnOrderThatIsNeitherPendingNorPaid(SalesStatus status) {
+    @EnumSource(value = SalesStatus.class, names = "PENDING", mode = EnumSource.Mode.EXCLUDE)
+    void shouldRefuseToCancelAnOrderThatIsNoLongerPending(SalesStatus status) {
+        // A paid order has had its stock taken, so it is cancelled through payment instead.
         givenOrder(status, USER);
 
         BadRequestException exc = assertThrows(BadRequestException.class, () -> service.doCancel(15L));
 
-        assertEquals("Only a pending or paid order can be cancelled", exc.getMessage());
+        assertEquals("Only a pending order can be cancelled", exc.getMessage());
         verify(soRepository, never()).save(any(SalesOrder.class));
         verifyNoInteractions(refundService);
     }

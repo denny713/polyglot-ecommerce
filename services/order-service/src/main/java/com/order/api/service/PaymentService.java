@@ -6,4 +6,6 @@ import com.order.api.model.dto.response.Response;
 public interface PaymentService {
 
     Response doPayment(PaymentReq req);
+
+    Response doCancel(Long salesOrderId);
 }

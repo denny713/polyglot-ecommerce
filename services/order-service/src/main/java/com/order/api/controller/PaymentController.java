@@ -15,7 +15,9 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -57,5 +59,34 @@ public class PaymentController {
     })
     public ResponseEntity<Response> doPayment(@Valid @RequestBody PaymentReq req) {
         return ResponseEntity.ok(paymentService.doPayment(req));
+    }
+
+    /** Cancels a paid sales order, refunding it and returning its stock. */
+    @PutMapping("/{id}")
+    @Operation(
+            operationId = "cancelPayment",
+            summary = "Cancel a paid sales order",
+            description = "Only a paid order can be cancelled here; its grand total is refunded payment by "
+                    + "payment to the account each came from, and its stock goes back to inventory. A "
+                    + "pending order is cancelled through checkout instead.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Response.class))),
+            @ApiResponse(responseCode = "400", description = "Bad Request",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Response.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Response.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Response.class))),
+            @ApiResponse(responseCode = "404", description = "Not Found",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Response.class)))
+    })
+    public ResponseEntity<Response> doCancel(@PathVariable Long id) {
+        return ResponseEntity.ok(paymentService.doCancel(id));
     }
 }

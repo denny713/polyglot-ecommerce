@@ -4,14 +4,17 @@ import com.order.api.configuration.CheckoutConfig.CheckoutProperties;
 import com.order.api.constant.ResponseMsg;
 import com.order.api.enums.DocType;
 import com.order.api.enums.PaymentMethod;
+import com.order.api.enums.RefundReason;
 import com.order.api.enums.SalesStatus;
 import com.order.api.exception.BadRequestException;
 import com.order.api.exception.ForbiddenException;
 import com.order.api.exception.NotFoundException;
 import com.order.api.model.dto.request.payment.PaymentReq;
 import com.order.api.model.dto.response.Response;
+import com.order.api.model.dto.response.payment.PaymentCancelRes;
 import com.order.api.model.dto.response.payment.PaymentRes;
 import com.order.api.model.entity.Payment;
+import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
 import com.order.api.producer.SalesOrderProducer;
 import com.order.api.repository.DocumentNumberRepository;
@@ -31,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -408,5 +412,100 @@ class PaymentServiceTest {
 
         assertEquals("Data Sales Order with id 15 not found", exc.getMessage());
         verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    // ------------------------------------------------------------------
+    // cancelling a paid order
+    // ------------------------------------------------------------------
+
+    private SalesOrder givenPaidOrder() {
+        SalesOrder order = givenOrder("100000.00", "0");
+        order.setStatus(SalesStatus.PAID);
+        return order;
+    }
+
+    private static Refund refund(String docNo, String amount) {
+        Refund refund = new Refund();
+        refund.setDocumentNumber(docNo);
+        refund.setAmount(new BigDecimal(amount));
+        return refund;
+    }
+
+    @Test
+    void shouldCancelAPaidOrderRefundItsGrandTotalAndReturnItsStock() {
+        SalesOrder order = givenPaidOrder();
+        // Paid in two instalments, so refunded in two.
+        when(refundService.doRefundOrder(order, RefundReason.CANCELLATION)).thenReturn(List.of(
+                refund("RF20260923001", "40000.00"), refund("RF20260923002", "60000.00")));
+
+        Response response = service.doCancel(15L);
+
+        assertEquals(200, response.getCode());
+        PaymentCancelRes res = assertInstanceOf(PaymentCancelRes.class, response.getData());
+        assertEquals(15L, res.getSalesOrderId());
+        assertEquals(SO_DOC_NO, res.getSalesOrderDocNo());
+        assertEquals(SalesStatus.CANCELLED, res.getStatus());
+        assertEquals(new BigDecimal("100000.00"), res.getGrandTotal());
+        assertEquals(new BigDecimal("100000.00"), res.getRefundAmount());
+        assertEquals(List.of("RF20260923001", "RF20260923002"), res.getRefundDocNos());
+
+        assertEquals(SalesStatus.CANCELLED, order.getStatus());
+        InOrder inOrder = inOrder(soRepository, refundService, soProducer);
+        inOrder.verify(soRepository).save(order);
+        inOrder.verify(refundService).doRefundOrder(order, RefundReason.CANCELLATION);
+        inOrder.verify(soProducer).doCancelAfterCommit(order);
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = SalesStatus.class, names = "PAID", mode = EnumSource.Mode.EXCLUDE)
+    void shouldRefuseToCancelAnOrderThatIsNotPaid(SalesStatus status) {
+        givenPaidOrder().setStatus(status);
+
+        BadRequestException exc = assertThrows(BadRequestException.class, () -> service.doCancel(15L));
+
+        assertEquals("Only a paid order can be cancelled", exc.getMessage());
+        verify(soRepository, never()).save(any(SalesOrder.class));
+        verifyNoInteractions(refundService, soProducer);
+    }
+
+    @Test
+    void shouldRefuseToCancelAnotherCustomersPaidOrder() {
+        givenPaidOrder().setCreatedBy(OTHER);
+
+        ForbiddenException exc = assertThrows(ForbiddenException.class, () -> service.doCancel(15L));
+
+        assertEquals("You don't have permission to cancel this sales order", exc.getMessage());
+        verifyNoInteractions(refundService, soProducer);
+    }
+
+    @Test
+    void shouldCheckTheOwnerBeforeTheStatusWhenCancelling() {
+        // Someone else's order must not reveal what state it is in.
+        SalesOrder order = givenPaidOrder();
+        order.setStatus(SalesStatus.CANCELLED);
+        order.setCreatedBy(OTHER);
+
+        assertThrows(ForbiddenException.class, () -> service.doCancel(15L));
+    }
+
+    @Test
+    void shouldRefuseACancelWithNoSignedInUser() {
+        givenPaidOrder();
+        AccountUtil.clearUserLogin();
+
+        assertThrows(ForbiddenException.class, () -> service.doCancel(15L));
+
+        verifyNoInteractions(soRepository, refundService, soProducer);
+    }
+
+    @Test
+    void shouldRefuseToCancelAnOrderThatDoesNotExist() {
+        when(soRepository.lockById(99L)).thenReturn(Optional.empty());
+
+        NotFoundException exc = assertThrows(NotFoundException.class, () -> service.doCancel(99L));
+
+        assertEquals("Data Sales Order with id 99 not found", exc.getMessage());
+        verifyNoInteractions(refundService, soProducer);
     }
 }

@@ -2,6 +2,7 @@ package com.inventory.api.consumer;
 
 import com.inventory.api.exception.BadRequestException;
 import com.inventory.api.exception.NotFoundException;
+import com.inventory.api.model.dto.request.so.SOCancelReq;
 import com.inventory.api.model.dto.request.so.SOSubmitReq;
 import com.inventory.api.model.dto.response.Response;
 import com.inventory.api.service.SalesOrderService;
@@ -202,5 +203,78 @@ class SalesOrderConsumerTest {
         // Losing the author is worth less than losing the stock movement.
         assertNull(seen.get());
         verify(soService).doSubmit(req);
+    }
+
+    // ------------------------------------------------------------------
+    // cancel
+    // ------------------------------------------------------------------
+
+    private static SOCancelReq cancel(Long id) {
+        SOCancelReq req = new SOCancelReq();
+        req.setId(id);
+
+        return req;
+    }
+
+    @Test
+    void shouldHandTheCancelToTheService() {
+        SOCancelReq req = cancel(90L);
+        when(soService.doCancel(req)).thenReturn(new Response(200, "Success", null));
+
+        consumer.doConsumeCancel(req, USER_ID);
+
+        verify(soService).doCancel(req);
+    }
+
+    @Test
+    void shouldRejectACancelWithoutAnId() {
+        AmqpRejectAndDontRequeueException thrown = assertThrows(AmqpRejectAndDontRequeueException.class,
+                () -> consumer.doConsumeCancel(cancel(null), USER_ID));
+
+        assertEquals("Sales order message without an id", thrown.getMessage());
+        verifyNoInteractions(soService);
+    }
+
+    @Test
+    void shouldRejectAnEmptyCancelBody() {
+        assertThrows(AmqpRejectAndDontRequeueException.class, () -> consumer.doConsumeCancel(null, USER_ID));
+
+        verifyNoInteractions(soService);
+    }
+
+    @Test
+    void shouldNotRedeliverACancelTheServiceRefuses() {
+        SOCancelReq req = cancel(90L);
+        doThrow(new BadRequestException("Sales order SO/2026/09/0001 is not cancelled")).when(soService).doCancel(req);
+
+        AmqpRejectAndDontRequeueException thrown = assertThrows(AmqpRejectAndDontRequeueException.class,
+                () -> consumer.doConsumeCancel(req, USER_ID));
+
+        assertEquals("Sales order SO/2026/09/0001 is not cancelled", thrown.getMessage());
+        assertEquals(BadRequestException.class, thrown.getCause().getClass());
+    }
+
+    @Test
+    void shouldLetAnUnexpectedCancelFailureThrough() {
+        SOCancelReq req = cancel(90L);
+        IllegalStateException cause = new IllegalStateException("connection closed");
+        doThrow(cause).when(soService).doCancel(req);
+
+        assertSame(cause, assertThrows(IllegalStateException.class, () -> consumer.doConsumeCancel(req, USER_ID)));
+    }
+
+    @Test
+    void shouldAuditTheCancelAsTheUserFromTheHeaderAndClearItAfter() {
+        SOCancelReq req = cancel(90L);
+        AtomicReference<UUID> seen = new AtomicReference<>();
+        when(soService.doCancel(any())).thenAnswer(call -> {
+            seen.set(AccountUtil.getUserLogin());
+            return new Response(200, "Success", null);
+        });
+
+        consumer.doConsumeCancel(req, USER_ID);
+
+        assertEquals(UUID.fromString(USER_ID), seen.get());
+        assertNull(AccountUtil.getUserLogin());
     }
 }

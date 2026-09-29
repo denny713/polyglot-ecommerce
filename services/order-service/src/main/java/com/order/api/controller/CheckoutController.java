@@ -62,14 +62,15 @@ public class CheckoutController {
         return ResponseEntity.ok(checkoutService.doCheckout(req));
     }
 
-    /** Cancels a sales order, releasing the stock it was holding and refunding what was paid. */
+    /** Cancels a pending sales order, releasing the stock it was holding and refunding what was paid. */
     @PutMapping("/{id}")
     @Operation(
             operationId = "cancelCheckout",
             summary = "Cancel a sales order",
-            description = "Cancel a pending or paid sales order so the stock it was holding is free for "
-                    + "other orders again. Everything paid towards it is refunded, payment by payment, to "
-                    + "the account it came from. Any other order is refused.")
+            description = "Cancel a pending sales order so the stock it was holding is free for other "
+                    + "orders again. Anything paid towards it in part is refunded, payment by payment, to "
+                    + "the account it came from. A paid order is cancelled through payment instead; any "
+                    + "other order is refused.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,

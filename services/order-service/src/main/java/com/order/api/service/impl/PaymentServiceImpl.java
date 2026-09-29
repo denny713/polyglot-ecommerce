@@ -3,14 +3,17 @@ package com.order.api.service.impl;
 import com.order.api.configuration.CheckoutConfig.CheckoutProperties;
 import com.order.api.constant.ResponseMsg;
 import com.order.api.enums.DocType;
+import com.order.api.enums.RefundReason;
 import com.order.api.enums.SalesStatus;
 import com.order.api.exception.BadRequestException;
 import com.order.api.exception.ForbiddenException;
 import com.order.api.exception.NotFoundException;
 import com.order.api.model.dto.request.payment.PaymentReq;
 import com.order.api.model.dto.response.Response;
+import com.order.api.model.dto.response.payment.PaymentCancelRes;
 import com.order.api.model.dto.response.payment.PaymentRes;
 import com.order.api.model.entity.Payment;
+import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
 import com.order.api.producer.SalesOrderProducer;
 import com.order.api.repository.DocumentNumberRepository;
@@ -28,14 +31,15 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Takes a customer's payment towards a pending sales order. An order may be paid in
- * instalments; the one that clears its outstanding makes it paid, and whatever is
- * sent over the outstanding is refunded straight away.
+ * Takes a customer's payment towards a pending sales order, and takes a paid order
+ * back. An order may be paid in instalments; the one that clears its outstanding makes
+ * it paid, and whatever is sent over the outstanding is refunded straight away.
  */
 @Slf4j
 @Service
@@ -98,6 +102,38 @@ public class PaymentServiceImpl implements PaymentService {
         log.info("Payment {} of {} recorded for sales order {}, outstanding now {}",
                 payment.getDocumentNumber(), payment.getAmount(), order.getDocumentNumber(), order.getOutstanding());
         return success(payment, order);
+    }
+
+    /**
+     * Cancels a paid order: everything paid towards it, its grand total, is refunded
+     * payment by payment to the account it came from, and the inventory service is
+     * told to put its stock back once this commits. Any other order is refused; one
+     * still pending is cancelled through checkout instead.
+     */
+    @Override
+    @Transactional
+    public Response doCancel(Long salesOrderId) {
+        UUID userLogin = AccountUtil.requireUserLogin();
+        SalesOrder order = soRepository.lockById(salesOrderId)
+                .orElseThrow(() -> new NotFoundException("Data Sales Order with id " + salesOrderId + " not found"));
+        if (order.getCreatedBy() == null || !order.getCreatedBy().equals(userLogin)) {
+            throw new ForbiddenException("You don't have permission to cancel this sales order");
+        }
+
+        if (order.getStatus() != SalesStatus.PAID) {
+            throw new BadRequestException("Only a paid order can be cancelled");
+        }
+
+        order.setStatus(SalesStatus.CANCELLED);
+        soRepository.save(order);
+        List<Refund> refunds = refundService.doRefundOrder(order, RefundReason.CANCELLATION);
+        soProducer.doCancelAfterCommit(order);
+
+        BigDecimal refunded = refunds.stream().map(Refund::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        log.info("Paid sales order {} cancelled, {} refunded", order.getDocumentNumber(), refunded);
+        return new Response(200, ResponseMsg.SUCCESS, new PaymentCancelRes(order.getId(),
+                order.getDocumentNumber(), order.getStatus(), order.getGrandTotal(), refunded,
+                refunds.stream().map(Refund::getDocumentNumber).toList()));
     }
 
     /**
