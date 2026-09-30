@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     DATABASE_URL: str
@@ -27,7 +27,6 @@ class Settings(BaseSettings):
     MBA_MAX_ITEMSET_SIZE: int = 3
     MBA_MAX_RULES_PER_PRODUCT: int = 50
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()

@@ -42,26 +42,24 @@ async def recommend_for_product(db: AsyncSession, cache: redis.Redis, product_id
 
     return {
         "product_id": product_id,
-        "recommended_items": await _recommend(db, cache, [product_id], limit, exact_antecedent=True),
+        "recommended_items": await _recommend(db, cache, [product_id], limit),
     }
 
 
 async def _frequently_bought_together(
-    db: AsyncSession, cache: redis.Redis, seed: list[int], exclude: list[int], limit: int, exact_antecedent: bool
+    db: AsyncSession, cache: redis.Redis, seed: list[int], exclude: list[int], limit: int
 ):
     """
     Products the association rules of the Market Basket Analysis put in the same
-    order as the seed. A rule applies when the seed holds its whole antecedent, or
-    for a product page, when its antecedent is that product alone. Each product is
-    scored by the most confident rule leading to it.
+    order as the seed. A rule applies when the seed holds its whole antecedent, so
+    for a product page, only the rules whose antecedent is that product alone. Each
+    product is scored by the most confident rule leading to it.
     """
     seed_set = set(seed)
     excluded = set(exclude)
     best = {}
     for rule in await rule_store.get_rules(cache, seed):
-        antecedent = set(rule["antecedent"])
-        applies = antecedent == seed_set if exact_antecedent else antecedent <= seed_set
-        if not applies:
+        if not set(rule["antecedent"]) <= seed_set:
             continue
         for product_id in rule["consequent"]:
             if product_id in excluded:
@@ -85,7 +83,6 @@ async def _recommend(
     seed: list[int],
     limit: int,
     user_id: UUID | None = None,
-    exact_antecedent: bool = False,
 ) -> list[dict]:
     """
     Fills the list in order of relevance: products the association rules put in the
@@ -105,7 +102,7 @@ async def _recommend(
 
     if seed:
         await fill(
-            lambda exclude, n: _frequently_bought_together(db, cache, seed, exclude, n, exact_antecedent),
+            lambda exclude, n: _frequently_bought_together(db, cache, seed, exclude, n),
             REASON_FREQUENTLY_BOUGHT_TOGETHER,
         )
         await fill(lambda exclude, n: history.get_bought_together(db, user_id, seed, exclude, n), REASON_BOUGHT_TOGETHER)

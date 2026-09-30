@@ -25,10 +25,10 @@ async def get_user_recommendation(
 
     response_data = await recommend_for_user(db, cache, user_id, limit)
 
-    await cache.setex(
+    await cache.set(
         cache_key,
-        settings.RECOMMENDATION_CACHE_TTL,
-        json.dumps(response_data)
+        json.dumps(response_data),
+        ex=settings.RECOMMENDATION_CACHE_TTL
     )
 
     return {"source": "postgresql", "data": response_data}
@@ -58,10 +58,10 @@ async def get_recommendation(
     if response_data is None:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    await cache.setex(
+    await cache.set(
         cache_key,
-        settings.PRODUCT_RECOMMENDATION_CACHE_TTL,
-        json.dumps(response_data)
+        json.dumps(response_data),
+        ex=settings.PRODUCT_RECOMMENDATION_CACHE_TTL
     )
 
     return {"source": "postgresql", "data": response_data}
