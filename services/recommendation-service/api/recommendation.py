@@ -6,6 +6,7 @@ from uuid import UUID
 
 from core.config import settings
 from db.database import get_db, get_redis
+from repository.rules import get_meta
 from service.recommendation import recommend_for_product, recommend_for_user
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
@@ -32,6 +33,13 @@ async def get_user_recommendation(
 
     return {"source": "postgresql", "data": response_data}
 
+@router.get("/mba/status")
+async def get_mba_status(cache: redis.Redis = Depends(get_redis)):
+    meta = await get_meta(cache)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Association rules have not been built yet")
+    return {"source": "redis", "data": meta}
+
 @router.get("/{product_id}")
 async def get_recommendation(
     product_id: int,
@@ -46,7 +54,7 @@ async def get_recommendation(
     if cached_data:
         return {"source": "redis", "data": json.loads(cached_data)}
 
-    response_data = await recommend_for_product(db, product_id, limit)
+    response_data = await recommend_for_product(db, cache, product_id, limit)
     if response_data is None:
         raise HTTPException(status_code=404, detail="Product not found")
 

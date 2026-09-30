@@ -76,6 +76,16 @@ POPULAR = text("""
     LIMIT :limit
 """)
 
+# One basket per sales order, whatever its status, for the Market Basket Analysis.
+ORDER_BASKETS = text("""
+    SELECT ARRAY_AGG(DISTINCT d.product_id) AS product_ids
+    FROM sales_order so
+    JOIN sales_order_detail d ON d.sales_order_id = so.id
+    WHERE so.is_deleted = FALSE
+      AND d.is_deleted = FALSE
+    GROUP BY so.id
+""")
+
 PRODUCT_DETAILS = text("""
     SELECT id, name, sell_price, image_url, category_id
     FROM product
@@ -125,6 +135,11 @@ async def get_same_category(db: AsyncSession, seed: list[int], exclude: list[int
 async def get_popular(db: AsyncSession, exclude: list[int], limit: int):
     result = await db.execute(POPULAR, {"exclude": exclude, "limit": limit})
     return [(row.product_id, int(row.score)) for row in result]
+
+
+async def get_order_baskets(db: AsyncSession) -> list[frozenset[int]]:
+    result = await db.execute(ORDER_BASKETS)
+    return [frozenset(row.product_ids) for row in result]
 
 
 async def get_product_details(db: AsyncSession, ids: list[int]) -> dict[int, dict]:
