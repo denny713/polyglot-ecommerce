@@ -19,6 +19,7 @@ import com.order.api.model.dto.response.checkout.ProductQuantity;
 import com.order.api.model.entity.Product;
 import com.order.api.model.entity.SalesOrder;
 import com.order.api.model.entity.SalesOrderDetail;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.repository.DocumentNumberRepository;
 import com.order.api.repository.ProductRepository;
 import com.order.api.repository.SalesOrderDetailRepository;
@@ -71,6 +72,7 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final RedisTemplate<String, Object> cartRedisTemplate;
     private final CartCacheProperties cartCacheProperties;
     private final CheckoutProperties checkoutProperties;
+    private final NotificationProducer notificationProducer;
 
     /**
      * Checks the lines against the cart (when they come from it), the catalogue and the
@@ -162,6 +164,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         order.setStatus(SalesStatus.EXPIRED);
         soRepository.save(order);
         refundPaid(order, RefundReason.EXPIRED);
+        notificationProducer.doCheckoutExpiredAfterCommit(order.getId());
 
         log.info("Sales order {} expired", order.getDocumentNumber());
         return true;

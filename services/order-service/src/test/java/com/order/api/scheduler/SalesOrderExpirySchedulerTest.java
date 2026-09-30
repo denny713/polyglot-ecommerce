@@ -1,6 +1,7 @@
 package com.order.api.scheduler;
 
 import com.order.api.configuration.CheckoutConfig.CheckoutProperties;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.repository.SalesOrderRepository;
 import com.order.api.service.CheckoutService;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,14 +32,16 @@ class SalesOrderExpirySchedulerTest {
 
     private SalesOrderRepository soRepository;
     private CheckoutService checkoutService;
+    private NotificationProducer notificationProducer;
     private SalesOrderExpiryScheduler scheduler;
 
     @BeforeEach
     void setUp() {
         soRepository = mock(SalesOrderRepository.class);
         checkoutService = mock(CheckoutService.class);
+        notificationProducer = mock(NotificationProducer.class);
         scheduler = new SalesOrderExpiryScheduler(soRepository, checkoutService,
-                new CheckoutProperties(PAYMENT_TIMEOUT));
+                new CheckoutProperties(PAYMENT_TIMEOUT), notificationProducer);
     }
 
     @Test
@@ -53,6 +56,25 @@ class SalesOrderExpirySchedulerTest {
         verify(soRepository).expirePending(eq("Pending"), eq("Expired"), cutoff.capture());
         assertFalse(cutoff.getValue().isBefore(before));
         assertFalse(cutoff.getValue().isAfter(after));
+    }
+
+    @Test
+    void shouldTellEachCustomerWhoseUnpaidOrderExpired() {
+        when(soRepository.expirePending(anyString(), anyString(), any(LocalDateTime.class))).thenReturn(List.of(15L, 16L));
+
+        scheduler.doExpire();
+
+        verify(notificationProducer).doCheckoutExpiredAfterCommit(15L);
+        verify(notificationProducer).doCheckoutExpiredAfterCommit(16L);
+    }
+
+    @Test
+    void shouldTellNobodyWhenNothingExpired() {
+        when(soRepository.expirePending(anyString(), anyString(), any(LocalDateTime.class))).thenReturn(List.of());
+
+        scheduler.doExpire();
+
+        verifyNoInteractions(notificationProducer);
     }
 
     @Test
@@ -100,6 +122,6 @@ class SalesOrderExpirySchedulerTest {
 
         assertDoesNotThrow(() -> scheduler.doExpire());
 
-        verifyNoInteractions(checkoutService);
+        verifyNoInteractions(checkoutService, notificationProducer);
     }
 }

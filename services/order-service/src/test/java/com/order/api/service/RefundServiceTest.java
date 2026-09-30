@@ -5,6 +5,7 @@ import com.order.api.enums.RefundReason;
 import com.order.api.model.entity.Payment;
 import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.repository.DocumentNumberRepository;
 import com.order.api.repository.PaymentRepository;
 import com.order.api.repository.RefundRepository;
@@ -27,6 +28,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /** Unit tests for recording the money a sales order owes back. */
@@ -37,6 +39,7 @@ class RefundServiceTest {
     private DocumentNumberRepository docNoRepository;
     private PaymentRepository paymentRepository;
     private RefundRepository refundRepository;
+    private NotificationProducer notificationProducer;
 
     private RefundServiceImpl service;
 
@@ -45,12 +48,19 @@ class RefundServiceTest {
         docNoRepository = mock(DocumentNumberRepository.class);
         paymentRepository = mock(PaymentRepository.class);
         refundRepository = mock(RefundRepository.class);
+        notificationProducer = mock(NotificationProducer.class);
 
         when(docNoRepository.generateDocumentNumber(eq(DocType.REFUND), any(LocalDate.class))).thenReturn(RF_DOC_NO);
         when(refundRepository.save(any(Refund.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(refundRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(refundRepository.saveAll(anyList())).thenAnswer(inv -> {
+            List<Refund> refunds = inv.getArgument(0);
+            for (int i = 0; i < refunds.size(); i++) {
+                refunds.get(i).setId(51L + i);
+            }
+            return refunds;
+        });
 
-        service = new RefundServiceImpl(docNoRepository, paymentRepository, refundRepository);
+        service = new RefundServiceImpl(docNoRepository, paymentRepository, refundRepository, notificationProducer);
     }
 
     private static SalesOrder order() {
@@ -116,6 +126,28 @@ class RefundServiceTest {
             assertNotNull(refund.getRefundedAt());
             assertEquals(order, refund.getSalesOrder());
         });
+        // The customer cancelled, so each refund is mailed to them.
+        verify(notificationProducer).doRefundCancellationAfterCommit(51L);
+        verify(notificationProducer).doRefundCancellationAfterCommit(52L);
+    }
+
+    @Test
+    void shouldNotMailARefundTheCustomerDidNotAskFor() {
+        SalesOrder order = order();
+        when(paymentRepository.findBySalesOrderIdOrderByIdAsc(15L))
+                .thenReturn(List.of(payment(order, 41L, "111", "40000.00", "0")));
+
+        assertEquals(1, service.doRefundOrder(order, RefundReason.EXPIRED).size());
+
+        // The expired order's own email says what was refunded.
+        verifyNoInteractions(notificationProducer);
+    }
+
+    @Test
+    void shouldNotMailTheExcessOfAPayment() {
+        service.doRefundExcess(payment(order(), 41L, "111", "60000.00", "40000.00"));
+
+        verifyNoInteractions(notificationProducer);
     }
 
     @Test

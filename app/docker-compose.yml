@@ -110,6 +110,8 @@ services:
       - redis-server
       - --appendonly
       - "yes"
+      - --notify-keyspace-events
+      - Ex
       - --requirepass
       - ${REDIS_PASSWORD:-p@ssw0rd}
       - --user

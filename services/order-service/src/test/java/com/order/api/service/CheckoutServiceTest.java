@@ -19,6 +19,7 @@ import com.order.api.model.dto.response.checkout.ProductQuantity;
 import com.order.api.model.entity.Product;
 import com.order.api.model.entity.SalesOrder;
 import com.order.api.model.entity.SalesOrderDetail;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.repository.DocumentNumberRepository;
 import com.order.api.repository.ProductRepository;
 import com.order.api.repository.SalesOrderDetailRepository;
@@ -82,6 +83,7 @@ class CheckoutServiceTest {
     private RefundService refundService;
     private RedisTemplate<String, Object> cartRedisTemplate;
     private ValueOperations<String, Object> valueOps;
+    private NotificationProducer notificationProducer;
 
     private CheckoutServiceImpl service;
 
@@ -96,6 +98,7 @@ class CheckoutServiceTest {
         refundService = mock(RefundService.class);
         cartRedisTemplate = mock(RedisTemplate.class);
         valueOps = mock(ValueOperations.class);
+        notificationProducer = mock(NotificationProducer.class);
         when(cartRedisTemplate.opsForValue()).thenReturn(valueOps);
 
         when(docNoRepository.generateDocumentNumber(eq(DocType.SALES_ORDER), any(LocalDate.class))).thenReturn(DOC_NO);
@@ -115,7 +118,7 @@ class CheckoutServiceTest {
 
         service = new CheckoutServiceImpl(docNoRepository, productRepository, soRepository, soDetailRepository,
                 stockPositionRepository, refundService, cartRedisTemplate, new CartCacheProperties("cart", Duration.ofDays(7)),
-                new CheckoutProperties(PAYMENT_TIMEOUT));
+                new CheckoutProperties(PAYMENT_TIMEOUT), notificationProducer);
 
         AccountUtil.setUserLogin(USER);
     }
@@ -638,6 +641,7 @@ class CheckoutServiceTest {
         InOrder inOrder = inOrder(soRepository, refundService);
         inOrder.verify(soRepository).save(order);
         inOrder.verify(refundService).doRefundOrder(order, RefundReason.EXPIRED);
+        verify(notificationProducer).doCheckoutExpiredAfterCommit(15L);
     }
 
     @Test
@@ -648,7 +652,7 @@ class CheckoutServiceTest {
 
         assertEquals(SalesStatus.PENDING, order.getStatus());
         verify(soRepository, never()).save(any(SalesOrder.class));
-        verifyNoInteractions(refundService);
+        verifyNoInteractions(refundService, notificationProducer);
     }
 
     @ParameterizedTest
@@ -662,6 +666,6 @@ class CheckoutServiceTest {
 
         assertEquals(status, order.getStatus());
         verify(soRepository, never()).save(any(SalesOrder.class));
-        verifyNoInteractions(refundService);
+        verifyNoInteractions(refundService, notificationProducer);
     }
 }

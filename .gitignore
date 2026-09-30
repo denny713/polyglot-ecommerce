@@ -9,6 +9,7 @@ logs/
 !**/src/main/**/target/
 !**/src/test/**/target/
 node_modules/
+coverage/
 .DS_Store
 .ideaDataSources/*
 dataSources/*

@@ -32,6 +32,11 @@
 #                             API                       (auth-service)
 #   KEYCLOAK_ACCOUNT_MANAGER_ROLES    the realm-management client roles they
 #                             get      (manage-users,view-users,view-realm)
+#   KEYCLOAK_USER_READER_CLIENTS      resource-server clients whose service
+#                             account may only look users up through the Admin
+#                             REST API               (notification-service)
+#   KEYCLOAK_USER_READER_ROLES        the realm-management client roles they
+#                             get                     (view-users)
 #   KEYCLOAK_APP_AUDIENCES    resource-server clients whose audience is added
 #                             to tokens issued to the public client
 #                                                       (auth-service)
@@ -84,7 +89,7 @@ CLIENT_NAME="${KEYCLOAK_CLIENT:-ecommerce-app}"
 # Override the whole list with KEYCLOAK_RESOURCE_SERVER_CLIENTS, e.g.:
 #   KEYCLOAK_RESOURCE_SERVER_CLIENTS="auth-service:Authentication Service,order-service:Order Service"
 IFS=',' read -r -a RESOURCE_SERVER_CLIENT_SPECS \
-  <<<"${KEYCLOAK_RESOURCE_SERVER_CLIENTS:-auth-service:Authentication Service,order-service:Order Service,product-service:Product Service,recommendation-service:Recommendation Service,bff-service:Backend for Frontend Service,gateway-service:API Gateway Service}"
+  <<<"${KEYCLOAK_RESOURCE_SERVER_CLIENTS:-auth-service:Authentication Service,order-service:Order Service,product-service:Product Service,recommendation-service:Recommendation Service,bff-service:Backend for Frontend Service,gateway-service:API Gateway Service,notification-service:Notification Service}"
 
 # Resource-server clients whose *service account* is allowed to create, update
 # and delete users through the Keycloak Admin REST API.
@@ -107,6 +112,18 @@ IFS=',' read -r -a ACCOUNT_MANAGER_CLIENTS \
 # kind — realm configuration is still read-only to auth-service.
 IFS=',' read -r -a ACCOUNT_MANAGER_ROLES \
   <<<"${KEYCLOAK_ACCOUNT_MANAGER_ROLES:-manage-users,view-users,view-realm}"
+
+# Resource-server clients whose *service account* may read users, and nothing
+# more, through the Keycloak Admin REST API.
+#
+# notification-service needs this because order events carry only the id of
+# the customer; their email address and name live in Keycloak. It never writes
+# a user, so it gets view-users alone rather than joining the list above.
+IFS=',' read -r -a USER_READER_CLIENTS \
+  <<<"${KEYCLOAK_USER_READER_CLIENTS:-notification-service}"
+
+IFS=',' read -r -a USER_READER_ROLES \
+  <<<"${KEYCLOAK_USER_READER_ROLES:-view-users}"
 
 # Resource-server clients whose audience is added to the tokens the *public*
 # client issues.
@@ -229,12 +246,13 @@ contains() {
   return 1
 }
 
-# Give a client's service account the realm-management roles it needs to manage
-# users. The service account is an ordinary (hidden) user, so this is the same
-# role-mapping call as for a real user — only against the realm-management
-# client's roles instead of the realm's own.
+# Give a client's service account the realm-management roles named in the array
+# whose name is $3. The service account is an ordinary (hidden) user, so this is
+# the same role-mapping call as for a real user — only against the
+# realm-management client's roles instead of the realm's own.
 grant_realm_management_roles() {
-  local svc="$1" internal_id="$2" sa_user_id rm_id role role_json
+  local svc="$1" internal_id="$2" roles_name="$3" sa_user_id rm_id role role_json
+  eval "local roles=(\"\${${roles_name}[@]}\")"
 
   sa_user_id=$(curl -s \
     "$KC_URL/admin/realms/$REALM_NAME/clients/$internal_id/service-account-user" \
@@ -248,7 +266,7 @@ grant_realm_management_roles() {
   [[ -n "$rm_id" ]] ||
     die "could not resolve the 'realm-management' client in realm '$REALM_NAME'"
 
-  for role in "${ACCOUNT_MANAGER_ROLES[@]}"; do
+  for role in "${roles[@]}"; do
     role_json=$(curl -s "$KC_URL/admin/realms/$REALM_NAME/clients/$rm_id/roles/$role" \
       -H "Authorization: Bearer $ADMIN_TOKEN")
     [[ "$(jq -r '.id // empty' <<<"$role_json")" ]] ||
@@ -501,7 +519,12 @@ for i in "${!RESOURCE_SERVER_CLIENTS[@]}"; do
   # Let this service's own service account manage user records, if it is one of
   # the services that needs to.
   if contains "$svc" ACCOUNT_MANAGER_CLIENTS; then
-    grant_realm_management_roles "$svc" "$internal_id"
+    grant_realm_management_roles "$svc" "$internal_id" ACCOUNT_MANAGER_ROLES
+  fi
+
+  # Or only look them up.
+  if contains "$svc" USER_READER_CLIENTS; then
+    grant_realm_management_roles "$svc" "$internal_id" USER_READER_ROLES
   fi
 
   # Read back the generated secret so it can be printed in the summary below —
@@ -598,6 +621,8 @@ cat <<EOF
                    (${BRUTE_FORCE_WAIT_INCREMENT}s, doubling up to ${BRUTE_FORCE_MAX_WAIT}s)
  User management:  service account of ${ACCOUNT_MANAGER_CLIENTS[*]} holds
                    realm-management ${ACCOUNT_MANAGER_ROLES[*]}
+ User lookup:      service account of ${USER_READER_CLIENTS[*]} holds
+                   realm-management ${USER_READER_ROLES[*]}
  App audiences:    tokens from '$CLIENT_NAME' carry aud ${APP_AUDIENCES[*]}
 
  Admin console: $KC_URL/admin  ($ADMIN_USER / $ADMIN_PASS)

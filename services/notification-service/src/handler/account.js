@@ -1,7 +1,6 @@
 const templates = require('../template/account');
 const { sendEmail } = require('../service/mail');
-
-class UnprocessableEventError extends Error { }
+const { UnprocessableEventError } = require('./error');
 
 const handleAccountEvent = async (event) => {
     const template = templates[event.eventType];

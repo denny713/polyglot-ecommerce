@@ -5,7 +5,6 @@ import com.order.api.repository.common.CommonRepository;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -29,13 +28,13 @@ public interface SalesOrderRepository extends CommonRepository<SalesOrder, Long>
 
     /**
      * Expires every pending order checked out at or before {@code cutoff} that nothing
-     * has been paid towards yet, in one statement, and says how many it expired. An
-     * order paid in part owes the customer a refund, so it goes through
-     * {@link #findExpirablePaid} instead. Nobody is signed in behind the job, so
-     * {@code updated_by} is left empty rather than naming the last person to touch it.
+     * has been paid towards yet, in one statement, and returns the ids it expired so
+     * each customer can be told. An order paid in part owes the customer a refund, so
+     * it goes through {@link #findExpirablePaid} instead. Nobody is signed in behind
+     * the job, so {@code updated_by} is left empty rather than naming the last person
+     * to touch it.
      */
     @Transactional
-    @Modifying
     @Query(value = """
             UPDATE sales_order
                SET status = :expired,
@@ -45,10 +44,11 @@ public interface SalesOrderRepository extends CommonRepository<SalesOrder, Long>
                AND created_at <= :cutoff
                AND paid = 0
                AND is_deleted = false
+            RETURNING id
             """, nativeQuery = true)
-    int expirePending(@Param("pending") String pending,
-                      @Param("expired") String expired,
-                      @Param("cutoff") LocalDateTime cutoff);
+    List<Long> expirePending(@Param("pending") String pending,
+                             @Param("expired") String expired,
+                             @Param("cutoff") LocalDateTime cutoff);
 
     /**
      * The ids of the pending orders checked out at or before {@code cutoff} that were

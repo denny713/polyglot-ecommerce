@@ -15,6 +15,7 @@ import com.order.api.model.dto.response.payment.PaymentRes;
 import com.order.api.model.entity.Payment;
 import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.producer.SalesOrderProducer;
 import com.order.api.repository.DocumentNumberRepository;
 import com.order.api.repository.PaymentRepository;
@@ -54,6 +55,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final RefundService refundService;
     private final SalesOrderProducer soProducer;
     private final CheckoutProperties checkoutProperties;
+    private final NotificationProducer notificationProducer;
 
     /**
      * Applies the amount to the order's outstanding. The order's row stays locked until
@@ -98,6 +100,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (order.getStatus() == SalesStatus.PAID) {
             soProducer.doSubmitAfterCommit(order);
         }
+        notificationProducer.doPaymentSucceededAfterCommit(payment.getId());
 
         log.info("Payment {} of {} recorded for sales order {}, outstanding now {}",
                 payment.getDocumentNumber(), payment.getAmount(), order.getDocumentNumber(), order.getOutstanding());

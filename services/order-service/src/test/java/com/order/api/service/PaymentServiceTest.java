@@ -16,6 +16,7 @@ import com.order.api.model.dto.response.payment.PaymentRes;
 import com.order.api.model.entity.Payment;
 import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.producer.SalesOrderProducer;
 import com.order.api.repository.DocumentNumberRepository;
 import com.order.api.repository.PaymentRepository;
@@ -66,6 +67,7 @@ class PaymentServiceTest {
     private PaymentRepository paymentRepository;
     private RefundService refundService;
     private SalesOrderProducer soProducer;
+    private NotificationProducer notificationProducer;
 
     private PaymentServiceImpl service;
 
@@ -76,6 +78,7 @@ class PaymentServiceTest {
         paymentRepository = mock(PaymentRepository.class);
         refundService = mock(RefundService.class);
         soProducer = mock(SalesOrderProducer.class);
+        notificationProducer = mock(NotificationProducer.class);
 
         when(docNoRepository.generateDocumentNumber(eq(DocType.PAYMENT), any(LocalDate.class))).thenReturn(PY_DOC_NO);
         when(paymentRepository.findByReference(anyString())).thenReturn(Optional.empty());
@@ -86,7 +89,7 @@ class PaymentServiceTest {
         });
 
         service = new PaymentServiceImpl(docNoRepository, soRepository, paymentRepository, refundService,
-                soProducer, new CheckoutProperties(PAYMENT_TIMEOUT));
+                soProducer, new CheckoutProperties(PAYMENT_TIMEOUT), notificationProducer);
 
         AccountUtil.setUserLogin(USER);
     }
@@ -189,6 +192,17 @@ class PaymentServiceTest {
         verify(soRepository).save(order);
         verifyNoInteractions(refundService);
         verify(soProducer).doSubmitAfterCommit(order);
+        verify(notificationProducer).doPaymentSucceededAfterCommit(41L);
+    }
+
+    @Test
+    void shouldTellTheCustomerAboutAnInstalmentThatLeavesTheOrderPending() {
+        givenOrder("0", "100000.00");
+
+        service.doPayment(request("40000.00"));
+
+        verify(notificationProducer).doPaymentSucceededAfterCommit(41L);
+        verify(soProducer, never()).doSubmitAfterCommit(any(SalesOrder.class));
     }
 
     @Test
@@ -267,7 +281,8 @@ class PaymentServiceTest {
         assertEquals(new BigDecimal("40000.00"), order.getPaid());
         verify(paymentRepository, never()).save(any(Payment.class));
         verify(soRepository, never()).save(any(SalesOrder.class));
-        verifyNoInteractions(refundService, soProducer);
+        // The customer was told when it was recorded the first time.
+        verifyNoInteractions(refundService, soProducer, notificationProducer);
     }
 
     @Test

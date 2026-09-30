@@ -2,6 +2,7 @@ package com.order.api.scheduler;
 
 import com.order.api.configuration.CheckoutConfig.CheckoutProperties;
 import com.order.api.enums.SalesStatus;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.repository.SalesOrderRepository;
 import com.order.api.service.CheckoutService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class SalesOrderExpiryScheduler {
     private final SalesOrderRepository soRepository;
     private final CheckoutService checkoutService;
     private final CheckoutProperties checkoutProperties;
+    private final NotificationProducer notificationProducer;
 
     @Scheduled(fixedDelayString = "${checkout.expiry-interval}")
     public void doExpire() {
@@ -39,16 +41,21 @@ public class SalesOrderExpiryScheduler {
 
     /** Orders nothing was paid towards owe no refund, so they go in one statement. */
     private void expireUnpaid(LocalDateTime cutoff) {
+        List<Long> expired;
         try {
-            int expired = soRepository.expirePending(
+            expired = soRepository.expirePending(
                     SalesStatus.PENDING.getLabel(), SalesStatus.EXPIRED.getLabel(), cutoff);
-            if (expired > 0) {
-                log.info("{} pending sales order(s) checked out at or before {} expired", expired, cutoff);
-            }
         } catch (DataAccessException e) {
             // The next run picks the same orders up again.
             log.error("Unable to expire pending sales orders checked out at or before {}", cutoff, e);
+            return;
         }
+
+        if (!expired.isEmpty()) {
+            log.info("{} pending sales order(s) checked out at or before {} expired", expired.size(), cutoff);
+        }
+        // The statement has committed, so the orders are there to be read.
+        expired.forEach(notificationProducer::doCheckoutExpiredAfterCommit);
     }
 
     /**

@@ -5,6 +5,7 @@ import com.order.api.enums.RefundReason;
 import com.order.api.model.entity.Payment;
 import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
+import com.order.api.producer.NotificationProducer;
 import com.order.api.repository.DocumentNumberRepository;
 import com.order.api.repository.PaymentRepository;
 import com.order.api.repository.RefundRepository;
@@ -33,6 +34,7 @@ public class RefundServiceImpl implements RefundService {
     private final DocumentNumberRepository docNoRepository;
     private final PaymentRepository paymentRepository;
     private final RefundRepository refundRepository;
+    private final NotificationProducer notificationProducer;
 
     /**
      * Refunds what a payment sent over the outstanding of its order. The caller only
@@ -50,7 +52,9 @@ public class RefundServiceImpl implements RefundService {
     /**
      * Refunds everything applied to an order, one refund per payment, so each
      * instalment goes back where it came from. Excesses were refunded when they were
-     * paid and are not counted again. The caller holds the order's row lock.
+     * paid and are not counted again. The caller holds the order's row lock. Only a
+     * refund the customer asked for by cancelling is mailed to them; an expired order
+     * says what it refunded in its own email.
      */
     @Override
     public List<Refund> doRefundOrder(SalesOrder order, RefundReason reason) {
@@ -63,6 +67,9 @@ public class RefundServiceImpl implements RefundService {
         }
 
         List<Refund> saved = refundRepository.saveAll(refunds);
+        if (reason == RefundReason.CANCELLATION) {
+            saved.forEach(refund -> notificationProducer.doRefundCancellationAfterCommit(refund.getId()));
+        }
         log.info("{} refund(s) totalling {} recorded for sales order {} ({})", saved.size(),
                 saved.stream().map(Refund::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
                 order.getDocumentNumber(), reason);
