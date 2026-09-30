@@ -10,10 +10,12 @@ logs/
 !**/src/test/**/target/
 node_modules/
 coverage/
+cover.out
 .DS_Store
 .ideaDataSources/*
 dataSources/*
 .codegraph/
+.env
 
 ### STS ###
 .apt_generated
@@ -43,3 +45,19 @@ build/
 ### VS Code ###
 .vscode/
 /.apt_generated_tests/
+
+### Python ###
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
