@@ -13,7 +13,12 @@ async def get_db():
         yield session
 
 # --- Redis Setup ---
-redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+redis_client = redis.from_url(
+    settings.REDIS_URL,
+    username=settings.REDIS_USERNAME,
+    password=settings.REDIS_PASSWORD,
+    decode_responses=True,
+)
 
 async def get_redis():
     yield redis_client

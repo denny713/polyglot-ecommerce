@@ -13,11 +13,12 @@ it builds in Redis.
 - PostgreSQL holding the `ecommerce` database (the one order-service writes
   `sales_order`, `sales_order_detail` and `product` to)
 - Redis, the same instance order-service keeps the cart in
+- Keycloak, the realm that issues the access tokens (`ecommerce`)
 
 ## Getting started
 
 ```shell script
-cp .env-example .env     # then fill in DATABASE_URL, REDIS_URL and PORT
+cp .env-example .env     # then fill in DATABASE_URL, REDIS_*, PORT and KEYCLOAK_ISSUER_URI
 make install             # creates venv/ and installs requirements.txt
 make run                 # http://localhost:7170
 ```
@@ -40,8 +41,11 @@ Read from the environment, or from `.env` in this directory.
 | Variable | Default | What it is |
 | --- | --- | --- |
 | `DATABASE_URL` | — | `postgresql+asyncpg://user:password@host:5432/ecommerce` |
-| `REDIS_URL` | — | `redis://[user:password@]host:6379/0` — the cart's Redis |
+| `REDIS_URL` | — | `redis://host:6379/0` — the cart's Redis |
+| `REDIS_USERNAME` | — | Redis user, `admin` with `app/docker-compose.yml` |
+| `REDIS_PASSWORD` | — | Its password, taken as it is: no escaping needed |
 | `PORT` | — | Port the service listens on, `7170` |
+| `KEYCLOAK_ISSUER_URI` | `http://localhost:8080/realms/ecommerce` | The realm the access tokens must come from |
 | `CART_KEY_PREFIX` | `cart` | Must match `redis.cart.key-prefix` of order-service |
 | `RECOMMENDATION_LIMIT` | `10` | Items answered when the request names no `limit` |
 | `RECOMMENDATION_CACHE_TTL` | `300` | Seconds a customer's recommendation is cached |
@@ -57,15 +61,42 @@ Read from the environment, or from `.env` in this directory.
 
 ## Endpoints
 
-| Method | Path | What it does |
-| --- | --- | --- |
-| `GET` | `/recommendations/users/{user_id}?limit=10` | Recommendations for a customer (`user_id` is the UUID in `sales_order.created_by`) |
-| `GET` | `/recommendations/{product_id}?limit=10` | Recommendations to show alongside a product; `404` when the product is not sold |
-| `GET` | `/recommendations/mba/status` | When the association rules were last built, from how many orders; `404` before the first build |
-| `GET` | `/` | Health check |
+| Method | Path | Role | What it does |
+| --- | --- | --- | --- |
+| `GET` | `/recommendations/users/{user_id}?limit=10` | `user` (own only) or `admin` | Recommendations for a customer (`user_id` is the UUID in `sales_order.created_by`) |
+| `GET` | `/recommendations/{product_id}?limit=10` | `user` or `admin` | Recommendations to show alongside a product; `404` when the product is not sold |
+| `GET` | `/recommendations/mba/status` | `admin` | When the association rules were last built, from how many orders; `404` before the first build |
+| `GET` | `/` | — | Health check |
 
-`limit` goes from 1 to 50. The interactive documentation is at
-<http://localhost:7170/docs>.
+`limit` goes from 1 to 50.
+
+## API documentation (Swagger)
+
+FastAPI builds the OpenAPI document from the code and serves it with the
+application. With the service running on its default port:
+
+| What | Where |
+| --- | --- |
+| Swagger UI | <http://localhost:7170/docs> |
+| ReDoc | <http://localhost:7170/redoc> |
+| OpenAPI document (JSON) | <http://localhost:7170/openapi.json> |
+
+The document is assembled from:
+
+- `main.py` — title, version, description and the tags;
+- the `summary`, `description` and `responses` on each route of
+  `api/recommendation.py`, and the `Path` / `Query` descriptions of their
+  parameters;
+- the Pydantic models of `schemas/recommendation.py` — the shape of every
+  response, the meaning of each field, and the example Swagger UI shows.
+
+Every response is validated against those models (`response_model`), so the
+documentation cannot drift from what the service really sends. When an endpoint
+answers something new, change its model first, or it answers `500`.
+
+The document declares the `bearerAuth` scheme: press **Authorize** in Swagger UI
+and paste an access token to call the protected endpoints from there.
+Swagger UI loads its scripts from a CDN, so it needs internet access.
 
 ```json
 {
@@ -87,6 +118,62 @@ Read from the environment, or from `.env` in this directory.
 
 `source` says whether the answer was built now (`postgresql`) or served from the
 cache (`redis`).
+
+## Authentication
+
+Every `/recommendations` endpoint needs a Keycloak access token, checked the way
+order-service and inventory-service check theirs (`core/security.py`):
+
+- sent as `Authorization: Bearer <token>`;
+- an RS256 JWT signed by a key of the realm, fetched from
+  `{KEYCLOAK_ISSUER_URI}/protocol/openid-connect/certs` and cached, so a key
+  rotation needs no restart;
+- issued by `KEYCLOAK_ISSUER_URI`, not expired, with a `sub` and an `exp`;
+- holding the `user` or `admin` **realm** role (`realm_access.roles`).
+
+A customer may only read their own recommendations — the `sub` of the token must
+be the `user_id` of the path — because they reveal what that customer bought.
+An admin may read anyone's. The health check and the documentation stay open.
+
+A refused request answers the error shape of the other services:
+
+| Status | When |
+| --- | --- |
+| `400 Bad Request` | The token is not a well-formed JWT, or its `sub` is not a user id |
+| `401 Unauthorized` | No token, or one that is expired, from another realm, or not signed by the realm |
+| `403 Forbidden` | The token lacks the role, or asks for another customer's recommendations |
+| `500 Internal Server Error` | Keycloak could not be reached for its keys |
+
+```json
+{
+  "code": 401,
+  "status": "Unauthorized",
+  "data": { "timestamp": "2026-09-30T16:05:15.909929", "status": 401, "error": "No access token found, please login first" }
+}
+```
+
+To try it locally, take a token from Keycloak (or from `POST /api/auth/login` of
+auth-service):
+
+```shell script
+TOKEN=$(curl -s http://localhost:8080/realms/ecommerce/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=ecommerce-app \
+  -d username=userapp --data-urlencode 'password=P@ssw0rd' | jq -r .access_token)
+
+curl -H "Authorization: Bearer $TOKEN" http://localhost:7170/recommendations/1
+```
+
+## Troubleshooting
+
+**`redis.exceptions.AuthenticationError` or `NOAUTH` in the log.** The Redis of
+`app/docker-compose.yml` requires a user. Set `REDIS_USERNAME` and
+`REDIS_PASSWORD`; the service still starts without them, but every request and
+the MBA job fail.
+
+**A password holding `@`, `:` or `/` in `DATABASE_URL`.** It has to be
+percent-encoded, `@` as `%40`, or the URL is split at the wrong `@`: with
+`postgres:p@ssw0rd@localhost` the password read is `p` and the host
+`ssw0rd@localhost`. The Redis password has its own variable for that reason.
 
 ## How a recommendation is built
 
@@ -173,7 +260,9 @@ sets the environment so a local `.env` is never used. Test files are named
 
 ```
 api/recommendation.py        endpoints and the recommendation cache
+schemas/recommendation.py    response models, also what Swagger UI shows
 core/config.py               settings
+core/security.py             Keycloak access token check
 db/database.py               PostgreSQL session and Redis client
 repository/history.py        SQL over sales_order, and the cart in Redis
 repository/rules.py          association rules in Redis

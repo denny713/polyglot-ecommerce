@@ -3,7 +3,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_URL: str
+    # Kept apart from REDIS_URL, where a password holding '@' or ':' would need escaping
+    REDIS_USERNAME: str | None = None
+    REDIS_PASSWORD: str | None = None
     PORT: int
+
+    # The realm the access tokens must have been issued by
+    KEYCLOAK_ISSUER_URI: str = "http://localhost:8080/realms/ecommerce"
 
     # Must match redis.cart.key-prefix of order-service
     CART_KEY_PREFIX: str = "cart"
