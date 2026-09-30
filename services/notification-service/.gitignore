@@ -11,6 +11,7 @@ logs/
 !**/src/test/**/target/
 .DS_Store
 node_modules/
+coverage/
 .ideaDataSources/*
 dataSources/*
 .codegraph/
