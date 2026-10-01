@@ -3,29 +3,57 @@
 
   This file is a Go template, not the config KrakenD reads: at startup the
   binary renders it against every JSON file in FC_SETTINGS (each file becomes a
-  top-level key named after the file, so settings/service.json is `.service`)
-  and only then parses the result. Set FC_OUT to dump the rendered JSON if a
-  change here does not behave the way it reads.
+  top-level key named after the file, so settings/env.json is `.env`) and only
+  then parses the result. FC_OUT dumps the rendered JSON.
 
-  Endpoint definitions do not live here. One template per backend service under
-  templates/ keeps this file a table of contents: registering the next service
-  is a new settings file, a new template, and one more line in "endpoints".
+  Endpoints are not written here. Each backend service has one settings file
+  listing its routes; this file only walks them and renders every route through
+  templates/default_backend.tmpl. Registering the next service is a new
+  settings file plus one more entry in $services below.
+
+  The comma between endpoint objects is emitted by the loop ($first), so a
+  service with an empty "endpoints" list cannot break the JSON.
+
+  A service's optional "swagger" block ({ "endpoint", "backend" }) adds one
+  public GET route for its OpenAPI document, rendered through the same
+  default_backend.tmpl; env.swagger.enabled switches all of them at once.
 */}}
+{{- $services := list
+    .auth_service
+    .order_service
+    .product_service
+    .inventory_service
+    .recommendation_service
+-}}
 {
-  "$schema": "https://www.krakend.io/schema/krakend.json",
+  "$schema": "https://www.krakend.io/schema/v2.10/krakend.json",
   "version": 3,
-  "name": "{{ .service.name }}",
-  "port": {{ .service.port }},
-  "timeout": "{{ .service.timeout }}",
-  "cache_ttl": "{{ .service.cache_ttl }}",
-  "read_timeout": "{{ .service.read_timeout }}",
-  "write_timeout": "{{ .service.write_timeout }}",
-  "idle_timeout": "{{ .service.idle_timeout }}",
-  "read_header_timeout": "{{ .service.read_header_timeout }}",
-  "extra_config": {
-    "security/cors": {{ marshal .service.cors }}
-  },
+  "name": "{{ .env.name }}",
+  "port": {{ .env.port }},
+  "timeout": "{{ .env.timeout }}",
+  "cache_ttl": "{{ .env.cache_ttl }}",
+  "read_timeout": "{{ .env.read_timeout }}",
+  "write_timeout": "{{ .env.write_timeout }}",
+  "idle_timeout": "{{ .env.idle_timeout }}",
+  "read_header_timeout": "{{ .env.read_header_timeout }}",
+  "output_encoding": "no-op",
+  "debug_endpoint": {{ .env.debug_endpoint }},
+  "echo_endpoint": {{ .env.echo_endpoint }},
+  "extra_config": {{ template "extra_config.tmpl" .env }},
   "endpoints": [
-    {{ template "auth_service.tmpl" . }}
+    {{- $first := true }}
+    {{- range $service := $services }}
+    {{- range $endpoint := $service.endpoints }}
+    {{- if not $first }},{{ end }}
+    {{- $first = false }}
+    {{ template "default_backend.tmpl" (dict "service" $service "endpoint" $endpoint "env" $.env) }}
+    {{- end }}
+    {{- /* The service's OpenAPI document, public, when env.swagger.enabled. */}}
+    {{- if and $.env.swagger.enabled $service.swagger }}
+    {{- if not $first }},{{ end }}
+    {{- $first = false }}
+    {{ template "default_backend.tmpl" (dict "service" $service "endpoint" (dict "endpoint" $service.swagger.endpoint "method" "GET" "backend" $service.swagger.backend) "env" $.env) }}
+    {{- end }}
+    {{- end }}
   ]
 }

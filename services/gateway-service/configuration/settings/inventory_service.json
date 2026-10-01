@@ -1,0 +1,173 @@
+{
+  "host": "http://host.docker.internal:7140",
+  "host_env": "INVENTORY_SERVICE_HOST",
+  "timeout": "10s",
+  "swagger": {
+    "endpoint": "/docs/inventory/openapi.json",
+    "backend": "/api/v3/api-docs"
+  },
+  "endpoints": [
+    {
+      "endpoint": "/api/po",
+      "method": "POST",
+      "backend": "/api/po",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/list",
+      "method": "POST",
+      "backend": "/api/po/list",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/{id}",
+      "method": "GET",
+      "backend": "/api/po/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/{id}",
+      "method": "PUT",
+      "backend": "/api/po/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/activate/{id}",
+      "method": "PUT",
+      "backend": "/api/po/activate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/deactivate/{id}",
+      "method": "PUT",
+      "backend": "/api/po/deactivate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/approve/{id}",
+      "method": "PUT",
+      "backend": "/api/po/approve/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/cancel/{id}",
+      "method": "PUT",
+      "backend": "/api/po/cancel/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/po/{id}",
+      "method": "DELETE",
+      "backend": "/api/po/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr",
+      "method": "POST",
+      "backend": "/api/pr",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/list",
+      "method": "POST",
+      "backend": "/api/pr/list",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/{id}",
+      "method": "GET",
+      "backend": "/api/pr/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/{id}",
+      "method": "PUT",
+      "backend": "/api/pr/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/activate/{id}",
+      "method": "PUT",
+      "backend": "/api/pr/activate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/deactivate/{id}",
+      "method": "PUT",
+      "backend": "/api/pr/deactivate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/approve/{id}",
+      "method": "PUT",
+      "backend": "/api/pr/approve/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/cancel/{id}",
+      "method": "PUT",
+      "backend": "/api/pr/cancel/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/pr/{id}",
+      "method": "DELETE",
+      "backend": "/api/pr/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    }
+  ]
+}

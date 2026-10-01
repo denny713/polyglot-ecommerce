@@ -1,0 +1,7 @@
+{{/*
+  Per-client rate limit on one endpoint. Receives one profile of
+  env.rate_limit as its dot, e.g. { "strategy": "ip", "client_max_rate": 1,
+  "client_capacity": 5, "every": "1s" }. Behind another proxy the client IP is
+  whatever reaches KrakenD, so that proxy must set X-Forwarded-For.
+*/ -}}
+"qos/ratelimit/router": {{ marshal . }}

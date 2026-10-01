@@ -1,0 +1,210 @@
+{
+  "host": "http://host.docker.internal:7130",
+  "host_env": "PRODUCT_SERVICE_HOST",
+  "timeout": "10s",
+  "swagger": {
+    "endpoint": "/docs/product/openapi.json",
+    "backend": "/api/swagger/swagger.json"
+  },
+  "endpoints": [
+    {
+      "endpoint": "/api/category",
+      "method": "POST",
+      "backend": "/api/category",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/category",
+      "method": "GET",
+      "backend": "/api/category",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/category/{id}",
+      "method": "GET",
+      "backend": "/api/category/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/category/{id}",
+      "method": "PUT",
+      "backend": "/api/category/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/category/activate/{id}",
+      "method": "PUT",
+      "backend": "/api/category/activate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/category/deactivate/{id}",
+      "method": "PUT",
+      "backend": "/api/category/deactivate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/category/{id}",
+      "method": "DELETE",
+      "backend": "/api/category/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product",
+      "method": "POST",
+      "backend": "/api/product",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product",
+      "method": "GET",
+      "backend": "/api/product",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product/{id}",
+      "method": "GET",
+      "backend": "/api/product/{id}",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product/{id}",
+      "method": "PUT",
+      "backend": "/api/product/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product/activate/{id}",
+      "method": "PUT",
+      "backend": "/api/product/activate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product/deactivate/{id}",
+      "method": "PUT",
+      "backend": "/api/product/deactivate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product/{id}",
+      "method": "DELETE",
+      "backend": "/api/product/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/product/history/{id}",
+      "method": "GET",
+      "backend": "/api/product/history/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/supplier",
+      "method": "POST",
+      "backend": "/api/supplier",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/supplier",
+      "method": "GET",
+      "backend": "/api/supplier",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/supplier/{id}",
+      "method": "GET",
+      "backend": "/api/supplier/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/supplier/{id}",
+      "method": "PUT",
+      "backend": "/api/supplier/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/supplier/activate/{id}",
+      "method": "PUT",
+      "backend": "/api/supplier/activate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/supplier/deactivate/{id}",
+      "method": "PUT",
+      "backend": "/api/supplier/deactivate/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/supplier/{id}",
+      "method": "DELETE",
+      "backend": "/api/supplier/{id}",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    }
+  ]
+}

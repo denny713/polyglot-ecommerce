@@ -42,7 +42,7 @@
 #                                                       (auth-service)
 #   KEYCLOAK_PASSWORD_POLICY  realm password policy     (see PASSWORD_POLICY)
 #
-# Note: bff-service and gateway-service are provisioned with the same "resource
+# Note: inventory-service and gateway-service are provisioned with the same "resource
 # server only" template as the others (no browser login flow). If either one
 # actually terminates an OAuth2 login (BFF-style) rather than just validating
 # bearer tokens, give it standardFlowEnabled=true and real redirectUris
@@ -89,7 +89,7 @@ CLIENT_NAME="${KEYCLOAK_CLIENT:-ecommerce-app}"
 # Override the whole list with KEYCLOAK_RESOURCE_SERVER_CLIENTS, e.g.:
 #   KEYCLOAK_RESOURCE_SERVER_CLIENTS="auth-service:Authentication Service,order-service:Order Service"
 IFS=',' read -r -a RESOURCE_SERVER_CLIENT_SPECS \
-  <<<"${KEYCLOAK_RESOURCE_SERVER_CLIENTS:-auth-service:Authentication Service,order-service:Order Service,product-service:Product Service,recommendation-service:Recommendation Service,bff-service:Backend for Frontend Service,gateway-service:API Gateway Service,notification-service:Notification Service}"
+  <<<"${KEYCLOAK_RESOURCE_SERVER_CLIENTS:-auth-service:Authentication Service,order-service:Order Service,product-service:Product Service,inventory-service:Inventory Service,recommendation-service:Recommendation Service,gateway-service:API Gateway Service,notification-service:Notification Service}"
 
 # Resource-server clients whose *service account* is allowed to create, update
 # and delete users through the Keycloak Admin REST API.
@@ -408,10 +408,10 @@ put_json "settings for client '$CLIENT_NAME'" \
 #   - standardFlowEnabled=false   none of these run a browser redirect login
 #   - directAccessGrantsEnabled=false  none accept a password grant themselves
 #   - serviceAccountsEnabled=true ready for client_credentials calls later,
-#                                  e.g. bff-service -> order-service
+#                                  e.g. inventory-service -> order-service
 #
 # Adjust the loop body below per-client if one of them needs to differ (see
-# the bff-service note in the header comment).
+# the inventory-service note in the header comment).
 
 # Split the "clientId:Display Name" specs into two positional arrays —
 # RESOURCE_SERVER_NAMES[i] belongs to RESOURCE_SERVER_CLIENTS[i]. Indexed rather

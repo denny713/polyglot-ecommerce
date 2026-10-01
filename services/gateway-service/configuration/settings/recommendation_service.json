@@ -1,0 +1,40 @@
+{
+  "host": "http://host.docker.internal:7170",
+  "host_env": "RECOMMENDATION_SERVICE_HOST",
+  "timeout": "10s",
+  "swagger": {
+    "endpoint": "/docs/recommendation/openapi.json",
+    "backend": "/openapi.json"
+  },
+  "endpoints": [
+    {
+      "endpoint": "/api/recommendations/users/{user_id}",
+      "method": "GET",
+      "backend": "/recommendations/users/{user_id}",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/recommendations/mba/status",
+      "method": "GET",
+      "backend": "/recommendations/mba/status",
+      "auth": true,
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/recommendations/{product_id}",
+      "method": "GET",
+      "backend": "/recommendations/{product_id}",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    }
+  ]
+}

@@ -1,147 +1,215 @@
 # gateway-service
 
 The single front door of polygot-ecommerce, built on [KrakenD](https://www.krakend.io/)
-2.x. It is stateless and declarative: there is no code here, only the
+2.10. It is stateless and declarative: there is no code here, only the
 configuration that maps public routes onto backend services.
 
-Right now it publishes the two endpoints of `auth-service`. Everything else —
-CORS, rate limiting, timeouts — is applied here so the services behind it do
-not each have to solve it again.
+The gateway validates the Keycloak access token and the realm role of every
+protected route before the request reaches a service, applies CORS and rate
+limits, and forwards status codes and bodies unchanged. The services still
+validate the token themselves; the gateway check is a first line, not a
+replacement.
 
-## Routes
-
-| Public route (gateway)  | Backend                          | Notes                                    |
-| ----------------------- | -------------------------------- | ---------------------------------------- |
-| `POST /api/auth/login`  | `auth-service POST /api/auth/login`  | rate limited per client IP           |
-| `POST /api/auth/logout` | `auth-service POST /api/auth/logout` | answers `204 No Content`             |
-| `GET /__health`         | —                                | KrakenD's own liveness endpoint, built in |
-
-Status codes and bodies are **passed through unchanged**. `401 INVALID_CREDENTIALS`,
-`403 ACCOUNT_DISABLED`, `429 ACCOUNT_LOCKED` and `503` from auth-service arrive
-at the client exactly as auth-service produced them, `ErrorResponse` body
-included — see the comment at the top of `config/templates/auth_service.tmpl`
-for why that needs `no-op` encoding rather than KrakenD's default.
+There is one set of settings. Nothing is split per environment: what differs
+between machines (backend hosts, JWKS URL, issuer) is overridden with
+environment variables at container start.
 
 ## Layout
 
 ```
-config/
-├── krakend.tmpl              # root template: service-wide settings + endpoint list
-├── settings/                 # the values, one file per concern
-│   ├── service.json          # port, timeouts, CORS
-│   └── auth_service.json     # backend host, forwarded headers, rate limit
-└── templates/
-    └── auth_service.tmpl     # the endpoint definitions for auth-service
+configuration/
+├── krakend.tmpl                    # root template: global settings + the loop over all services
+├── settings/                       # the values
+│   ├── env.json                    # port, timeouts, CORS, JWT, rate limit profiles
+│   ├── auth_service.json           # host + endpoints of auth-service
+│   ├── order_service.json
+│   ├── product_service.json
+│   ├── inventory_service.json
+│   └── recommendation_service.json
+├── templates/                      # reusable pieces
+│   ├── default_backend.tmpl        # renders ONE endpoint from a settings entry
+│   ├── jwt_auth.tmpl               # auth/validator against Keycloak
+│   ├── rate_limit.tmpl             # qos/ratelimit/router
+│   └── extra_config.tmpl           # router + CORS
+└── partials/                       # static snippets
+    ├── ih_default.tmpl             # input_headers for public routes
+    └── ih_authenticated_user.tmpl  # input_headers for protected routes
 ```
 
 This is KrakenD's [flexible configuration](https://www.krakend.io/docs/configuration/flexible-config/):
 the binary renders `krakend.tmpl` as a Go template at startup and parses the
 result. Each file in `settings/` becomes a top-level variable named after the
-file, so `settings/service.json` is reachable as `{{ .service }}`.
+file, so `settings/env.json` is `{{ .env }}`.
 
 The rendered configuration is written to `/tmp/krakend.json` inside the
-container (`FC_OUT`), which is the first thing to look at when a change does
-not do what it reads like:
+container (`FC_OUT`). Look there first when a change does not behave the way it
+reads:
 
 ```shell script
 docker exec gateway cat /tmp/krakend.json
 ```
 
-## Running
+The image also runs `krakend check` at build time, so a broken template fails
+`docker build` instead of the container start.
 
-The gateway is part of the stack, so `./build.sh` from the repository root
-brings it up along with PostgreSQL, MinIO and Keycloak. It is published on
-**`http://localhost:8090`** (`GATEWAY_PORT` to change it — 8080 is Keycloak's).
+## Settings format
 
-To rebuild just this service after a configuration change:
+`settings/<service>.json`:
 
-```shell script
-docker compose -p app -f app/docker-compose.yml up -d --build gateway
+```json
+{
+  "host": "http://host.docker.internal:7120",
+  "host_env": "ORDER_SERVICE_HOST",
+  "timeout": "10s",
+  "swagger": { "endpoint": "/docs/order/openapi.json", "backend": "/api/v3/api-docs" },
+  "endpoints": [
+    { "endpoint": "/api/order/cart", "method": "POST", "backend": "/api/order/cart",
+      "auth": true, "roles": ["user", "admin"] }
+  ]
+}
 ```
 
-Standalone, without the rest of the stack:
+| Field (endpoint) | Meaning                                                      | Default                  |
+| ---------------- | ------------------------------------------------------------ | ------------------------ |
+| `endpoint`       | public path on the gateway                                   | required                 |
+| `method`         | HTTP method                                                  | required                 |
+| `backend`        | path on the service                                          | required                 |
+| `auth`           | validate the JWT at the gateway                              | `false`                  |
+| `roles`          | Keycloak realm roles accepted (`realm_access.roles`)         | `env.jwt.default_roles`  |
+| `rate_limit`     | name of a profile in `env.rate_limit` (e.g. `"auth"`)        | none                     |
+| `timeout`        | overrides the service `timeout`                              | service `timeout`        |
+
+`swagger` is optional and adds one public `GET` route for the service's OpenAPI
+document (see [API docs](#api-docs)).
+
+## Routes
+
+56 API routes, plus 5 API document routes. Public paths equal the backend paths, except recommendation-service,
+which has no `/api` prefix of its own.
+
+| Service                | Public routes                                        | Gateway auth                                                    |
+| ---------------------- | ---------------------------------------------------- | --------------------------------------------------------------- |
+| auth-service           | `POST /api/auth/login`, `POST /api/auth/logout`, `POST /api/account` | public; login and register are rate limited per IP |
+|                        | `GET/PUT/DELETE /api/account`, `PUT /api/account/password` | `user`, `admin`                                           |
+| order-service          | `/api/order/cart`, `/api/order/checkout[/{id}]`, `/api/order/payment[/{id}]` | `user`, `admin`                     |
+| product-service        | `/api/category/**`, `/api/product/**`, `/api/supplier/**` | `admin`; `GET /api/product/{id}` also `user`               |
+| inventory-service      | `/api/po/**`, `/api/pr/**`                           | `admin`                                                         |
+| recommendation-service | `GET /api/recommendations/users/{user_id}`, `GET /api/recommendations/{product_id}` → `/recommendations/...` | `user`, `admin` |
+|                        | `GET /api/recommendations/mba/status`                | `admin`                                                         |
+| —                      | `GET /__health`                                      | KrakenD's own liveness endpoint                                 |
+
+The exact list is in `configuration/settings/*.json`. Not published on purpose:
+product-service `/health`, the services' own Swagger UI pages, and
+notification-service, which has no HTTP routes (it is a RabbitMQ consumer).
+
+## API docs
+
+With `env.swagger.enabled` set to `true`, each service's OpenAPI document is
+published without authentication under `/docs/<service>/`:
+
+| Gateway route                        | Service document                                  |
+| ------------------------------------ | ------------------------------------------------- |
+| `GET /docs/auth/openapi.json`        | auth-service `/q/openapi?format=json`             |
+| `GET /docs/order/openapi.json`       | order-service `/api/v3/api-docs`                  |
+| `GET /docs/product/openapi.json`     | product-service `/api/swagger/swagger.json` (Swagger 2.0) |
+| `GET /docs/inventory/openapi.json`   | inventory-service `/api/v3/api-docs`              |
+| `GET /docs/recommendation/openapi.json` | recommendation-service `/openapi.json`         |
+
+The `/docs/<service>/` prefix is needed because order-service and
+inventory-service serve their document on the same path. Set
+`env.swagger.enabled` to `false` to remove all five routes at once, for example
+on any deployment reachable from outside.
+
+Only the JSON documents go through the gateway, not the Swagger UI pages. Each
+UI loads its assets from a subtree (`/q/swagger-ui/*`, `/api/swagger-ui/*`,
+`/api/swagger/*`), and KrakenD Community Edition has no wildcard routes to
+proxy a subtree. To browse all services in one place, point any Swagger UI (a
+`swaggerapi/swagger-ui` container with `URLS`, for example) at these five
+documents. "Try it out" then calls the `servers` URL written in each document,
+which is the service itself, not the gateway.
+
+## Environment variables
+
+| Variable                      | Overrides                         | Default                                                                 |
+| ----------------------------- | --------------------------------- | ----------------------------------------------------------------------- |
+| `AUTH_SERVICE_HOST`           | `auth_service.host`               | `http://host.docker.internal:7110`                                      |
+| `ORDER_SERVICE_HOST`          | `order_service.host`              | `http://host.docker.internal:7120`                                      |
+| `PRODUCT_SERVICE_HOST`        | `product_service.host`            | `http://host.docker.internal:7130`                                      |
+| `INVENTORY_SERVICE_HOST`      | `inventory_service.host`          | `http://host.docker.internal:7140`                                      |
+| `RECOMMENDATION_SERVICE_HOST` | `recommendation_service.host`     | `http://host.docker.internal:7170`                                      |
+| `JWK_URL`                     | `env.jwt.jwk_url`                 | `http://host.docker.internal:8080/realms/ecommerce/protocol/openid-connect/certs` |
+| `KEYCLOAK_ISSUER_URI`         | `env.jwt.issuer`                  | `http://localhost:8080/realms/ecommerce`                                |
+
+The template is rendered on every start, so none of these need a rebuild.
+
+## Running
+
+Standalone, with the services running on the host:
 
 ```shell script
 docker build -t polygot/gateway-service services/gateway-service
-docker run --rm -p 8090:8080 \
-  -e AUTH_SERVICE_HOST=http://host.docker.internal:8081 \
+docker run --rm -p 7100:7100 \
   --add-host host.docker.internal:host-gateway \
   polygot/gateway-service
 ```
 
-### Where auth-service has to be
-
-The gateway runs in a container and auth-service does not, so it reaches it
-through the `host.docker.internal` alias. Start auth-service on **port 8081**,
-because Keycloak already holds 8080 on the host:
-
-```shell script
-cd services/auth-service && QUARKUS_HTTP_PORT=8081 ./mvnw quarkus:dev
-```
-
-`AUTH_SERVICE_HOST` overrides the default from `settings/auth_service.json` and
-is the only thing that has to change once auth-service is containerised on the
-`ecommerce` network — set it to `http://auth-service:8080` in
-`app/docker-compose.yml` (or in `.env`) and drop the `extra_hosts` entry. No
-rebuild of the image is needed; the template is rendered on every start.
+Once the services run on the `ecommerce` compose network, point the gateway at
+them by name, e.g. `ORDER_SERVICE_HOST=http://order-service:7120` and
+`JWK_URL=http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs`.
 
 ## Smoke test
 
 ```shell script
+curl -i http://localhost:7100/__health
+
 # login through the gateway
-curl -i -X POST http://localhost:8090/api/auth/login \
+curl -i -X POST http://localhost:7100/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"userapp","password":"P@ssw0rd"}'
 
-# wrong password -> 401 with auth-service's own error body, not a KrakenD 500
-curl -i -X POST http://localhost:8090/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"userapp","password":"wrong"}'
+# no token -> 401 from the gateway, the service is never called
+curl -i -X POST http://localhost:7100/api/order/cart
 
-# logout -> 204
-curl -i -X POST http://localhost:8090/api/auth/logout \
-  -H 'Content-Type: application/json' \
-  -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}"
-
-curl -i http://localhost:8090/__health
+# "user" token on an admin-only route -> 403 from the gateway
+curl -i http://localhost:7100/api/product -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
 ## Configuration notes
 
-**Rate limiting.** `login_rate_limit` in `settings/auth_service.json` uses
-KrakenD's `qos/ratelimit/router` keyed by client IP: one request per second
-sustained, bursts of five (`client_capacity`). It is a cheap first filter in
-front of the brute force detection Keycloak already does per account — it caps
-how fast a single source can spray attempts, while Keycloak keeps counting
-failures per user. Raise `client_max_rate` if a legitimate client trips it.
-Note that behind another proxy the client IP is whatever reaches KrakenD, so
-that proxy has to set `X-Forwarded-For` for the limit to key on the real
-caller.
+**Encoding.** Every endpoint uses `no-op` on both the endpoint and the backend.
+With KrakenD's default `json` encoding any non-2xx answer would become an
+opaque 500 and the service's `ErrorResponse` body would be lost.
 
-**CORS.** `settings/service.json` currently allows every origin, which is right
-for local development and wrong for production. When you lock it down, list the
-real origins in `allow_origins`; `allow_credentials` may only be turned on once
-`"*"` is gone, since browsers reject a wildcard origin on a credentialed
-request.
+**Issuer.** Keycloak (`start-dev`, no fixed hostname) puts in `iss` the host the
+token was requested through. The default `http://localhost:8080/realms/ecommerce`
+matches the services' `KEYCLOAK_ISSUER_URI`. If tokens are minted through
+another host name, set `KEYCLOAK_ISSUER_URI` to match. An empty
+`env.jwt.issuer` in `env.json` skips the check (an empty environment variable
+does not: it falls back to the default).
 
-**Forwarded headers.** KrakenD forwards nothing to the backend unless it is
-listed in `input_headers`. `Content-Type` is in the list for a concrete reason:
-without it Quarkus answers `415 Unsupported Media Type`. Add `Authorization`
-there when the first endpoint that needs a bearer token shows up.
+**Forwarded headers.** KrakenD forwards nothing that is not in `input_headers`.
+Public routes get `partials/ih_default.tmpl`, which deliberately contains no
+`Authorization` and no `X-User-*` headers, so a client cannot inject an
+identity on a route where the gateway checks none. Protected routes get
+`Authorization` plus `X-User-Id` (`sub`), `X-User-Name` (`preferred_username`)
+and `X-User-Roles` (`realm_access.roles`), which the gateway sets from the
+validated token. Only claims Keycloak always issues are propagated: for a
+missing claim KrakenD would leave a client-sent header of that name in place.
+
+**Rate limiting.** The `auth` profile in `env.json` (1 req/s, burst 5, per client
+IP) protects login and registration in front of Keycloak's own brute force
+detection. Behind another proxy, that proxy must set `X-Forwarded-For`.
+
+**CORS / debug.** `allow_origins` is `*`, which is fine locally and wrong for
+production; `allow_credentials` may only be enabled once `*` is gone.
+`debug_endpoint` and `echo_endpoint` are off; `/__echo` reflects request
+headers, including tokens.
 
 ## Adding the next service
 
-Three steps, no changes to existing routes:
+1. Create `configuration/settings/<service>.json` with `host`, `host_env`, `timeout`,
+   its `endpoints` and, if it serves an OpenAPI document, `swagger`.
+2. Add `.<service>` to the `$services` list at the top of `configuration/krakend.tmpl`.
 
-1. `settings/<service>.json` — host, timeouts, and whatever that service needs.
-2. `templates/<service>.tmpl` — its endpoint objects, comma-separated (see
-   `auth_service.tmpl`; the file emits the objects themselves, not the
-   surrounding array).
-3. One line in the `endpoints` array of `krakend.tmpl`:
-   `{{ template "<service>.tmpl" . }}` — with a comma after the previous entry.
-
-For a service that requires authentication, validate the token at the gateway
-with the `auth/validator` extra_config pointed at the realm's JWKS
-(`http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs`) instead
-of letting each service do it. Keycloak already provisions a `gateway-service`
-client for exactly that (see `app/init/keycloak-init.sh`).
+No new template is needed. Commas between endpoints are generated by the loop,
+so a service with an empty `endpoints` list is harmless.
