@@ -1,0 +1,80 @@
+# Deployed by .github/workflows/gateway-service.yml, which replaces ${IMAGE} with the
+# commit's image (ghcr.io/<owner>/<repo>/gateway-service:<sha>). Mirrors the
+# gateway-service entry in app/docker-compose.yml; see k8s/README.md for the
+# infrastructure and secrets it expects in the namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service
+  labels:
+    app: gateway-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway-service
+  template:
+    metadata:
+      labels:
+        app: gateway-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      containers:
+        - name: gateway-service
+          image: ${IMAGE}
+          ports:
+            - name: http
+              containerPort: 7100
+          env:
+            - name: AUTH_SERVICE_HOST
+              value: "http://auth-service:7110"
+            - name: ORDER_SERVICE_HOST
+              value: "http://order-service:7120"
+            - name: PRODUCT_SERVICE_HOST
+              value: "http://product-service:7130"
+            - name: INVENTORY_SERVICE_HOST
+              value: "http://inventory-service:7140"
+            - name: RECOMMENDATION_SERVICE_HOST
+              value: "http://recommendation-service:7170"
+            - name: JWK_URL
+              value: "http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs"
+            - name: KEYCLOAK_ISSUER_URI
+              value: "http://keycloak:8080/realms/ecommerce"
+          startupProbe:
+            httpGet:
+                path: /__health
+                port: http
+            periodSeconds: 5
+            failureThreshold: 16
+          readinessProbe:
+            httpGet:
+                path: /__health
+                port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+                path: /__health
+                port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+  labels:
+    app: gateway-service
+spec:
+  selector:
+    app: gateway-service
+  ports:
+    - name: http
+      port: 7100
+      targetPort: http

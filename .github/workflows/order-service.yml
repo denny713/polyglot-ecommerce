@@ -1,0 +1,47 @@
+name: order-service
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - services/order-service/**
+      - k8s/order-service.yaml
+      - .github/workflows/order-service.yml
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+# One pipeline per service at a time; a newer push waits instead of cancelling
+# a deploy that is already rolling out.
+concurrency:
+  group: order-service
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/order-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: services/order-service/pom.xml
+      # ApplicationTests (@SpringBootTest contextLoads) needs a live Postgres,
+      # RabbitMQ and Redis plus the gitignored config/application.yml, none of
+      # which exist on the runner. Every other test is self-contained.
+      - run: mvn -B test -Dtest='!ApplicationTests' -Dsurefire.failIfNoSpecifiedTests=false
+
+  deploy:
+    needs: test
+    uses: ./.github/workflows/deploy.yml
+    with:
+      service: order-service
+    secrets: inherit

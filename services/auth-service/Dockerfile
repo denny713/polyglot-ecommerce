@@ -2,14 +2,14 @@
 # Builds auth-service from source, so `docker compose up -d --build auth-service`
 # works on a fresh checkout without running Maven on the host first.
 #
-# The sibling Dockerfile.jvm is the Quarkus default and is the faster option
+# src/main/docker/Dockerfile.jvm is the Quarkus default and is the faster option
 # during development: it only copies target/quarkus-app/, but that means
 # `./mvnw package` has to have run before the image is built. This file trades
 # that for self-containment — point compose at Dockerfile.jvm instead if you
 # are already packaging on the host.
 #
 # Build:
-#   docker build -f src/main/docker/Dockerfile.multistage -t polygot/auth-service .
+#   docker build -t polygot/auth-service .
 #
 # Run:
 #   docker run -i --rm -p 7110:7110 -e QUARKUS_HTTP_PORT=7110 polygot/auth-service
@@ -45,7 +45,10 @@ COPY --from=build --chown=185 /build/target/quarkus-app/*.jar /deployments/
 COPY --from=build --chown=185 /build/target/quarkus-app/app/ /deployments/app/
 COPY --from=build --chown=185 /build/target/quarkus-app/quarkus/ /deployments/quarkus/
 
-EXPOSE 8080
+# Same port as the rest of the stack (71x0) without having to pass it in;
+# QUARKUS_HTTP_PORT from compose or the Kubernetes manifest still wins.
+ENV QUARKUS_HTTP_PORT=7110
+EXPOSE 7110
 USER 185
 
 ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"

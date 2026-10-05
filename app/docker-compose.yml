@@ -227,7 +227,7 @@ services:
   auth-service:
     build:
       context: ../services/auth-service
-      dockerfile: src/main/docker/Dockerfile.multistage
+      dockerfile: Dockerfile
     image: polygot/auth-service:latest
     container_name: auth-service
     restart: unless-stopped

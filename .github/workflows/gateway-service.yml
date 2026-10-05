@@ -1,0 +1,30 @@
+name: gateway-service
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - services/gateway-service/**
+      - k8s/gateway-service.yaml
+      - .github/workflows/gateway-service.yml
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+# One pipeline per service at a time; a newer push waits instead of cancelling
+# a deploy that is already rolling out.
+concurrency:
+  group: gateway-service
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # No test suite of its own: the image build runs `krakend check` on the
+  # rendered config, so a broken template already fails the build step.
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      service: gateway-service
+    secrets: inherit

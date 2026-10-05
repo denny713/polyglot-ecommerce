@@ -23,6 +23,7 @@ each other through RabbitMQ and Redis.
 - [Project Flow](#project-flow)
 - [Getting Started](#getting-started)
 - [API Documentation (Swagger)](#api-documentation-swagger)
+- [CI/CD](#cicd)
 - [Repository Layout](#repository-layout)
 - [License](#license)
 
@@ -482,13 +483,21 @@ To call protected endpoints from Swagger UI, press **Authorize** and paste the a
 token from the login call above. To browse all five documents in one UI, see
 [gateway-service › API Documentation](services/gateway-service/README.md#api-documentation-swagger).
 
+## CI/CD
+
+Every service has its own GitHub Actions workflow in `.github/workflows/<service>.yml`. A push or merge to `master` that changes `services/<service>/**` runs that service's tests, pushes its image to GHCR (`ghcr.io/<owner>/<repo>/<service>:<sha>`) and deploys it to Kubernetes with `k8s/<service>.yaml`. Services that did not change are left alone. The shared build-and-deploy steps live in `.github/workflows/deploy.yml`.
+
+See [k8s/README.md](k8s/README.md) for the one-time setup: the `KUBE_CONFIG` secret, the namespace, and the secrets the cluster needs.
+
 ## Repository Layout
 
 ```
 polygot-ecommerce/
+├── .github/workflows/         # per-service CI/CD + shared deploy.yml
 ├── app/
 │   ├── docker-compose.yml     # infrastructure + every service
 │   └── init/                  # create-db, create-bucket, keycloak-init, migrate scripts
+├── k8s/                       # Kubernetes manifests, applied by CI
 ├── migrations/                # Liquibase changelogs for the shared ecommerce database
 ├── services/
 │   ├── gateway-service/       # KrakenD configuration

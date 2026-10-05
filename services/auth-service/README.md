@@ -59,7 +59,7 @@ What it does **not** own:
 | SmallRye Reactive Messaging In-Memory | managed by Quarkus BOM | Replaces the RabbitMQ connector in the `%test` profile, so the suite boots without a broker. |
 | JaCoCo (`jacoco-maven-plugin` + `quarkus-jacoco`) | 0.8.13 | Coverage for both plain JUnit and `@QuarkusTest` tests; `mvn verify` fails below **90 %** instruction, line and branch coverage. |
 | Maven | 3.9 (`maven:3.9-eclipse-temurin-17` build image) | Build tool; the Quarkus Maven plugin packages the fast-jar layout. |
-| Docker (UBI 9 OpenJDK 17 runtime) | `ubi9/openjdk-17-runtime:1.24` | Multi-stage image (`Dockerfile.multistage`) builds from source, so `docker compose up --build auth-service` works on a fresh checkout. |
+| Docker (UBI 9 OpenJDK 17 runtime) | `ubi9/openjdk-17-runtime:1.24` | Multi-stage image (`Dockerfile`) builds from source, so `docker compose up --build auth-service` works on a fresh checkout. |
 
 ## Architecture
 
@@ -411,10 +411,10 @@ The service listens on <http://localhost:7110> (from `QUARKUS_HTTP_PORT` in `.en
 java -jar target/quarkus-app/quarkus-run.jar      # or java -jar target/*-runner.jar for an uber-jar
 ```
 
-**With Docker** - `Dockerfile.multistage` compiles from source (tests skipped) and is what compose uses. Run from `services/auth-service`:
+**With Docker** - `Dockerfile` compiles from source (tests skipped) and is what compose uses. Run from `services/auth-service`:
 
 ```shell
-docker build -f src/main/docker/Dockerfile.multistage -t polygot/auth-service .
+docker build -t polygot/auth-service .
 
 docker run -i --rm -p 7110:7110 \
   -e QUARKUS_HTTP_PORT=7110 \
@@ -583,12 +583,12 @@ auth-service/
 ├── Makefile                       # install / run / coverage shortcuts
 ├── pom.xml                        # Quarkus 3.38.1, Java 17, JaCoCo 90% gate
 ├── .env.example                   # template for the local .env (runtime config)
+├── Dockerfile                     # builds from source; used by compose and CI
+├── Dockerfile.dockerignore
 ├── .dockerignore                  # lets only target/ through (for Dockerfile.jvm)
 └── src
     ├── main
     │   ├── docker
-    │   │   ├── Dockerfile.multistage            # builds from source; used by compose
-    │   │   ├── Dockerfile.multistage.dockerignore
     │   │   ├── Dockerfile.jvm                   # needs mvn package first
     │   │   ├── Dockerfile.legacy-jar
     │   │   ├── Dockerfile.native
@@ -678,7 +678,7 @@ auth-service does not talk to SMTP. It publishes an account event to RabbitMQ (s
 
 ### Build-time vs runtime configuration
 
-Everything in `application.properties` (except the `%test` block) is fixed while the application is built. `Dockerfile.multistage` copies only `pom.xml` and `src/` into the build stage, so a `.env` file cannot override those properties.
+Everything in `application.properties` (except the `%test` block) is fixed while the application is built. `Dockerfile` copies only `pom.xml` and `src/` into the build stage, so a `.env` file cannot override those properties.
 
 ## Troubleshooting
 
