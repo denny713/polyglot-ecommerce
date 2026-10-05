@@ -18,9 +18,18 @@ class LabeledEnumTest {
     @Test
     void shouldPinTheDocumentTypes() {
         assertEquals("Sales Order", DocType.SO.getLabel());
+        assertEquals("Sales Refund", DocType.SR.getLabel());
         assertEquals("Purchase Order", DocType.PO.getLabel());
         assertEquals("Purchase Return", DocType.PR.getLabel());
-        assertEquals(3, DocType.values().length);
+        assertEquals(4, DocType.values().length);
+    }
+
+    @Test
+    void shouldPinTheRefundReasons() {
+        assertEquals("Overpayment", RefundReason.OVERPAYMENT.getLabel());
+        assertEquals("Cancellation", RefundReason.CANCELLATION.getLabel());
+        assertEquals("Expired", RefundReason.EXPIRED.getLabel());
+        assertEquals(3, RefundReason.values().length);
     }
 
     @Test
