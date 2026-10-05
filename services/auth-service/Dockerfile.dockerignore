@@ -1,0 +1,9 @@
+# Dockerfile-specific ignore file (BuildKit). The service-level .dockerignore
+# only lets target/ through, which is what Dockerfile.jvm needs; this build
+# compiles from source instead, so it needs pom.xml and src/ and not target/.
+target
+.env
+.idea
+.mvn
+mvnw
+mvnw.cmd

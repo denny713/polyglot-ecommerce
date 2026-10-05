@@ -1,0 +1,7 @@
+.env
+.idea
+.vscode
+cover.out
+coverage.*
+Makefile
+.DS_Store

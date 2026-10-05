@@ -1,0 +1,12 @@
+{{/* Service-wide extra_config. Receives settings/env.json as its dot. */}}
+{
+    "router": {
+      "hide_version_header": true,
+      "logger_skip_paths": ["/__health"],
+      "error_body": {
+        "404": { "error": "not found" },
+        "405": { "error": "method not allowed" }
+      }
+    },
+    "security/cors": {{ marshal .cors }}
+  }

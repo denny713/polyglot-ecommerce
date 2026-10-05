@@ -1,0 +1,96 @@
+# Deployed by .github/workflows/recommendation-service.yml, which replaces ${IMAGE} with the
+# commit's image (ghcr.io/<owner>/<repo>/recommendation-service:<sha>). Mirrors the
+# recommendation-service entry in app/docker-compose.yml; see k8s/README.md for the
+# infrastructure and secrets it expects in the namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-service
+  labels:
+    app: recommendation-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recommendation-service
+  template:
+    metadata:
+      labels:
+        app: recommendation-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      containers:
+        - name: recommendation-service
+          image: ${IMAGE}
+          ports:
+            - name: http
+              containerPort: 7170
+          env:
+            - name: PORT
+              value: "7170"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD_URLENCODED
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: POSTGRES_PASSWORD_URLENCODED
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD_URLENCODED)@postgres:5432/ecommerce"
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
+            - name: REDIS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: REDIS_USER
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: REDIS_PASSWORD
+            - name: KEYCLOAK_ISSUER_URI
+              value: "http://keycloak:8080/realms/ecommerce"
+            - name: CART_KEY_PREFIX
+              value: "cart"
+          startupProbe:
+            httpGet:
+                path: /
+                port: http
+            periodSeconds: 5
+            failureThreshold: 16
+          readinessProbe:
+            httpGet:
+                path: /
+                port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+                path: /
+                port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendation-service
+  labels:
+    app: recommendation-service
+spec:
+  selector:
+    app: recommendation-service
+  ports:
+    - name: http
+      port: 7170
+      targetPort: http

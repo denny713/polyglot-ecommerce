@@ -1,0 +1,450 @@
+package supplier
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"product-service/internal/account"
+	"product-service/internal/constant"
+	"product-service/internal/dto/base"
+	dto "product-service/internal/dto/supplier"
+	"product-service/internal/exception"
+	"product-service/internal/mocks"
+	"product-service/internal/model"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+)
+
+var errDatabase = errors.New("connection reset by peer")
+
+// existingActor is the audit trail a row loaded from the database already
+// carries, the writes under test have to leave it on CreatedBy.
+var existingActor = uuid.MustParse("2b1f8f4a-0000-4000-8000-00000000002a")
+
+// caller is the account the token middleware puts on the request context, the
+// subject of the verified access token. The writes under test have to stamp it
+// on the rows they audit.
+var caller = uuid.MustParse("9a7c1d2e-0000-4000-8000-00000000009a")
+
+// callerContext is the context a request that went through the authorization
+// middleware arrives with.
+func callerContext() context.Context {
+	return account.WithUserLogin(context.Background(), caller)
+}
+
+func newService(t *testing.T) (Service, *mocks.SupplierRepository, *mocks.Database) {
+	t.Helper()
+
+	repository := &mocks.SupplierRepository{}
+	database := &mocks.Database{}
+
+	return NewService(database, repository), repository, database
+}
+
+func existingSupplier() model.Supplier {
+	created := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
+
+	return model.Supplier{
+		Id:            7,
+		Name:          "PT Maju",
+		Phone:         "0211234567",
+		Email:         "sales@maju.test",
+		ContactPerson: "Budi",
+		City:          "Jakarta Pusat",
+		Base: model.Base{
+			IsActive:  true,
+			CreatedBy: existingActor,
+			UpdatedBy: existingActor,
+			CreatedAt: created,
+			UpdatedAt: created,
+		},
+	}
+}
+
+func TestCreate(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.CreateFn = func(_ *gorm.DB, supplier model.Supplier) (model.Supplier, error) {
+		supplier.Id = 11
+
+		return supplier, nil
+	}
+
+	got, err := service.Create(callerContext(), dto.SupplierCreateReq{
+		Name:  "PT Maju",
+		Email: "sales@maju.test",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(11), got.Id)
+	require.Equal(t, "PT Maju", got.Name)
+	require.Equal(t, "sales@maju.test", got.Email)
+	require.True(t, got.IsActive)
+
+	// The row handed to the repository is the request mapped onto the model.
+	require.Len(t, repository.CreateCalls, 1)
+	require.Equal(t, "PT Maju", repository.CreateCalls[0].Name)
+	require.True(t, repository.CreateCalls[0].IsActive)
+}
+
+func TestCreateFails(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.CreateFn = func(*gorm.DB, model.Supplier) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	got, err := service.Create(callerContext(), dto.SupplierCreateReq{Name: "Elektronik"})
+
+	require.ErrorIs(t, err, errDatabase)
+	require.Equal(t, dto.SupplierCreateRes{}, got)
+}
+
+func TestDetail(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+
+	got, err := service.Detail(callerContext(), dto.SupplierDetailReq{Id: 7})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(7), got.Id)
+	require.Equal(t, "PT Maju", got.Name)
+
+	// The lookup is always made on the primary key.
+	require.Equal(t, []mocks.DetailCall{{Param: "id", Value: int64(7)}}, repository.DetailCalls)
+}
+
+func TestDetailNotFound(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, gorm.ErrRecordNotFound
+	}
+
+	got, err := service.Detail(callerContext(), dto.SupplierDetailReq{Id: 7})
+
+	// The gorm error is translated into the exception the controller reports.
+	require.ErrorIs(t, err, exception.ErrNotFound)
+	require.Equal(t, dto.SupplierDetailRes{}, got)
+}
+
+func TestDetailFails(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err := service.Detail(callerContext(), dto.SupplierDetailReq{Id: 7})
+
+	// Anything that is not a missing row is passed through untouched.
+	require.ErrorIs(t, err, errDatabase)
+}
+
+func TestSearch(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.SearchFn = func(_ *gorm.DB, _ dto.SupplierSearchFilter) ([]model.Supplier, error) {
+		return []model.Supplier{existingSupplier()}, nil
+	}
+
+	got, err := service.Search(callerContext(), dto.SupplierSearchReq{
+		Name:   "  maju  ",
+		City:   "  jakarta  ",
+		Paging: base.Paging{SortBy: "NAME", SortOrder: "ASC", PageSize: 500},
+	})
+
+	require.NoError(t, err)
+	require.Len(t, got.Data, 1)
+	require.Equal(t, int64(7), got.Data[0].Id)
+
+	// The filters reach the repository trimmed, and the paging defaults are
+	// already filled in.
+	require.Len(t, repository.SearchCalls, 1)
+	require.Equal(t, dto.SupplierSearchFilter{
+		Name: "maju",
+		City: "jakarta",
+		Paging: base.Paging{
+			SortBy:    "name",
+			SortOrder: constant.SortOrderAsc,
+			Page:      constant.DefaultPage,
+			PageSize:  constant.MaxPageSize,
+		},
+	}, repository.SearchCalls[0])
+}
+
+func TestSearchFails(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.SearchFn = func(*gorm.DB, dto.SupplierSearchFilter) ([]model.Supplier, error) {
+		return nil, errDatabase
+	}
+
+	got, err := service.Search(callerContext(), dto.SupplierSearchReq{})
+
+	require.ErrorIs(t, err, errDatabase)
+	require.Equal(t, dto.SupplierSearchRes{}, got)
+}
+
+func TestUpdate(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+
+	got, err := service.Update(callerContext(), dto.SupplierUpdateReq{
+		Id:    7,
+		Name:  "PT Maju Jaya",
+		Email: "info@maju.test",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "PT Maju Jaya", got.Name)
+
+	// The update is applied on top of the row that was read, so the flags and the
+	// creation trail of the existing supplier survive.
+	require.Len(t, repository.UpdateCalls, 1)
+	written := repository.UpdateCalls[0]
+	require.Equal(t, int64(7), written.Id)
+	require.Equal(t, "info@maju.test", written.Email)
+	require.True(t, written.IsActive)
+	require.Equal(t, existingActor, written.CreatedBy)
+	require.Equal(t, caller, written.UpdatedBy)
+}
+
+func TestUpdateNotFound(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, gorm.ErrRecordNotFound
+	}
+
+	_, err := service.Update(callerContext(), dto.SupplierUpdateReq{Id: 7, Name: "PT Maju"})
+
+	require.ErrorIs(t, err, exception.ErrNotFound)
+	require.Empty(t, repository.UpdateCalls)
+}
+
+func TestUpdateFailsToRead(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err := service.Update(callerContext(), dto.SupplierUpdateReq{Id: 7, Name: "PT Maju"})
+
+	require.ErrorIs(t, err, errDatabase)
+	require.Empty(t, repository.UpdateCalls)
+}
+
+func TestUpdateFailsToWrite(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+	repository.UpdateFn = func(*gorm.DB, model.Supplier) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	got, err := service.Update(callerContext(), dto.SupplierUpdateReq{Id: 7, Name: "PT Maju"})
+
+	require.ErrorIs(t, err, errDatabase)
+	require.Equal(t, dto.SupplierUpdateRes{}, got)
+}
+
+func TestActivate(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		supplier := existingSupplier()
+		supplier.IsActive = false
+
+		return supplier, nil
+	}
+
+	got, err := service.Activate(callerContext(), dto.SupplierActivateReq{Id: 7})
+
+	require.NoError(t, err)
+	require.Equal(t, constant.Active, got.Status)
+	require.Equal(t, int64(7), got.Id)
+
+	require.Len(t, repository.UpdateCalls, 1)
+	require.True(t, repository.UpdateCalls[0].IsActive)
+	require.Equal(t, caller, repository.UpdateCalls[0].UpdatedBy)
+}
+
+func TestActivateAnAlreadyActiveSupplier(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+
+	_, err := service.Activate(callerContext(), dto.SupplierActivateReq{Id: 7})
+
+	require.ErrorIs(t, err, exception.ErrAlreadyActive)
+	require.Empty(t, repository.UpdateCalls)
+}
+
+func TestActivateNotFound(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, gorm.ErrRecordNotFound
+	}
+
+	_, err := service.Activate(callerContext(), dto.SupplierActivateReq{Id: 7})
+
+	require.ErrorIs(t, err, exception.ErrNotFound)
+}
+
+func TestActivateFails(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err := service.Activate(callerContext(), dto.SupplierActivateReq{Id: 7})
+	require.ErrorIs(t, err, errDatabase)
+
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		supplier := existingSupplier()
+		supplier.IsActive = false
+
+		return supplier, nil
+	}
+	repository.UpdateFn = func(*gorm.DB, model.Supplier) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err = service.Activate(callerContext(), dto.SupplierActivateReq{Id: 7})
+	require.ErrorIs(t, err, errDatabase)
+}
+
+func TestDeactivate(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+
+	got, err := service.Deactivate(callerContext(), dto.SupplierDeactivateReq{Id: 7})
+
+	require.NoError(t, err)
+	require.Equal(t, constant.Inactive, got.Status)
+
+	require.Len(t, repository.UpdateCalls, 1)
+	require.False(t, repository.UpdateCalls[0].IsActive)
+}
+
+func TestDeactivateAnAlreadyInactiveSupplier(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		supplier := existingSupplier()
+		supplier.IsActive = false
+
+		return supplier, nil
+	}
+
+	_, err := service.Deactivate(callerContext(), dto.SupplierDeactivateReq{Id: 7})
+
+	require.ErrorIs(t, err, exception.ErrAlreadyInactive)
+	require.Empty(t, repository.UpdateCalls)
+}
+
+func TestDeactivateNotFound(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, gorm.ErrRecordNotFound
+	}
+
+	_, err := service.Deactivate(callerContext(), dto.SupplierDeactivateReq{Id: 7})
+
+	require.ErrorIs(t, err, exception.ErrNotFound)
+}
+
+func TestDeactivateFails(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err := service.Deactivate(callerContext(), dto.SupplierDeactivateReq{Id: 7})
+	require.ErrorIs(t, err, errDatabase)
+
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+	repository.UpdateFn = func(*gorm.DB, model.Supplier) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err = service.Deactivate(callerContext(), dto.SupplierDeactivateReq{Id: 7})
+	require.ErrorIs(t, err, errDatabase)
+}
+
+func TestDelete(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+
+	got, err := service.Delete(callerContext(), dto.SupplierDeleteReq{Id: 7})
+
+	require.NoError(t, err)
+	require.Equal(t, constant.Delete, got.Status)
+
+	// The row is flagged rather than removed, and it keeps the active flag it had.
+	require.Len(t, repository.UpdateCalls, 1)
+	require.True(t, repository.UpdateCalls[0].IsDeleted)
+	require.True(t, repository.UpdateCalls[0].IsActive)
+}
+
+func TestDeleteNotFound(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, gorm.ErrRecordNotFound
+	}
+
+	_, err := service.Delete(callerContext(), dto.SupplierDeleteReq{Id: 7})
+
+	require.ErrorIs(t, err, exception.ErrNotFound)
+	require.Empty(t, repository.UpdateCalls)
+}
+
+func TestDeleteFails(t *testing.T) {
+	service, repository, _ := newService(t)
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err := service.Delete(callerContext(), dto.SupplierDeleteReq{Id: 7})
+	require.ErrorIs(t, err, errDatabase)
+
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+	repository.UpdateFn = func(*gorm.DB, model.Supplier) (model.Supplier, error) {
+		return model.Supplier{}, errDatabase
+	}
+
+	_, err = service.Delete(callerContext(), dto.SupplierDeleteReq{Id: 7})
+	require.ErrorIs(t, err, errDatabase)
+}
+
+func TestTheOrmIsTakenFromTheRequestContext(t *testing.T) {
+	service, repository, database := newService(t)
+
+	type key struct{}
+	ctx := context.WithValue(callerContext(), key{}, "request")
+
+	var seen context.Context
+	database.OrmFn = func(ctx context.Context) *gorm.DB {
+		seen = ctx
+
+		return nil
+	}
+	repository.DetailFn = func(*gorm.DB, string, interface{}) (model.Supplier, error) {
+		return existingSupplier(), nil
+	}
+
+	_, err := service.Detail(ctx, dto.SupplierDetailReq{Id: 7})
+
+	require.NoError(t, err)
+	require.Equal(t, "request", seen.Value(key{}))
+}

@@ -1,0 +1,62 @@
+{{/*
+  One endpoint object. Called from krakend.tmpl with
+  (dict "service" <settings/<svc>.json> "endpoint" <one entry of its endpoints> "env" <settings/env.json>).
+
+  Endpoint fields (settings/<svc>.json -> endpoints[]):
+    endpoint    public path on the gateway                  (required)
+    method      HTTP method                                 (required)
+    backend     path on the service                         (required)
+    auth        true -> validate the Keycloak JWT here      (default false)
+    roles       realm roles accepted when auth is true      (default env.jwt.default_roles)
+    rate_limit  name of a profile in env.rate_limit         (optional)
+    timeout     overrides the service timeout               (optional)
+
+  no-op encoding on both sides forwards the backend status code, headers and
+  body untouched. With KrakenD's default "json" encoding any non-2xx answer
+  would be flattened into an opaque 500 and the service's error body dropped.
+
+  The host comes from the settings file and can be overridden at container
+  start through the variable named in "host_env", so one image works against
+  services on the host (host.docker.internal) and on the compose network.
+*/}}
+{{- $service := .service }}
+{{- $endpoint := .endpoint }}
+{{- $env := .env }}
+{{- $host := $service.host }}
+{{- with $service.host_env }}{{ with env . }}{{ $host = . }}{{ end }}{{ end }}
+{{- $timeout := $service.timeout }}
+{{- with $endpoint.timeout }}{{ $timeout = . }}{{ end }}
+    {
+      "endpoint": "{{ $endpoint.endpoint }}",
+      "method": "{{ $endpoint.method }}",
+      "timeout": "{{ $timeout }}",
+      "output_encoding": "no-op",
+      "input_query_strings": ["*"],
+      {{- if $endpoint.auth }}
+      {{ include "ih_authenticated_user.tmpl" }},
+      {{- else }}
+      {{ include "ih_default.tmpl" }},
+      {{- end }}
+      "extra_config": {
+        {{- $hasPrevious := false }}
+        {{- if $endpoint.auth }}
+        {{ template "jwt_auth.tmpl" (dict "env" $env "roles" ($endpoint.roles | default $env.jwt.default_roles)) }}
+        {{- $hasPrevious = true }}
+        {{- end }}
+        {{- with $endpoint.rate_limit }}
+        {{- if $hasPrevious }},{{ end }}
+        {{ template "rate_limit.tmpl" (get $env.rate_limit .) }}
+        {{- $hasPrevious = true }}
+        {{- end }}
+      },
+      "backend": [
+        {
+          "url_pattern": "{{ $endpoint.backend }}",
+          "method": "{{ $endpoint.method }}",
+          "encoding": "no-op",
+          "sd": "static",
+          "host": ["{{ $host }}"],
+          "disable_host_sanitize": false
+        }
+      ]
+    }

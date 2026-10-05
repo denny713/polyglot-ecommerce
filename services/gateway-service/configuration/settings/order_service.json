@@ -1,0 +1,71 @@
+{
+  "host": "http://host.docker.internal:7120",
+  "host_env": "ORDER_SERVICE_HOST",
+  "timeout": "10s",
+  "swagger": {
+    "endpoint": "/docs/order/openapi.json",
+    "backend": "/api/v3/api-docs"
+  },
+  "endpoints": [
+    {
+      "endpoint": "/api/order/cart",
+      "method": "POST",
+      "backend": "/api/order/cart",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/order/cart",
+      "method": "DELETE",
+      "backend": "/api/order/cart",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/order/checkout",
+      "method": "POST",
+      "backend": "/api/order/checkout",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/order/checkout/{id}",
+      "method": "PUT",
+      "backend": "/api/order/checkout/{id}",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/order/payment",
+      "method": "POST",
+      "backend": "/api/order/payment",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/order/payment/{id}",
+      "method": "PUT",
+      "backend": "/api/order/payment/{id}",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    }
+  ]
+}

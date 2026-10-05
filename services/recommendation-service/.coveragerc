@@ -1,0 +1,16 @@
+[run]
+source = .
+branch = True
+omit =
+    venv/*
+    tests/*
+    *.pyx
+
+[report]
+show_missing = True
+fail_under = 90
+exclude_also =
+    if __name__ == .__main__.:
+
+[html]
+directory = htmlcov

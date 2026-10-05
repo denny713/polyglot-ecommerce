@@ -1,0 +1,1781 @@
+basePath: /
+definitions:
+  category.CategoryActivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  category.CategoryCreateReq:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  category.CategoryCreateRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  category.CategoryDeactivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  category.CategoryDeleteRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  category.CategoryDetailRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  category.CategorySearchRes:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/category.CategoryDetailRes'
+        type: array
+    type: object
+  category.CategoryUpdateReq:
+    properties:
+      description:
+        type: string
+      id:
+        format: int64
+        type: integer
+      name:
+        type: string
+    type: object
+  category.CategoryUpdateRes:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
+  product.ProductActivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  product.ProductCreateRes:
+    properties:
+      buy_price:
+        type: number
+      category:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      sell_price:
+        type: number
+      supplier:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  product.ProductDeactivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  product.ProductDeleteRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  product.ProductDetailRes:
+    properties:
+      buy_price:
+        type: number
+      category:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      sell_price:
+        type: number
+      supplier:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  product.ProductHistoryRes:
+    properties:
+      buy_price:
+        type: number
+      category:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      sell_price:
+        type: number
+      stock_history:
+        items:
+          $ref: '#/definitions/product.StockRes'
+        type: array
+      stockQuantity:
+        type: integer
+      supplier:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  product.ProductSearchRes:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/product.ProductDetailRes'
+        type: array
+    type: object
+  product.ProductUpdateRes:
+    properties:
+      buy_price:
+        type: number
+      category:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      sell_price:
+        type: number
+      stock:
+        type: integer
+      supplier:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  product.PurchaseOrderDetailRes:
+    properties:
+      id:
+        type: integer
+      note:
+        type: string
+      order_quantity:
+        type: integer
+      order_subtotal:
+        type: number
+      product:
+        type: string
+      real_quantity:
+        type: integer
+      real_subtotal:
+        type: number
+      unit_price:
+        type: number
+    type: object
+  product.PurchaseOrderRes:
+    properties:
+      detail:
+        items:
+          $ref: '#/definitions/product.PurchaseOrderDetailRes'
+        type: array
+      id:
+        type: integer
+      note:
+        type: string
+      order_grand_total:
+        type: number
+      real_grand_total:
+        type: number
+      status:
+        type: string
+      supplier:
+        type: string
+    type: object
+  product.PurchaseReturnDetailRes:
+    properties:
+      id:
+        type: integer
+      note:
+        type: string
+      product:
+        type: string
+      quantity:
+        type: integer
+      reason:
+        type: string
+      subtotal:
+        type: number
+      unit_price:
+        type: number
+    type: object
+  product.PurchaseReturnRes:
+    properties:
+      detail:
+        items:
+          $ref: '#/definitions/product.PurchaseReturnDetailRes'
+        type: array
+      grand_total:
+        type: number
+      id:
+        type: integer
+      note:
+        type: string
+      reason:
+        type: string
+      status:
+        type: string
+      supplier:
+        type: string
+    type: object
+  product.StockRes:
+    properties:
+      activity:
+        type: string
+      created_at:
+        type: string
+      document_number:
+        type: string
+      document_type:
+        type: string
+      id:
+        type: integer
+      purchase_return:
+        $ref: '#/definitions/product.PurchaseReturnRes'
+      purchaseOrder:
+        $ref: '#/definitions/product.PurchaseOrderRes'
+      quantity:
+        type: integer
+    type: object
+  supplier.SupplierActivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  supplier.SupplierCreateReq:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+    type: object
+  supplier.SupplierCreateRes:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      created_at:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  supplier.SupplierDeactivateRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  supplier.SupplierDeleteRes:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  supplier.SupplierDetailRes:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      created_at:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  supplier.SupplierSearchRes:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/supplier.SupplierDetailRes'
+        type: array
+    type: object
+  supplier.SupplierUpdateReq:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+    type: object
+  supplier.SupplierUpdateRes:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      contact_person:
+        type: string
+      created_at:
+        type: string
+      district:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      province:
+        type: string
+      subdistrict:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:7130
+info:
+  contact: {}
+  description: This is a Product Service API.
+  title: Product Service API
+  version: "1.0"
+paths:
+  /api/category:
+    get:
+      consumes:
+      - application/json
+      description: Search categories by name and description (ILIKE).
+      parameters:
+      - description: Category name, matched partially
+        in: query
+        name: name
+        type: string
+      - description: Category description, matched partially
+        in: query
+        name: description
+        type: string
+      - description: Sort field
+        enum:
+        - id
+        - name
+        - description
+        - created_at
+        - updated_at
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      - description: Page number, starts at 1
+        in: query
+        name: page
+        type: integer
+      - description: Rows per page, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategorySearchRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Search categories
+      tags:
+      - Category
+    post:
+      consumes:
+      - application/json
+      description: Create a new category, the payload is sent as a json body.
+      parameters:
+      - description: Category payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/category.CategoryCreateReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryCreateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new category
+      tags:
+      - Category
+  /api/category/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryDeleteRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a category
+      tags:
+      - Category
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryDetailRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Detail a category
+      tags:
+      - Category
+    put:
+      consumes:
+      - application/json
+      description: Update an existing category, the payload is sent as a json body.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/category.CategoryUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryUpdateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Update an existing category
+      tags:
+      - Category
+  /api/category/activate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Activate a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryActivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Activate a category
+      tags:
+      - Category
+  /api/category/deactivate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Deactivate a specific category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/category.CategoryDeactivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Deactivate a category
+      tags:
+      - Category
+  /api/product:
+    get:
+      consumes:
+      - application/json
+      description: Search products by name and description (ILIKE), buy price range,
+        sell price range and stock range.
+      parameters:
+      - description: Product name, matched partially
+        in: query
+        name: name
+        type: string
+      - description: Product description, matched partially
+        in: query
+        name: description
+        type: string
+      - description: Minimum product buying price
+        in: query
+        name: min_buy_price
+        type: number
+      - description: Maximum product buying price
+        in: query
+        name: max_buy_price
+        type: number
+      - description: Minimum product selling price
+        in: query
+        name: min_sell_price
+        type: number
+      - description: Maximum product selling price
+        in: query
+        name: max_sell_price
+        type: number
+      - description: Minimum stock quantity
+        in: query
+        name: min_stock
+        type: integer
+      - description: Maximum stock quantity
+        in: query
+        name: max_stock
+        type: integer
+      - description: Sort field
+        enum:
+        - id
+        - name
+        - buy_price
+        - sell_price
+        - stock
+        - created_at
+        - updated_at
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      - description: Page number, starts at 1
+        in: query
+        name: page
+        type: integer
+      - description: Rows per page, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductSearchRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Search products
+      tags:
+      - Product
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new product, the image is uploaded to the object storage.
+      parameters:
+      - description: Product name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Product description
+        in: formData
+        name: description
+        type: string
+      - description: Product buying price from the supplier
+        in: formData
+        name: buy_price
+        required: true
+        type: number
+      - description: Product selling price to the customer
+        in: formData
+        name: sell_price
+        required: true
+        type: number
+      - description: Product category
+        in: formData
+        name: category_id
+        required: true
+        type: number
+      - description: Product supplier
+        in: formData
+        name: supplier_id
+        required: true
+        type: number
+      - description: Product image (jpg, jpeg, png, webp, max 5 MB)
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductCreateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new product
+      tags:
+      - Product
+  /api/product/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductDeleteRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a product
+      tags:
+      - Product
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductDetailRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Detail a new product
+      tags:
+      - Product
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing product, the image is uploaded to the object
+        storage.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Product name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Product description
+        in: formData
+        name: description
+        type: string
+      - description: Product buying price from the supplier
+        in: formData
+        name: buy_price
+        required: true
+        type: number
+      - description: Product selling price to the customer
+        in: formData
+        name: sell_price
+        required: true
+        type: number
+      - description: Product category
+        in: formData
+        name: category_id
+        required: true
+        type: number
+      - description: Product supplier
+        in: formData
+        name: supplier_id
+        required: true
+        type: number
+      - description: Product image (jpg, jpeg, png, webp, max 5 MB)
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductUpdateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Update an existing product
+      tags:
+      - Product
+  /api/product/activate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Activate a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductActivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Activate a product
+      tags:
+      - Product
+  /api/product/deactivate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Deactivate a specific product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductDeactivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Deactivate a product
+      tags:
+      - Product
+  /api/product/history/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get product stock history.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/product.ProductHistoryRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Detail product stock history
+      tags:
+      - Product
+  /api/supplier:
+    get:
+      consumes:
+      - application/json
+      description: Search suppliers by their profile and address fields (ILIKE).
+      parameters:
+      - description: Supplier name, matched partially
+        in: query
+        name: name
+        type: string
+      - description: Supplier phone, matched partially
+        in: query
+        name: phone
+        type: string
+      - description: Supplier email, matched partially
+        in: query
+        name: email
+        type: string
+      - description: Supplier contact person, matched partially
+        in: query
+        name: contact_person
+        type: string
+      - description: Supplier province, matched partially
+        in: query
+        name: province
+        type: string
+      - description: Supplier city, matched partially
+        in: query
+        name: city
+        type: string
+      - description: Supplier district, matched partially
+        in: query
+        name: district
+        type: string
+      - description: Supplier subdistrict, matched partially
+        in: query
+        name: subdistrict
+        type: string
+      - description: Supplier postal code, matched partially
+        in: query
+        name: postal_code
+        type: string
+      - description: Sort field
+        enum:
+        - id
+        - name
+        - email
+        - contact_person
+        - province
+        - city
+        - created_at
+        - updated_at
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      - description: Page number, starts at 1
+        in: query
+        name: page
+        type: integer
+      - description: Rows per page, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierSearchRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Search suppliers
+      tags:
+      - Supplier
+    post:
+      consumes:
+      - application/json
+      description: Create a new supplier, the payload is sent as a json body.
+      parameters:
+      - description: Supplier payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/supplier.SupplierCreateReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierCreateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new supplier
+      tags:
+      - Supplier
+  /api/supplier/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierDeleteRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a supplier
+      tags:
+      - Supplier
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierDetailRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Detail a supplier
+      tags:
+      - Supplier
+    put:
+      consumes:
+      - application/json
+      description: Update an existing supplier, the payload is sent as a json body.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Supplier payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/supplier.SupplierUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierUpdateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Update an existing supplier
+      tags:
+      - Supplier
+  /api/supplier/activate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Activate a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierActivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Activate a supplier
+      tags:
+      - Supplier
+  /api/supplier/deactivate/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Deactivate a specific supplier.
+      parameters:
+      - description: Supplier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/supplier.SupplierDeactivateRes'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: Deactivate a supplier
+      tags:
+      - Supplier
+securityDefinitions:
+  BearerAuth:
+    description: Provide access token with Bearer prefix, e.g. "Bearer {token}".
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

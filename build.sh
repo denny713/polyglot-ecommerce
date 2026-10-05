@@ -1,0 +1,289 @@
+#!/usr/bin/env bash
+#
+# Build and bring up the whole stack in the background: the infrastructure
+# (PostgreSQL, MinIO, Keycloak, Redis, RabbitMQ, Mailpit) and every service
+# under ./services, built from source.
+#
+# It runs in two phases so no service boots against an empty schema or a
+# missing realm:
+#   1. infrastructure up, ecommerce database migrated, Keycloak provisioned
+#   2. application services built (`up -d --build`) and started
+#
+# A cold first boot takes several minutes: Keycloak has to build its schema in
+# an empty database before it reports healthy. Once it answers, this script
+# provisions the realm by running ./app/init/keycloak-init.sh for you.
+#
+# It also migrates the `ecommerce` database by running ./app/init/migrate.sh
+# (Liquibase, changelogs in ./migrations). Keycloak's own database is left
+# alone — it migrates itself with its bundled changelogs.
+#
+# Usage:
+#   ./build.sh                 # infra up, migrate, provision Keycloak, services up
+#   ./build.sh --wait          # also block until healthchecks pass
+#   ./build.sh --no-init       # skip the Keycloak provisioning step
+#   ./build.sh --no-migrate    # skip the database migration step
+#   ./build.sh postgres        # only bring up selected service(s), in one step
+#   ./build.sh order-service   # rebuild and restart one service
+#
+# Any other argument is forwarded to `docker compose up -d`.
+
+# Re-exec under a real bash. `sh build.sh` runs this file with /bin/sh, which is
+# bash in POSIX mode on macOS and dash on most Linux distros — neither runs the
+# arrays and [[ ]] below the way this script expects. Keep this block
+# POSIX-clean: it is parsed by whatever shell started the script, before the
+# `set -o pipefail` on the next line (which dash does not support).
+if [ -z "${BASH_VERSION:-}" ] || [ -n "${POSIXLY_CORRECT:-}" ]; then
+  unset POSIXLY_CORRECT
+  exec bash "$0" "$@"
+fi
+
+set -euo pipefail
+
+# Resolve paths relative to this script so it works from any working directory.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_FILE="$SCRIPT_DIR/app/docker-compose.yml"
+KEYCLOAK_INIT="$SCRIPT_DIR/app/init/keycloak-init.sh"
+DB_MIGRATE="$SCRIPT_DIR/app/init/migrate.sh"
+PROJECT_NAME="app"
+
+die() {
+  printf '\033[31merror:\033[0m %s\n' "$1" >&2
+  exit 1
+}
+
+info() {
+  printf '\033[36m==>\033[0m %s\n' "$1"
+}
+
+warn() {
+  printf '\033[33mwarning:\033[0m %s\n' "$1" >&2
+}
+
+# --- arguments ---------------------------------------------------------------
+
+# --no-init and --no-migrate are ours, everything else belongs to
+# `docker compose up -d`. Track the bare (non-flag) arguments too: those are
+# service names, and each provisioning step only makes sense when the service
+# it targets is actually part of what is being started.
+no_init=false
+no_migrate=false
+compose_args=()
+flag_args=()
+services=()
+
+for arg in "$@"; do
+  case "$arg" in
+    --no-init) no_init=true ;;
+    --no-migrate) no_migrate=true ;;
+    -*)
+      compose_args+=("$arg")
+      flag_args+=("$arg")
+      ;;
+    *)
+      compose_args+=("$arg")
+      services+=("$arg")
+      ;;
+  esac
+done
+
+# With no service list every service starts — keycloak and postgres included.
+run_init=true
+run_migrate=true
+if ((${#services[@]})); then
+  # An explicit list that leaves keycloak out means there is nothing to
+  # provision — `docker compose up keycloak` is what pulls and starts it. Same
+  # for postgres and the migration: no database container, nothing to migrate.
+  run_init=false
+  run_migrate=false
+  for svc in "${services[@]}"; do
+    case "$svc" in
+      keycloak) run_init=true ;;
+      postgres) run_migrate=true ;;
+    esac
+  done
+fi
+
+if [[ "$no_init" == true ]]; then
+  run_init=false
+fi
+
+if [[ "$no_migrate" == true ]]; then
+  run_migrate=false
+fi
+
+# --- preflight ---------------------------------------------------------------
+
+command -v docker >/dev/null 2>&1 ||
+  die "docker is not installed or not on PATH"
+
+# Compose v2 ships as a docker plugin; fall back to the standalone v1 binary.
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE=(docker-compose)
+else
+  die "docker compose is not available (install the Compose plugin)"
+fi
+
+docker info >/dev/null 2>&1 ||
+  die "cannot reach the Docker daemon — is Docker running?"
+
+[[ -f "$COMPOSE_FILE" ]] ||
+  die "compose file not found: $COMPOSE_FILE"
+
+COMPOSE+=(--project-name "$PROJECT_NAME" --file "$COMPOSE_FILE")
+
+# Compose auto-loads a .env sitting next to the compose file. Honour one at the
+# repo root too, since that is where it is most natural to keep it.
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  info "using env file: .env"
+  COMPOSE+=(--env-file "$SCRIPT_DIR/.env")
+fi
+
+# --- build ------------------------------------------------------------------
+
+# Everything in app/docker-compose.yml that is not built from ./services. With
+# no service list, these start first and the rest waits until the database is
+# migrated and Keycloak is provisioned (see "start the services" below).
+INFRA_SERVICES=(postgres minio minio-init keycloak redis rabbitmq mailpit)
+
+staged=false
+if ((${#services[@]})); then
+  # An explicit list starts in one step, rebuilding whatever is built from
+  # source, so `./build.sh order-service` picks up a code change.
+  up_args=(--build ${compose_args[@]+"${compose_args[@]}"})
+  info "starting ${services[*]} from app/docker-compose.yml"
+else
+  staged=true
+  up_args=(${flag_args[@]+"${flag_args[@]}"} "${INFRA_SERVICES[@]}")
+  info "starting infrastructure from app/docker-compose.yml"
+fi
+
+# Capture the status instead of letting `set -e` end the script here. A bare
+# failure exits silently, with the migration and the Keycloak provisioning below
+# simply never happening - which reads as "build.sh does not migrate" rather
+# than as the `up -d` failure it actually is. The usual cause is a healthcheck
+# whose start_period is shorter than a cold boot: compose then gives up on a
+# service another one waits for and aborts the whole `up`, even though the
+# container goes healthy moments later.
+up_status=0
+"${COMPOSE[@]}" up -d "${up_args[@]}" || up_status=$?
+
+info "current state"
+"${COMPOSE[@]}" ps
+
+if ((up_status != 0)); then
+  warn "docker compose up FAILED (exit $up_status) - the stack did not start cleanly"
+  warn "nothing below ran: the database was NOT migrated and Keycloak was NOT provisioned"
+  warn "check the state above, then re-run ./build.sh - or, if the containers are"
+  warn "actually healthy now, run the remaining steps directly:"
+  warn "  ./app/init/migrate.sh"
+  warn "  ./app/init/keycloak-init.sh"
+  exit "$up_status"
+fi
+
+# --- migrate the ecommerce database ------------------------------------------
+
+# Runs before the Keycloak step so the schema the business services need exists
+# as early as possible: on a cold boot keycloak-init.sh sits and waits several
+# minutes for Keycloak, and there is no reason for the migration to queue
+# behind it. migrate.sh waits for Postgres itself (READY_TIMEOUT).
+if [[ "$run_migrate" == true ]]; then
+  if [[ ! -x "$DB_MIGRATE" ]]; then
+    warn "skipping database migration: $DB_MIGRATE is missing or not executable"
+  else
+    info "migrating the ecommerce database (app/init/migrate.sh)"
+    # Same env resolution as compose, so Liquibase connects with the
+    # credentials the Postgres container was actually started with.
+    migrate_status=0
+    (
+      if [[ -f "$SCRIPT_DIR/.env" ]]; then
+        set -a
+        # shellcheck disable=SC1091
+        source "$SCRIPT_DIR/.env"
+        set +a
+      fi
+      # Keep the migration on the same compose project as the stack above, so
+      # it attaches the Liquibase container to the network that was created
+      # here instead of guessing one from the directory name.
+      export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
+      exec "$DB_MIGRATE"
+    ) || migrate_status=$?
+
+    # Stop here on failure instead of continuing: every business service starts
+    # against a schema that is now in an unknown state, and a half-migrated
+    # database is far easier to diagnose now than through the errors the
+    # services would throw later.
+    if ((migrate_status != 0)); then
+      warn "database migration FAILED (exit $migrate_status) — the schema was not applied"
+      warn "the containers are still running; fix the error above, then re-run:"
+      warn "  ./app/init/migrate.sh"
+      exit "$migrate_status"
+    fi
+  fi
+else
+  info "skipping database migration (run ./app/init/migrate.sh manually)"
+fi
+
+# --- provision keycloak -------------------------------------------------------
+
+# `up -d` returns as soon as the containers are started, which on a cold boot is
+# long before Keycloak can answer — the image still has to be pulled and the
+# schema built. keycloak-init.sh polls for readiness itself (READY_TIMEOUT), so
+# handing over to it here is enough; no extra wait is needed on this side.
+if [[ "$run_init" == true ]]; then
+  if [[ ! -x "$KEYCLOAK_INIT" ]]; then
+    warn "skipping Keycloak provisioning: $KEYCLOAK_INIT is missing or not executable"
+  else
+    info "provisioning Keycloak (app/init/keycloak-init.sh)"
+    # Same env resolution as compose, so the script talks to Keycloak with the
+    # credentials the container was actually started with.
+    init_status=0
+    (
+      if [[ -f "$SCRIPT_DIR/.env" ]]; then
+        set -a
+        # shellcheck disable=SC1091
+        source "$SCRIPT_DIR/.env"
+        set +a
+      fi
+      exec "$KEYCLOAK_INIT"
+    ) || init_status=$?
+
+    # Don't let a provisioning failure scroll past as "build finished": by this
+    # point the containers are already up, so the stack looks fine while the
+    # realm, clients, roles and users silently do not exist.
+    if ((init_status != 0)); then
+      warn "Keycloak provisioning FAILED (exit $init_status) — the realm was not created"
+      warn "the containers are still running; fix the error above, then re-run:"
+      warn "  ./app/init/keycloak-init.sh"
+      exit "$init_status"
+    fi
+  fi
+else
+  info "skipping Keycloak provisioning (run ./app/init/keycloak-init.sh manually)"
+fi
+
+# --- start the services -------------------------------------------------------
+
+# Only now, with the schema in place and the realm, clients and their secrets
+# provisioned, are the services built and started. The first build compiles
+# every service from source and takes a while; later ones reuse the layer and
+# Maven caches.
+if [[ "$staged" == true ]]; then
+  info "building and starting the services"
+  services_status=0
+  "${COMPOSE[@]}" up -d --build ${flag_args[@]+"${flag_args[@]}"} || services_status=$?
+
+  info "current state"
+  "${COMPOSE[@]}" ps
+
+  if ((services_status != 0)); then
+    warn "starting the services FAILED (exit $services_status)"
+    warn "the infrastructure is up, migrated and provisioned; fix the error above, then re-run:"
+    warn "  ./build.sh --no-init --no-migrate"
+    exit "$services_status"
+  fi
+
+  info "gateway:  http://localhost:${GATEWAY_PORT:-7100}  (services behind it on ports 7110-7170)"
+  info "mailpit:  http://localhost:${MAILPIT_UI_PORT:-8025}"
+fi

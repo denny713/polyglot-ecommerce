@@ -1,0 +1,43 @@
+name: product-service
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - services/product-service/**
+      - k8s/product-service.yaml
+      - .github/workflows/product-service.yml
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+# One pipeline per service at a time; a newer push waits instead of cancelling
+# a deploy that is already rolling out.
+concurrency:
+  group: product-service
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/product-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/product-service/go.mod
+          cache-dependency-path: services/product-service/go.sum
+      - run: go vet ./...
+      - run: go test -race ./...
+
+  deploy:
+    needs: test
+    uses: ./.github/workflows/deploy.yml
+    with:
+      service: product-service
+    secrets: inherit

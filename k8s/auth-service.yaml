@@ -1,0 +1,109 @@
+# Deployed by .github/workflows/auth-service.yml, which replaces ${IMAGE} with the
+# commit's image (ghcr.io/<owner>/<repo>/auth-service:<sha>). Mirrors the
+# auth-service entry in app/docker-compose.yml; see k8s/README.md for the
+# infrastructure and secrets it expects in the namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  labels:
+    app: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      containers:
+        - name: auth-service
+          image: ${IMAGE}
+          ports:
+            - name: http
+              containerPort: 7110
+          env:
+            - name: QUARKUS_HTTP_PORT
+              value: "7110"
+            - name: QUARKUS_OIDC_AUTH_SERVER_URL
+              value: "http://keycloak:8080/realms/ecommerce"
+            - name: QUARKUS_OIDC_CLIENT_ID
+              value: "auth-service"
+            - name: QUARKUS_OIDC_CREDENTIALS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: AUTH_SERVICE_CLIENT_SECRET
+            - name: QUARKUS_OIDC_APPLICATION_TYPE
+              value: "service"
+            - name: QUARKUS_OIDC_TOKEN_AUDIENCE
+              value: "auth-service"
+            - name: QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_URL
+              value: "http://keycloak:8080"
+            - name: QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_CONNECT_TIMEOUT
+              value: "5000"
+            - name: QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_READ_TIMEOUT
+              value: "10000"
+            - name: KEYCLOAK_AUTH_REALM
+              value: "ecommerce"
+            - name: KEYCLOAK_AUTH_CLIENT_ID
+              value: "ecommerce-app"
+            - name: KEYCLOAK_ADMIN_API_CLIENT_ID
+              value: "auth-service"
+            - name: KEYCLOAK_ADMIN_API_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: AUTH_SERVICE_CLIENT_SECRET
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: RABBITMQ_PASSWORD
+          startupProbe:
+            tcpSocket:
+                port: http
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            tcpSocket:
+                port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+                port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  labels:
+    app: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - name: http
+      port: 7110
+      targetPort: http

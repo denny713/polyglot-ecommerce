@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Master changelog for the `ecommerce` database - the schema shared by every
+  business service (product-service and the services that follow it).
+
+  Keycloak is deliberately NOT managed here: it ships its own Liquibase
+  changelogs and builds its ~90 tables itself on first boot, in its own
+  `keycloak` database (see app/init/create-db.sh).
+
+  This file is only an index: it holds no changesets of its own, so the order
+  of the <include> lines below IS the order the migrations run in. Append new
+  files at the bottom, never in the middle - Liquibase records what has run in
+  DATABASECHANGELOG and a reordered history no longer matches it.
+
+  Run it with:
+
+    ./app/init/migrate.sh            # apply everything that is pending
+    ./app/init/migrate.sh status     # list what is pending
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <include file="changelog/20260821133150-create-table-category.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260821133232-create-table-supplier.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260821133244-create-table-product.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260827164811-create-table-purchase-order.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260827164845-create-table-purchase-order-detail.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260827164856-create-table-purchase-return.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260827164912-create-table-purchase-return-detail.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911170928-create-table-sales-order.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911170937-create-table-sales-order-detail.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911171527-create-table-stock.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260911171536-create-table-stock-position.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260925160531-create-table-payment.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260925160557-create-table-refund.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/20260925160610-create-function-generate-doc-no.sql" relativeToChangelogFile="true"/>
+
+</databaseChangeLog>

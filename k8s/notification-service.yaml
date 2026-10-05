@@ -1,0 +1,142 @@
+# Deployed by .github/workflows/notification-service.yml, which replaces ${IMAGE} with the
+# commit's image (ghcr.io/<owner>/<repo>/notification-service:<sha>). Mirrors the
+# notification-service entry in app/docker-compose.yml; see k8s/README.md for the
+# infrastructure and secrets it expects in the namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  labels:
+    app: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      containers:
+        - name: notification-service
+          image: ${IMAGE}
+          ports:
+            - name: http
+              containerPort: 7160
+          env:
+            - name: PORT
+              value: "7160"
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD_URLENCODED
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: RABBITMQ_PASSWORD_URLENCODED
+            - name: BROKER_URL
+              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD_URLENCODED)@rabbitmq:5672"
+            - name: NOTIFICATION_EXCHANGE
+              value: "notification.exchange"
+            - name: ACCOUNT_QUEUE
+              value: "notification.push.user"
+            - name: ACCOUNT_ROUTING_KEY
+              value: "notification.account"
+            - name: ORDER_QUEUE
+              value: "notification.push.transaction"
+            - name: ORDER_ROUTING_KEY
+              value: "notification.order"
+            - name: CART_QUEUE
+              value: "notification.push.cart"
+            - name: CART_ROUTING_KEY
+              value: "notification.cart"
+            - name: CART_BATCH_WINDOW_MS
+              value: "300000"
+            - name: CART_PREFETCH
+              value: "100"
+            - name: DB_HOST
+              value: "postgres"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: POSTGRES_PASSWORD
+            - name: DB_NAME
+              value: "ecommerce"
+            - name: KEYCLOAK_URL
+              value: "http://keycloak:8080"
+            - name: KEYCLOAK_REALM
+              value: "ecommerce"
+            - name: KEYCLOAK_CLIENT_ID
+              value: "notification-service"
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: NOTIFICATION_SERVICE_CLIENT_SECRET
+            - name: SMTP_HOST
+              value: "mailpit"
+            - name: SMTP_PORT
+              value: "1025"
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: SMTP_USER
+                  optional: true
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: SMTP_PASS
+                  optional: true
+            - name: SMTP_REQUIRE_TLS
+              value: "false"
+            - name: MAIL_FROM
+              value: "Ecommerce <no-reply@ecommerce.local>"
+          startupProbe:
+            tcpSocket:
+                port: http
+            periodSeconds: 5
+            failureThreshold: 16
+          readinessProbe:
+            tcpSocket:
+                port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+                port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  labels:
+    app: notification-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - name: http
+      port: 7160
+      targetPort: http

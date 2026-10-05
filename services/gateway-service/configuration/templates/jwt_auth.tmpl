@@ -1,0 +1,36 @@
+{{/*
+  Keycloak JWT validation. Called with (dict "env" <settings/env.json> "roles" [...]).
+
+  Roles are Keycloak realm roles, which live under realm_access.roles in the
+  access token, hence roles_key_is_nested. The JWKS URL and issuer default to
+  settings/env.json and can be overridden with the variables named there
+  (JWK_URL, KEYCLOAK_ISSUER_URI). An empty issuer skips the issuer check.
+
+  Only claims Keycloak puts in every access token are propagated. A claim that
+  is absent would leave any header of the same name sent by the client
+  untouched, so optional claims (email, ...) are deliberately not mapped.
+*/}}
+{{- $jwt := .env.jwt }}
+{{- $jwkURL := $jwt.jwk_url }}
+{{- with $jwt.jwk_url_env }}{{ with env . }}{{ $jwkURL = . }}{{ end }}{{ end }}
+{{- $issuer := $jwt.issuer }}
+{{- with $jwt.issuer_env }}{{ with env . }}{{ $issuer = . }}{{ end }}{{ end -}}
+"auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "{{ $jwkURL }}",
+          "cache": true,
+          "cache_duration": {{ $jwt.cache_duration }},
+          "disable_jwk_security": {{ $jwt.disable_jwk_security }},
+          {{- if $issuer }}
+          "issuer": "{{ $issuer }}",
+          {{- end }}
+          "roles_key": "realm_access.roles",
+          "roles_key_is_nested": true,
+          "roles": {{ marshal .roles }},
+          "propagate_claims": [
+            ["sub", "X-User-Id"],
+            ["preferred_username", "X-User-Name"],
+            ["realm_access.roles", "X-User-Roles"]
+          ],
+          "operation_debug": false
+        }

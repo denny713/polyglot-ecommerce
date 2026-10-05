@@ -1,0 +1,93 @@
+# Shared build-and-deploy pipeline, called by every per-service workflow once
+# its tests pass. Not triggered on its own.
+#
+#   1. build services/<service>/Dockerfile and push it to GHCR as
+#      ghcr.io/<owner>/<repo>/<service>:<commit sha> and :latest
+#   2. apply k8s/<service>.yaml with that exact image and wait for the rollout
+#
+# Required in the repository (or the `production` environment):
+#   secret   KUBE_CONFIG      base64 of a kubeconfig that can apply to the namespace
+#   variable K8S_NAMESPACE    target namespace (defaults to `ecommerce`)
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: Directory name under services/, also the Deployment name
+        required: true
+        type: string
+
+jobs:
+  image:
+    name: build & push image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.ref.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # GHCR only accepts lowercase repository names.
+      - id: ref
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY,,}/${{ inputs.service }}"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "image=$repo:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/${{ inputs.service }}
+          push: true
+          tags: |
+            ${{ steps.ref.outputs.image }}
+            ${{ steps.ref.outputs.repo }}:latest
+          cache-from: type=gha,scope=${{ inputs.service }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.service }}
+
+  deploy:
+    name: deploy to kubernetes
+    needs: image
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    env:
+      SERVICE: ${{ inputs.service }}
+      IMAGE: ${{ needs.image.outputs.image }}
+      NAMESPACE: ${{ vars.K8S_NAMESPACE || 'ecommerce' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Configure cluster access
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          if [ -z "$KUBE_CONFIG" ]; then
+            echo "::error::secret KUBE_CONFIG is not set (base64 of a kubeconfig)"
+            exit 1
+          fi
+          echo "$KUBE_CONFIG" | base64 -d > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      # The manifest carries ${IMAGE} instead of a tag, so every deploy pins the
+      # exact commit that was just built. Only $IMAGE is substituted; any other
+      # $ in the manifest (e.g. Kubernetes' own $(VAR) references) is left alone.
+      - name: Apply manifest
+        run: envsubst '$IMAGE' < "k8s/$SERVICE.yaml" | kubectl apply -n "$NAMESPACE" -f -
+
+      - name: Wait for rollout
+        run: kubectl rollout status "deployment/$SERVICE" -n "$NAMESPACE" --timeout=5m

@@ -1,0 +1,492 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      KEYCLOAK_DB: ${KEYCLOAK_DB:-keycloak}
+      ECOMMERCE_DB: ${ECOMMERCE_DB:-ecommerce}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init/create-db.sh:/docker-entrypoint-initdb.d/create-db.sh:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    networks:
+      - ecommerce
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ecommerce
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: minio-init
+    restart: "no"
+    environment:
+      MINIO_URL: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
+      MINIO_BUCKETS: ${PRODUCT_BUCKET:-ecommerce}
+      MINIO_BUCKET_POLICY: ${MINIO_BUCKET_POLICY:-download}
+    entrypoint: ["/bin/sh", "/init/create-bucket.sh"]
+    volumes:
+      - ./init/create-bucket.sh:/init/create-bucket.sh:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - ecommerce
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7
+    container_name: keycloak
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-P@ssw0rd}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB:-keycloak}
+      KC_DB_USERNAME: ${POSTGRES_USER:-postgres}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"status": "UP"' <&3
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 300s
+    networks:
+      - ecommerce
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --notify-keyspace-events
+      - Ex
+      - --requirepass
+      - ${REDIS_PASSWORD:-p@ssw0rd}
+      - --user
+      - ${REDIS_USER:-admin}
+      - "on"
+      - ">${REDIS_PASSWORD:-p@ssw0rd}"
+      - "~*"
+      - "&*"
+      - +@all
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli --user ${REDIS_USER:-admin} --pass ${REDIS_PASSWORD:-p@ssw0rd} --no-auth-warning ping | grep -q PONG",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ecommerce
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-p@ssw0rd}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ecommerce
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    environment:
+      MP_SMTP_BIND_ADDR: 0.0.0.0:1025
+      MP_UI_BIND_ADDR: 0.0.0.0:8025
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-5000}
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      - "${MAILER_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    volumes:
+      - mailpit-data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ecommerce
+
+  gateway-service:
+    build:
+      context: ../services/gateway-service
+      dockerfile: Dockerfile
+    image: polygot/gateway-service:latest
+    container_name: gateway-service
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_HOST: http://auth-service:7110
+      ORDER_SERVICE_HOST: http://order-service:7120
+      PRODUCT_SERVICE_HOST: http://product-service:7130
+      INVENTORY_SERVICE_HOST: http://inventory-service:7140
+      RECOMMENDATION_SERVICE_HOST: http://recommendation-service:7170
+      JWK_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+    ports:
+      - "${GATEWAY_PORT:-7100}:7100"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+      recommendation-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:7100/__health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ecommerce
+
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    image: polygot/auth-service:latest
+    container_name: auth-service
+    restart: unless-stopped
+    environment:
+      QUARKUS_HTTP_PORT: 7110
+      QUARKUS_OIDC_AUTH_SERVER_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+      QUARKUS_OIDC_CLIENT_ID: auth-service
+      QUARKUS_OIDC_CREDENTIALS_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-auth-service-secret}
+      QUARKUS_OIDC_APPLICATION_TYPE: service
+      QUARKUS_OIDC_TOKEN_AUDIENCE: auth-service
+      QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_URL: http://keycloak:8080
+      QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_CONNECT_TIMEOUT: 5000
+      QUARKUS_REST_CLIENT_KEYCLOAK_TOKEN_API_READ_TIMEOUT: 10000
+      KEYCLOAK_AUTH_REALM: ${KEYCLOAK_REALM:-ecommerce}
+      KEYCLOAK_AUTH_CLIENT_ID: ${KEYCLOAK_CLIENT:-ecommerce-app}
+      KEYCLOAK_ADMIN_API_CLIENT_ID: auth-service
+      KEYCLOAK_ADMIN_API_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET:-auth-service-secret}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-p@ssw0rd}
+    ports:
+      - "${AUTH_SERVICE_PORT:-7110}:7110"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/7110"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - ecommerce
+
+  order-service:
+    build:
+      context: ../services/order-service
+      dockerfile: Dockerfile
+    image: polygot/order-service:latest
+    container_name: order-service
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${ECOMMERCE_DB:-ecommerce}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-p@ssw0rd}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_USER: ${REDIS_USER:-admin}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-p@ssw0rd}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+    ports:
+      - "${ORDER_SERVICE_PORT:-7120}:7120"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/7120"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - ecommerce
+
+  product-service:
+    build:
+      context: ../services/product-service
+      dockerfile: Dockerfile
+    image: polygot/product-service:latest
+    container_name: product-service
+    restart: unless-stopped
+    environment:
+      PORT: 7130
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+      DB_NAME: ${ECOMMERCE_DB:-ecommerce}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password}
+      MINIO_USE_SSL: "false"
+      MINIO_BUCKET: ${PRODUCT_BUCKET:-ecommerce}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+    ports:
+      - "${PRODUCT_SERVICE_PORT:-7130}:7130"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:7130/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ecommerce
+
+  inventory-service:
+    build:
+      context: ../services/inventory-service
+      dockerfile: Dockerfile
+    image: polygot/inventory-service:latest
+    container_name: inventory-service
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${ECOMMERCE_DB:-ecommerce}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-p@ssw0rd}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+    ports:
+      - "${INVENTORY_SERVICE_PORT:-7140}:7140"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/7140"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - ecommerce
+
+  notification-service:
+    build:
+      context: ../services/notification-service
+      dockerfile: Dockerfile
+    image: polygot/notification-service:latest
+    container_name: notification-service
+    restart: unless-stopped
+    environment:
+      PORT: 7160
+      BROKER_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD_URLENCODED:-p%40ssw0rd}@rabbitmq:5672
+      NOTIFICATION_EXCHANGE: notification.exchange
+      ACCOUNT_QUEUE: notification.push.user
+      ACCOUNT_ROUTING_KEY: notification.account
+      ORDER_QUEUE: notification.push.transaction
+      ORDER_ROUTING_KEY: notification.order
+      CART_QUEUE: notification.push.cart
+      CART_ROUTING_KEY: notification.cart
+      CART_BATCH_WINDOW_MS: ${CART_BATCH_WINDOW_MS:-300000}
+      CART_PREFETCH: 100
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-p@ssw0rd}
+      DB_NAME: ${ECOMMERCE_DB:-ecommerce}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-ecommerce}
+      KEYCLOAK_CLIENT_ID: notification-service
+      KEYCLOAK_CLIENT_SECRET: ${NOTIFICATION_SERVICE_CLIENT_SECRET:-notification-service-secret}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-Ecommerce <no-reply@ecommerce.local>}
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-7160}:7160"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(7160, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ecommerce
+
+  recommendation-service:
+    build:
+      context: ../services/recommendation-service
+      dockerfile: Dockerfile
+    image: polygot/recommendation-service:latest
+    container_name: recommendation-service
+    restart: unless-stopped
+    environment:
+      PORT: 7170
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD_URLENCODED:-p%40ssw0rd}@postgres:5432/${ECOMMERCE_DB:-ecommerce}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_USERNAME: ${REDIS_USER:-admin}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-p@ssw0rd}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-ecommerce}
+      CART_KEY_PREFIX: cart
+    ports:
+      - "${RECOMMENDATION_SERVICE_PORT:-7170}:7170"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7170/', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - ecommerce
+
+volumes:
+  postgres-data:
+  minio-data:
+  rabbitmq-data:
+  redis-data:
+  mailpit-data:
+
+networks:
+  ecommerce:
+    driver: bridge

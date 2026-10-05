@@ -1,0 +1,102 @@
+# Deployed by .github/workflows/product-service.yml, which replaces ${IMAGE} with the
+# commit's image (ghcr.io/<owner>/<repo>/product-service:<sha>). Mirrors the
+# product-service entry in app/docker-compose.yml; see k8s/README.md for the
+# infrastructure and secrets it expects in the namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  labels:
+    app: product-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      containers:
+        - name: product-service
+          image: ${IMAGE}
+          ports:
+            - name: http
+              containerPort: 7130
+          env:
+            - name: PORT
+              value: "7130"
+            - name: DB_HOST
+              value: "postgres"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: POSTGRES_PASSWORD
+            - name: DB_NAME
+              value: "ecommerce"
+            - name: MINIO_ENDPOINT
+              value: "minio:9000"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: MINIO_ROOT_USER
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secrets
+                  key: MINIO_ROOT_PASSWORD
+            - name: MINIO_USE_SSL
+              value: "false"
+            - name: MINIO_BUCKET
+              value: "ecommerce"
+            - name: KEYCLOAK_ISSUER_URI
+              value: "http://keycloak:8080/realms/ecommerce"
+          startupProbe:
+            httpGet:
+                path: /health
+                port: http
+            periodSeconds: 5
+            failureThreshold: 16
+          readinessProbe:
+            httpGet:
+                path: /health
+                port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+                path: /health
+                port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  labels:
+    app: product-service
+spec:
+  selector:
+    app: product-service
+  ports:
+    - name: http
+      port: 7130
+      targetPort: http

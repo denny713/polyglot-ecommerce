@@ -1,0 +1,71 @@
+{
+  "host": "http://host.docker.internal:7110",
+  "host_env": "AUTH_SERVICE_HOST",
+  "timeout": "10s",
+  "swagger": {
+    "endpoint": "/docs/auth/openapi.json",
+    "backend": "/q/openapi?format=json"
+  },
+  "endpoints": [
+    {
+      "endpoint": "/api/auth/login",
+      "method": "POST",
+      "backend": "/api/auth/login",
+      "auth": false,
+      "rate_limit": "auth"
+    },
+    {
+      "endpoint": "/api/auth/logout",
+      "method": "POST",
+      "backend": "/api/auth/logout",
+      "auth": false
+    },
+    {
+      "endpoint": "/api/account",
+      "method": "POST",
+      "backend": "/api/account",
+      "auth": false,
+      "rate_limit": "auth"
+    },
+    {
+      "endpoint": "/api/account",
+      "method": "GET",
+      "backend": "/api/account",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/account",
+      "method": "PUT",
+      "backend": "/api/account",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/account/password",
+      "method": "PUT",
+      "backend": "/api/account/password",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/account",
+      "method": "DELETE",
+      "backend": "/api/account",
+      "auth": true,
+      "roles": [
+        "user",
+        "admin"
+      ]
+    }
+  ]
+}
