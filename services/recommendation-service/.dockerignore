@@ -1,0 +1,17 @@
+.env
+.env-example
+venv
+.venv
+__pycache__
+**/__pycache__
+*.py[cod]
+tests
+.pytest_cache
+.coverage
+.coveragerc
+coverage.xml
+htmlcov
+pytest.ini
+requirements-dev.txt
+Makefile
+.DS_Store

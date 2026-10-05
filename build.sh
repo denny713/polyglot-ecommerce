@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 #
-# Bring up the local infrastructure stack (PostgreSQL + MinIO + Keycloak) in the
-# background.
+# Build and bring up the whole stack in the background: the infrastructure
+# (PostgreSQL, MinIO, Keycloak, Redis, RabbitMQ, Mailpit) and every service
+# under ./services, built from source.
+#
+# It runs in two phases so no service boots against an empty schema or a
+# missing realm:
+#   1. infrastructure up, ecommerce database migrated, Keycloak provisioned
+#   2. application services built (`up -d --build`) and started
 #
 # A cold first boot takes several minutes: Keycloak has to build its schema in
 # an empty database before it reports healthy. Once it answers, this script
@@ -12,11 +18,12 @@
 # alone — it migrates itself with its bundled changelogs.
 #
 # Usage:
-#   ./build.sh                 # up -d, migrate ecommerce, provision Keycloak
+#   ./build.sh                 # infra up, migrate, provision Keycloak, services up
 #   ./build.sh --wait          # also block until healthchecks pass
 #   ./build.sh --no-init       # skip the Keycloak provisioning step
 #   ./build.sh --no-migrate    # skip the database migration step
-#   ./build.sh postgres        # only bring up selected service(s)
+#   ./build.sh postgres        # only bring up selected service(s), in one step
+#   ./build.sh order-service   # rebuild and restart one service
 #
 # Any other argument is forwarded to `docker compose up -d`.
 
@@ -61,13 +68,17 @@ warn() {
 no_init=false
 no_migrate=false
 compose_args=()
+flag_args=()
 services=()
 
 for arg in "$@"; do
   case "$arg" in
     --no-init) no_init=true ;;
     --no-migrate) no_migrate=true ;;
-    -*) compose_args+=("$arg") ;;
+    -*)
+      compose_args+=("$arg")
+      flag_args+=("$arg")
+      ;;
     *)
       compose_args+=("$arg")
       services+=("$arg")
@@ -131,7 +142,22 @@ fi
 
 # --- build ------------------------------------------------------------------
 
-info "starting stack from app/docker-compose.yml"
+# Everything in app/docker-compose.yml that is not built from ./services. With
+# no service list, these start first and the rest waits until the database is
+# migrated and Keycloak is provisioned (see "start the services" below).
+INFRA_SERVICES=(postgres minio minio-init keycloak redis rabbitmq mailpit)
+
+staged=false
+if ((${#services[@]})); then
+  # An explicit list starts in one step, rebuilding whatever is built from
+  # source, so `./build.sh order-service` picks up a code change.
+  up_args=(--build ${compose_args[@]+"${compose_args[@]}"})
+  info "starting ${services[*]} from app/docker-compose.yml"
+else
+  staged=true
+  up_args=(${flag_args[@]+"${flag_args[@]}"} "${INFRA_SERVICES[@]}")
+  info "starting infrastructure from app/docker-compose.yml"
+fi
 
 # Capture the status instead of letting `set -e` end the script here. A bare
 # failure exits silently, with the migration and the Keycloak provisioning below
@@ -141,7 +167,7 @@ info "starting stack from app/docker-compose.yml"
 # service another one waits for and aborts the whole `up`, even though the
 # container goes healthy moments later.
 up_status=0
-"${COMPOSE[@]}" up -d ${compose_args[@]+"${compose_args[@]}"} || up_status=$?
+"${COMPOSE[@]}" up -d "${up_args[@]}" || up_status=$?
 
 info "current state"
 "${COMPOSE[@]}" ps
@@ -235,4 +261,29 @@ if [[ "$run_init" == true ]]; then
   fi
 else
   info "skipping Keycloak provisioning (run ./app/init/keycloak-init.sh manually)"
+fi
+
+# --- start the services -------------------------------------------------------
+
+# Only now, with the schema in place and the realm, clients and their secrets
+# provisioned, are the services built and started. The first build compiles
+# every service from source and takes a while; later ones reuse the layer and
+# Maven caches.
+if [[ "$staged" == true ]]; then
+  info "building and starting the services"
+  services_status=0
+  "${COMPOSE[@]}" up -d --build ${flag_args[@]+"${flag_args[@]}"} || services_status=$?
+
+  info "current state"
+  "${COMPOSE[@]}" ps
+
+  if ((services_status != 0)); then
+    warn "starting the services FAILED (exit $services_status)"
+    warn "the infrastructure is up, migrated and provisioned; fix the error above, then re-run:"
+    warn "  ./build.sh --no-init --no-migrate"
+    exit "$services_status"
+  fi
+
+  info "gateway:  http://localhost:${GATEWAY_PORT:-7100}  (services behind it on ports 7110-7170)"
+  info "mailpit:  http://localhost:${MAILPIT_UI_PORT:-8025}"
 fi

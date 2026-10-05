@@ -27,6 +27,8 @@
 #                             confidential clients, one per backend service,
 #                             each with its own self-audience mapper and secret
 #                             (see RESOURCE_SERVER_CLIENT_SPECS)
+#   <CLIENT_ID>_CLIENT_SECRET secret of each resource-server client, e.g.
+#                             AUTH_SERVICE_CLIENT_SECRET  (<clientId>-secret)
 #   KEYCLOAK_ACCOUNT_MANAGER_CLIENTS  resource-server clients whose service
 #                             account may manage users through the Admin REST
 #                             API                       (auth-service)
@@ -446,12 +448,23 @@ for i in "${!RESOURCE_SERVER_CLIENTS[@]}"; do
   svc_display_name="${RESOURCE_SERVER_NAMES[$i]}"
   echo "  - $svc (name: '$svc_display_name')"
 
+  # The secret is fixed instead of left to Keycloak to generate, so the
+  # containers in app/docker-compose.yml can be handed it before this script
+  # has ever run. It comes from <CLIENT_ID>_CLIENT_SECRET (auth-service ->
+  # AUTH_SERVICE_CLIENT_SECRET) and defaults to "<clientId>-secret", the same
+  # default the compose file uses. Local development only: set real values in
+  # .env for anything shared.
+  secret_var="$(printf '%s' "$svc" | tr '[:lower:]-' '[:upper:]_')_CLIENT_SECRET"
+  svc_secret="${!secret_var:-$svc-secret}"
+
   svc_client_json=$(jq -nc \
     --arg id "$svc" \
     --arg name "$svc_display_name" \
+    --arg secret "$svc_secret" \
     '{
        clientId: $id,
        name: $name,
+       secret: $secret,
        enabled: true,
        publicClient: false,
        standardFlowEnabled: false,

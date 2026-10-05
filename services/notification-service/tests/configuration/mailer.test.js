@@ -21,6 +21,7 @@ describe('mailer configuration', () => {
         delete process.env.SMTP_PORT;
         delete process.env.SMTP_USER;
         delete process.env.SMTP_PASS;
+        delete process.env.SMTP_REQUIRE_TLS;
 
         transporter = { verify: jest.fn() };
         nodemailer.createTransport.mockReturnValue(transporter);
@@ -60,6 +61,17 @@ describe('mailer configuration', () => {
 
         expect(nodemailer.createTransport).toHaveBeenCalledWith(
             expect.objectContaining({ port: 465, secure: true, requireTLS: false }),
+        );
+    });
+
+    it('skips STARTTLS when SMTP_REQUIRE_TLS is false', () => {
+        process.env.SMTP_PORT = '1025';
+        process.env.SMTP_REQUIRE_TLS = 'false';
+
+        loadMailer();
+
+        expect(nodemailer.createTransport).toHaveBeenCalledWith(
+            expect.objectContaining({ port: 1025, secure: false, requireTLS: false }),
         );
     });
 
