@@ -11,10 +11,12 @@ import com.inventory.api.model.dto.response.Response;
 import com.inventory.api.model.dto.response.so.SODetailRes;
 import com.inventory.api.model.dto.response.so.SORes;
 import com.inventory.api.model.entity.Product;
+import com.inventory.api.model.entity.Refund;
 import com.inventory.api.model.entity.SalesOrder;
 import com.inventory.api.model.entity.SalesOrderDetail;
 import com.inventory.api.model.entity.Stock;
 import com.inventory.api.model.entity.StockPosition;
+import com.inventory.api.repository.RefundRepository;
 import com.inventory.api.repository.SalesOrderDetailRepository;
 import com.inventory.api.repository.SalesOrderRepository;
 import com.inventory.api.repository.StockPositionRepository;
@@ -24,13 +26,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,6 +48,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -57,6 +65,7 @@ class SalesOrderServiceTest {
     private SalesOrderDetailRepository soDetailRepository;
     private StockRepository stockRepository;
     private StockPositionRepository stockPositionRepository;
+    private RefundRepository refundRepository;
 
     private SalesOrderServiceImpl service;
 
@@ -66,9 +75,10 @@ class SalesOrderServiceTest {
         soDetailRepository = mock(SalesOrderDetailRepository.class);
         stockRepository = mock(StockRepository.class);
         stockPositionRepository = mock(StockPositionRepository.class);
+        refundRepository = mock(RefundRepository.class);
 
         service = new SalesOrderServiceImpl(soRepository, soDetailRepository,
-                stockRepository, stockPositionRepository);
+                stockRepository, stockPositionRepository, refundRepository);
     }
 
     // ------------------------------------------------------------------
@@ -378,11 +388,43 @@ class SalesOrderServiceTest {
     // doCancel
     // ------------------------------------------------------------------
 
-    private static SOCancelReq cancel(Long id) {
+    private static final String REFUND_NO = "RF20260923001";
+
+    private static Refund refund(Long id, String documentNumber, String amount) {
+        Refund refund = new Refund();
+        refund.setId(id);
+        refund.setDocumentNumber(documentNumber);
+        refund.setAmount(amount == null ? null : new BigDecimal(amount));
+
+        return refund;
+    }
+
+    private SOCancelReq cancel(Long id) {
+        return cancel(id, refund(501L, REFUND_NO, "9000"));
+    }
+
+    /** A cancel naming these refunds, which the order service has recorded for the order. */
+    private SOCancelReq cancel(Long id, Refund... refunds) {
+        when(refundRepository.findBySalesOrderIdAndIdInOrderByIdAsc(eq(id), anyCollection()))
+                .thenReturn(List.of(refunds));
+        return cancelWithIds(id, Arrays.stream(refunds).map(Refund::getId).toList());
+    }
+
+    private static SOCancelReq cancelWithIds(Long id, List<Long> refundIds) {
         SOCancelReq req = new SOCancelReq();
         req.setId(id);
+        req.setRefundIds(refundIds);
 
         return req;
+    }
+
+    private static void assertMovement(Stock stock, Refund refund, Product product, int quantity) {
+        assertEquals(StockActivity.SI, stock.getActivity());
+        assertEquals(DocType.SR, stock.getDocumentType());
+        assertEquals(refund.getDocumentNumber(), stock.getDocumentNumber());
+        assertSame(refund, stock.getSalesRefund(), "the movement must point back at its refund");
+        assertSame(product, stock.getProduct());
+        assertEquals(quantity, stock.getQuantity());
     }
 
     private static Stock stockOut(SalesOrder so, Product product, int quantity) {
@@ -411,19 +453,24 @@ class SalesOrderServiceTest {
         Product coffee = product(7L, "Kopi Robusta 1kg", 6);
         Product tea = product(8L, "Teh Hijau 500g", 8);
         SalesOrder so = givenCancelledAfterSubmit(coffee, 4, tea, 2);
+        Refund refund = refund(501L, REFUND_NO, "9000");
 
-        Response response = service.doCancel(cancel(90L));
+        Response response = service.doCancel(cancel(90L, refund));
 
         assertEquals(200, response.getCode());
         List<Stock> movements = savedStocks();
         assertEquals(2, movements.size());
         assertEquals(StockActivity.SI, movements.get(0).getActivity(), "returned goods are a stock in");
-        assertEquals(DocType.SO, movements.get(0).getDocumentType());
-        assertEquals("SO/2026/09/0001", movements.get(0).getDocumentNumber());
+        assertEquals(DocType.SR, movements.get(0).getDocumentType(), "returned goods are recorded as a refund");
+        assertEquals(REFUND_NO, movements.get(0).getDocumentNumber());
         assertEquals(4, movements.get(0).getQuantity());
         assertSame(coffee, movements.get(0).getProduct());
         assertSame(so, movements.get(0).getSalesOrder());
+        assertSame(refund, movements.get(0).getSalesRefund(), "the movement must point back at its refund");
         assertEquals(StockActivity.SI, movements.get(1).getActivity());
+        assertEquals(DocType.SR, movements.get(1).getDocumentType());
+        assertEquals(REFUND_NO, movements.get(1).getDocumentNumber());
+        assertSame(refund, movements.get(1).getSalesRefund());
         assertEquals(2, movements.get(1).getQuantity());
         assertSame(tea, movements.get(1).getProduct());
     }
@@ -472,6 +519,7 @@ class SalesOrderServiceTest {
         assertEquals(200, response.getCode());
         verify(stockRepository, never()).saveAll(anyList());
         verifyNoInteractions(stockPositionRepository);
+        verify(refundRepository, never()).findBySalesOrderIdAndIdInOrderByIdAsc(anyLong(), anyCollection());
         assertEquals(10, coffee.getStockPosition().getQuantity());
     }
 
@@ -501,6 +549,132 @@ class SalesOrderServiceTest {
 
         assertEquals("Sales order SO/2026/09/0001 is not cancelled", thrown.getMessage());
         verifyNoInteractions(stockRepository, stockPositionRepository);
+    }
+
+    @Test
+    void shouldRecordOneMovementPerRefundSplitInProportionToItsAmount() {
+        // Paid, and so refunded, in two instalments of 40% and 60%.
+        Product coffee = product(7L, "Kopi Robusta 1kg", 6);
+        Product tea = product(8L, "Teh Hijau 500g", 8);
+        SalesOrder so = givenCancelledAfterSubmit(coffee, 4, tea, 1);
+
+        Refund first = refund(501L, "RF20260923001", "40000.00");
+        Refund second = refund(502L, "RF20260923002", "60000.00");
+
+        service.doCancel(cancel(90L, first, second));
+
+        // Coffee 4 is 1.6 + 2.4: the whole parts give 1 + 2 and the unit left over goes to
+        // the larger fraction, 0.6. Tea 1 is 0.4 + 0.6, so all of it goes to the second
+        // refund and the first records no tea at all.
+        List<Stock> movements = savedStocks();
+        assertEquals(3, movements.size());
+        assertMovement(movements.get(0), first, coffee, 2);
+        assertMovement(movements.get(1), second, coffee, 2);
+        assertMovement(movements.get(2), second, tea, 1);
+        movements.forEach(movement -> assertSame(so, movement.getSalesOrder()));
+
+        List<StockPosition> positions = savedPositions();
+        assertEquals(10, positions.get(0).getQuantity(), "the split must still return all the coffee");
+        assertEquals(9, positions.get(1).getQuantity(), "the split must still return all the tea");
+    }
+
+    @Test
+    void shouldGiveTheLeftoverUnitToTheEarlierRefundOnATie() {
+        Product coffee = product(7L, "Kopi Robusta 1kg", 0);
+        Product tea = product(8L, "Teh Hijau 500g", 0);
+        givenCancelledAfterSubmit(coffee, 3, tea, 1);
+
+        Refund first = refund(501L, "RF20260923001", "50000.00");
+        Refund second = refund(502L, "RF20260923002", "50000.00");
+
+        service.doCancel(cancel(90L, first, second));
+
+        List<Stock> movements = savedStocks();
+        assertEquals(3, movements.size());
+        assertMovement(movements.get(0), first, coffee, 2);
+        assertMovement(movements.get(1), first, tea, 1);
+        assertMovement(movements.get(2), second, coffee, 1);
+    }
+
+    @Test
+    void shouldSplitAcrossManyInstalmentsWithoutLosingAUnit() {
+        Product coffee = product(7L, "Kopi Robusta 1kg", 0);
+        Product tea = product(8L, "Teh Hijau 500g", 0);
+        givenCancelledAfterSubmit(coffee, 10, tea, 7);
+
+        service.doCancel(cancel(90L, refund(501L, "RF20260923001", "10000.00"),
+                refund(502L, "RF20260923002", "33333.33"), refund(503L, "RF20260923003", "56666.67")));
+
+        List<Stock> movements = savedStocks();
+        assertEquals(10, movements.stream().filter(m -> m.getProduct() == coffee).mapToInt(Stock::getQuantity).sum());
+        assertEquals(7, movements.stream().filter(m -> m.getProduct() == tea).mapToInt(Stock::getQuantity).sum());
+        assertTrue(movements.stream().allMatch(m -> m.getQuantity() > 0), "a movement never records nothing");
+        assertEquals(10, coffee.getStockPosition().getQuantity());
+        assertEquals(7, tea.getStockPosition().getQuantity());
+    }
+
+    @Test
+    void shouldReadTheNamedRefundsOfTheOrderOnce() {
+        Product coffee = product(7L, "Kopi Robusta 1kg", 6);
+        Product tea = product(8L, "Teh Hijau 500g", 8);
+        givenCancelledAfterSubmit(coffee, 4, tea, 2);
+        Refund refund = refund(501L, REFUND_NO, "9000");
+        when(refundRepository.findBySalesOrderIdAndIdInOrderByIdAsc(eq(90L), anyCollection()))
+                .thenReturn(List.of(refund));
+
+        // A refund named twice is still one refund.
+        service.doCancel(cancelWithIds(90L, List.of(501L, 501L)));
+
+        verify(refundRepository).findBySalesOrderIdAndIdInOrderByIdAsc(90L, Set.of(501L));
+        assertEquals(2, savedStocks().size());
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldRefuseToReturnTheStockWithoutRefunds(List<Long> refundIds) {
+        Product coffee = product(7L, "Kopi Robusta 1kg", 6);
+        Product tea = product(8L, "Teh Hijau 500g", 8);
+        givenCancelledAfterSubmit(coffee, 4, tea, 2);
+
+        BadRequestException thrown = assertThrows(BadRequestException.class,
+                () -> service.doCancel(cancelWithIds(90L, refundIds)));
+
+        assertEquals("Sales order SO/2026/09/0001 cancel has no refunds", thrown.getMessage());
+        verifyNoInteractions(stockRepository, stockPositionRepository, refundRepository);
+    }
+
+    @Test
+    void shouldRefuseToReturnTheStockUnderARefundOfAnotherOrder() {
+        Product coffee = product(7L, "Kopi Robusta 1kg", 6);
+        Product tea = product(8L, "Teh Hijau 500g", 8);
+        givenCancelledAfterSubmit(coffee, 4, tea, 2);
+        // 502 is not a refund of this order, so only 501 comes back.
+        when(refundRepository.findBySalesOrderIdAndIdInOrderByIdAsc(eq(90L), anyCollection()))
+                .thenReturn(List.of(refund(501L, REFUND_NO, "40000.00")));
+
+        BadRequestException thrown = assertThrows(BadRequestException.class,
+                () -> service.doCancel(cancelWithIds(90L, List.of(501L, 502L))));
+
+        assertEquals("Sales order SO/2026/09/0001 cancel names refunds that are not of this order",
+                thrown.getMessage());
+        verify(stockRepository, never()).saveAll(anyList());
+        verify(stockPositionRepository, never()).saveAll(any());
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"0", "-1"})
+    void shouldRefuseToReturnTheStockUnderARefundWithoutAPositiveAmount(String amount) {
+        Product coffee = product(7L, "Kopi Robusta 1kg", 6);
+        Product tea = product(8L, "Teh Hijau 500g", 8);
+        givenCancelledAfterSubmit(coffee, 4, tea, 2);
+
+        BadRequestException thrown = assertThrows(BadRequestException.class, () -> service.doCancel(
+                cancel(90L, refund(501L, REFUND_NO, "60000.00"), refund(502L, "RF20260923002", amount))));
+
+        assertEquals("Refund RF20260923002 has no positive amount", thrown.getMessage());
+        verify(stockRepository, never()).saveAll(anyList());
+        verify(stockPositionRepository, never()).saveAll(any());
     }
 
     @Test

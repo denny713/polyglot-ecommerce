@@ -110,8 +110,8 @@ public class PaymentServiceImpl implements PaymentService {
     /**
      * Cancels a paid order: everything paid towards it, its grand total, is refunded
      * payment by payment to the account it came from, and the inventory service is
-     * told to put its stock back once this commits. Any other order is refused; one
-     * still pending is cancelled through checkout instead.
+     * told to put its stock back once this commits, under those refunds. Any other
+     * order is refused; one still pending is cancelled through checkout instead.
      */
     @Override
     @Transactional
@@ -130,7 +130,7 @@ public class PaymentServiceImpl implements PaymentService {
         order.setStatus(SalesStatus.CANCELLED);
         soRepository.save(order);
         List<Refund> refunds = refundService.doRefundOrder(order, RefundReason.CANCELLATION);
-        soProducer.doCancelAfterCommit(order);
+        soProducer.doCancelAfterCommit(order, refunds);
 
         BigDecimal refunded = refunds.stream().map(Refund::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         log.info("Paid sales order {} cancelled, {} refunded", order.getDocumentNumber(), refunded);

@@ -2,6 +2,7 @@ package com.order.api.producer;
 
 import com.order.api.model.dto.message.SOCancelMsg;
 import com.order.api.model.dto.message.SOSubmitMsg;
+import com.order.api.model.entity.Refund;
 import com.order.api.model.entity.SalesOrder;
 import com.order.api.util.AccountUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -17,6 +18,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -115,9 +118,21 @@ class SalesOrderProducerTest {
     // cancel
     // ------------------------------------------------------------------
 
+    private static List<Refund> refunds() {
+        return List.of(refund(501L, "RF20260923001", "40000.00"), refund(502L, "RF20260923002", "60000.00"));
+    }
+
+    private static Refund refund(Long id, String docNo, String amount) {
+        Refund refund = new Refund();
+        refund.setId(id);
+        refund.setDocumentNumber(docNo);
+        refund.setAmount(new BigDecimal(amount));
+        return refund;
+    }
+
     @Test
     void shouldPublishACancelOnTheCancelRoutingKey() {
-        producer.doCancelAfterCommit(order());
+        producer.doCancelAfterCommit(order(), refunds());
 
         ArgumentCaptor<Object> payload = ArgumentCaptor.forClass(Object.class);
         ArgumentCaptor<MessagePostProcessor> postProcessor = ArgumentCaptor.forClass(MessagePostProcessor.class);
@@ -128,7 +143,10 @@ class SalesOrderProducerTest {
         verify(template, never()).convertAndSend(any(Object.class), any(MessagePostProcessor.class),
                 any(CorrelationData.class));
 
-        assertEquals(15L, assertInstanceOf(SOCancelMsg.class, payload.getValue()).getId());
+        SOCancelMsg msg = assertInstanceOf(SOCancelMsg.class, payload.getValue());
+        assertEquals(15L, msg.getId());
+        // Every instalment's refund, in order, so the inventory service can split the stock across them.
+        assertEquals(List.of(501L, 502L), msg.getRefundIds());
         assertEquals("SO20260923001", correlation.getValue().getId());
         Message message = postProcessor.getValue().postProcessMessage(new Message(new byte[0], new MessageProperties()));
         assertEquals(USER.toString(), message.getMessageProperties().getHeader("X-User-Id"));
@@ -138,7 +156,7 @@ class SalesOrderProducerTest {
     void shouldWaitForTheCommitBeforeCancelling() {
         TransactionSynchronizationManager.initSynchronization();
 
-        producer.doCancelAfterCommit(order());
+        producer.doCancelAfterCommit(order(), refunds());
 
         verifyNoInteractions(template);
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
@@ -152,6 +170,6 @@ class SalesOrderProducerTest {
                 .when(template).convertAndSend(anyString(), any(Object.class), any(MessagePostProcessor.class),
                         any(CorrelationData.class));
 
-        assertDoesNotThrow(() -> producer.doCancelAfterCommit(order()));
+        assertDoesNotThrow(() -> producer.doCancelAfterCommit(order(), refunds()));
     }
 }

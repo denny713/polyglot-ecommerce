@@ -450,8 +450,8 @@ class PaymentServiceTest {
     void shouldCancelAPaidOrderRefundItsGrandTotalAndReturnItsStock() {
         SalesOrder order = givenPaidOrder();
         // Paid in two instalments, so refunded in two.
-        when(refundService.doRefundOrder(order, RefundReason.CANCELLATION)).thenReturn(List.of(
-                refund("RF20260923001", "40000.00"), refund("RF20260923002", "60000.00")));
+        List<Refund> refunds = List.of(refund("RF20260923001", "40000.00"), refund("RF20260923002", "60000.00"));
+        when(refundService.doRefundOrder(order, RefundReason.CANCELLATION)).thenReturn(refunds);
 
         Response response = service.doCancel(15L);
 
@@ -468,7 +468,8 @@ class PaymentServiceTest {
         InOrder inOrder = inOrder(soRepository, refundService, soProducer);
         inOrder.verify(soRepository).save(order);
         inOrder.verify(refundService).doRefundOrder(order, RefundReason.CANCELLATION);
-        inOrder.verify(soProducer).doCancelAfterCommit(order);
+        // The returned stock is recorded under every refund, not just the first.
+        inOrder.verify(soProducer).doCancelAfterCommit(order, refunds);
         verify(paymentRepository, never()).save(any(Payment.class));
     }
 

@@ -8,7 +8,10 @@ import lombok.*;
 import org.hibernate.annotations.NotFound;
 import org.hibernate.annotations.NotFoundAction;
 
-/** One stock movement — the append-only history behind {@link com.inventory.api.model.entity.StockPosition}. */
+/**
+ * One stock movement — the append-only history behind
+ * {@link com.inventory.api.model.entity.StockPosition}.
+ */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter
@@ -39,6 +42,11 @@ public class Stock extends Base {
     @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "sales_order_id", referencedColumnName = "id")
     private SalesOrder salesOrder;
+
+    @ManyToOne
+    @NotFound(action = NotFoundAction.IGNORE)
+    @JoinColumn(name = "sales_refund_id", referencedColumnName = "id")
+    private Refund salesRefund;
 
     @ManyToOne
     @NotFound(action = NotFoundAction.IGNORE)
